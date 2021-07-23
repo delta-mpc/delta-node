@@ -1,4 +1,3 @@
-from re import T
 import sqlalchemy as sa
 from .. import db
 

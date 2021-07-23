@@ -13,7 +13,7 @@ from .. import config
 __all__ = ["Base", "session_scope", "get_session", "close", "with_session", "init_db"]
 
 _engine = create_engine(
-    config.db, pool_pre_ping=True, connect_args={'check_same_thread': False}
+    config.db, pool_pre_ping=True, connect_args={"check_same_thread": False}
 )
 
 _session = sessionmaker(bind=_engine, autocommit=False, autoflush=False)
@@ -57,7 +57,7 @@ def with_session(f):
 def init_db():
     db_path = config.db.split(r":///", maxsplit=2)[1]
     db_name = db_path.split(r"/")[-1]
-    db_dir = db_path[:-len(db_name)]
+    db_dir = db_path[: -len(db_name)]
     if not os.path.exists(db_path):
         os.makedirs(db_dir, exist_ok=True)
         conn = sqlite3.connect(db_path)
