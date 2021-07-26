@@ -1,8 +1,6 @@
-from delta_node.model import task
+import os
 from .. import config
-import os.path
 
-__all__ = ["task_cfg_file", "task_weight_file"]
 
 def task_cfg_file(task_id: int):
     return os.path.join(config.server_storage_dir, "cfg", str(task_id) + ".cfg")
