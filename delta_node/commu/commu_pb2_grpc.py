@@ -3,7 +3,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import commu_pb2 as commu__pb2
+from . import commu_pb2 as commu__pb2
 
 
 class CommuStub(object):
