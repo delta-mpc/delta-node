@@ -8,4 +8,4 @@ app.include_router(task_router)
 
 
 def run(host: str, port: int):
-    uvicorn.run("delta.app:app", host=host, port=port)
+    uvicorn.run("delta_node.app:app", host=host, port=port)

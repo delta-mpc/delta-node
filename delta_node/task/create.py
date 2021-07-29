@@ -4,16 +4,17 @@ from typing import IO, Any, Dict
 from delta_node import config
 from sqlalchemy.orm import Session
 
-from .. import contract, model, node
+from .. import contract, db, model, node
 from .location import task_cfg_file, task_weight_file
 
 
+@db.with_session
 def create_task(
     metadata: Dict[str, Any],
     cfg_file: IO[bytes],
     weight_file: IO[bytes],
     session: Session = None,
-):
+) -> int:
     assert session is not None
     name = metadata["name"]
     type = metadata["type"]
@@ -21,14 +22,14 @@ def create_task(
     algorithm = metadata["algorithm"]
     members = metadata["members"]
 
-    node_id = node.get_node_id(session)
+    node_id = node.get_node_id(session=session)
     task_id = contract.create_task(node_id, name)
 
     # save cfg
     with open(task_cfg_file(task_id), mode="wb") as f:
         shutil.copyfileobj(cfg_file, f)
     # save weight
-    with open(task_weight_file(task_id), mode="wb") as f:
+    with open(task_weight_file(task_id, 0), mode="wb") as f:
         shutil.copyfileobj(weight_file, f)
 
     # add task to db
@@ -51,3 +52,4 @@ def create_task(
         task_members.append(member)
     session.bulk_save_objects(task_members)
     session.commit()
+    return task_id

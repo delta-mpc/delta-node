@@ -1,3 +1,1 @@
-from .contract import *
-from .event_filter import *
-
+from . import contract, event_filter
