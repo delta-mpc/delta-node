@@ -2,17 +2,46 @@ syntax = "proto3";
 
 package commu;
 
-message Message {
-    int32 frame_id = 1;
-    int32 sequence = 2;
-    string src = 3;
-    string dst = 4;
-    string type = 5;
-    string name = 6;
-    bytes content = 7;
-    bool eof = 8;
+message MetadataReq {
+    int32 task_id = 1;
+    string member_id = 2;
+}
+
+message MetadataResp {
+    string name = 1;
+    string type = 2;
+    int32 secure_level = 3;
+    string algorithm = 4;
+    repeated string members = 5;
+}
+
+message FileReq {
+    string type = 1;
+    int32 task_id = 2;
+    string member_id = 3;
+    int32 round_id = 4;
+}
+
+message FileResp {
+    string filename = 1;
+    bytes content = 2;
+}
+
+message ResultReq {
+    int32 task_id = 1;
+    string member_id = 2;
+    int32 round_id = 3;
+    string type = 4;
+    bytes content = 5;
+}
+
+message ResultResp {
+    string type = 1;
+    bytes content = 2;
 }
 
 service Commu {
-    rpc call(stream Message) returns (stream Message) {}
+    rpc GetMetadata(MetadataReq) returns (MetadataResp) {}
+    rpc GetFile(FileReq) returns (stream FileResp) {}
+    rpc UploadResult(stream ResultReq) returns (stream ResultResp) {} 
 }

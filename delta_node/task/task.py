@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.expression import desc
+from .exceptions import *
 
 from .. import db, model
 
@@ -81,12 +82,11 @@ def join_task(task_id: int, member_id: str, *, session: Session = None):
         .one_or_none()
     )
     if member is None:
-        raise RuntimeError(f"member {member_id} of task {task_id} is not existed")
-    if member.joined:
-        raise RuntimeError(f"member {member_id} of task {task_id} has joined")
-    member.joined = True  # type: ignore
-    session.add(member)
-    session.commit()
+        raise TaskNoMemberError(task_id, member_id)
+    if not member.joined:
+        member.joined = True  # type: ignore
+        session.add(member)
+        session.commit()
 
 
 @db.with_session

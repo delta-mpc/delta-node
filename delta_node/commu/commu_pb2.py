@@ -19,73 +19,31 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0b\x63ommu.proto\x12\x05\x63ommu\"\x81\x01\n\x07Message\x12\x10\n\x08\x66rame_id\x18\x01 \x01(\x05\x12\x10\n\x08sequence\x18\x02 \x01(\x05\x12\x0b\n\x03src\x18\x03 \x01(\t\x12\x0b\n\x03\x64st\x18\x04 \x01(\t\x12\x0c\n\x04type\x18\x05 \x01(\t\x12\x0c\n\x04name\x18\x06 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x07 \x01(\x0c\x12\x0b\n\x03\x65of\x18\x08 \x01(\x08\x32\x35\n\x05\x43ommu\x12,\n\x04\x63\x61ll\x12\x0e.commu.Message\x1a\x0e.commu.Message\"\x00(\x01\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0b\x63ommu.proto\x12\x05\x63ommu\"1\n\x0bMetadataReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\"d\n\x0cMetadataResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x14\n\x0csecure_level\x18\x03 \x01(\x05\x12\x11\n\talgorithm\x18\x04 \x01(\t\x12\x0f\n\x07members\x18\x05 \x03(\t\"M\n\x07\x46ileReq\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x11\n\tmember_id\x18\x03 \x01(\t\x12\x10\n\x08round_id\x18\x04 \x01(\x05\"-\n\x08\x46ileResp\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"`\n\tResultReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\x12\x10\n\x08round_id\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x05 \x01(\x0c\"+\n\nResultResp\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\x32\xac\x01\n\x05\x43ommu\x12\x38\n\x0bGetMetadata\x12\x12.commu.MetadataReq\x1a\x13.commu.MetadataResp\"\x00\x12.\n\x07GetFile\x12\x0e.commu.FileReq\x1a\x0f.commu.FileResp\"\x00\x30\x01\x12\x39\n\x0cUploadResult\x12\x10.commu.ResultReq\x1a\x11.commu.ResultResp\"\x00(\x01\x30\x01\x62\x06proto3'
 )
 
 
 
 
-_MESSAGE = _descriptor.Descriptor(
-  name='Message',
-  full_name='commu.Message',
+_METADATAREQ = _descriptor.Descriptor(
+  name='MetadataReq',
+  full_name='commu.MetadataReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='frame_id', full_name='commu.Message.frame_id', index=0,
+      name='task_id', full_name='commu.MetadataReq.task_id', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='sequence', full_name='commu.Message.sequence', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='src', full_name='commu.Message.src', index=2,
-      number=3, type=9, cpp_type=9, label=1,
+      name='member_id', full_name='commu.MetadataReq.member_id', index=1,
+      number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='dst', full_name='commu.Message.dst', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='type', full_name='commu.Message.type', index=4,
-      number=5, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='name', full_name='commu.Message.name', index=5,
-      number=6, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='content', full_name='commu.Message.content', index=6,
-      number=7, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='eof', full_name='commu.Message.eof', index=7,
-      number=8, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -101,19 +59,310 @@ _MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23,
-  serialized_end=152,
+  serialized_start=22,
+  serialized_end=71,
 )
 
-DESCRIPTOR.message_types_by_name['Message'] = _MESSAGE
+
+_METADATARESP = _descriptor.Descriptor(
+  name='MetadataResp',
+  full_name='commu.MetadataResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='commu.MetadataResp.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='type', full_name='commu.MetadataResp.type', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='secure_level', full_name='commu.MetadataResp.secure_level', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='algorithm', full_name='commu.MetadataResp.algorithm', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='members', full_name='commu.MetadataResp.members', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=73,
+  serialized_end=173,
+)
+
+
+_FILEREQ = _descriptor.Descriptor(
+  name='FileReq',
+  full_name='commu.FileReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='type', full_name='commu.FileReq.type', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='commu.FileReq.task_id', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='member_id', full_name='commu.FileReq.member_id', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='round_id', full_name='commu.FileReq.round_id', index=3,
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=175,
+  serialized_end=252,
+)
+
+
+_FILERESP = _descriptor.Descriptor(
+  name='FileResp',
+  full_name='commu.FileResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='filename', full_name='commu.FileResp.filename', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='content', full_name='commu.FileResp.content', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=254,
+  serialized_end=299,
+)
+
+
+_RESULTREQ = _descriptor.Descriptor(
+  name='ResultReq',
+  full_name='commu.ResultReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='commu.ResultReq.task_id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='member_id', full_name='commu.ResultReq.member_id', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='round_id', full_name='commu.ResultReq.round_id', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='type', full_name='commu.ResultReq.type', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='content', full_name='commu.ResultReq.content', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=301,
+  serialized_end=397,
+)
+
+
+_RESULTRESP = _descriptor.Descriptor(
+  name='ResultResp',
+  full_name='commu.ResultResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='type', full_name='commu.ResultResp.type', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='content', full_name='commu.ResultResp.content', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=399,
+  serialized_end=442,
+)
+
+DESCRIPTOR.message_types_by_name['MetadataReq'] = _METADATAREQ
+DESCRIPTOR.message_types_by_name['MetadataResp'] = _METADATARESP
+DESCRIPTOR.message_types_by_name['FileReq'] = _FILEREQ
+DESCRIPTOR.message_types_by_name['FileResp'] = _FILERESP
+DESCRIPTOR.message_types_by_name['ResultReq'] = _RESULTREQ
+DESCRIPTOR.message_types_by_name['ResultResp'] = _RESULTRESP
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Message = _reflection.GeneratedProtocolMessageType('Message', (_message.Message,), {
-  'DESCRIPTOR' : _MESSAGE,
+MetadataReq = _reflection.GeneratedProtocolMessageType('MetadataReq', (_message.Message,), {
+  'DESCRIPTOR' : _METADATAREQ,
   '__module__' : 'commu_pb2'
-  # @@protoc_insertion_point(class_scope:commu.Message)
+  # @@protoc_insertion_point(class_scope:commu.MetadataReq)
   })
-_sym_db.RegisterMessage(Message)
+_sym_db.RegisterMessage(MetadataReq)
+
+MetadataResp = _reflection.GeneratedProtocolMessageType('MetadataResp', (_message.Message,), {
+  'DESCRIPTOR' : _METADATARESP,
+  '__module__' : 'commu_pb2'
+  # @@protoc_insertion_point(class_scope:commu.MetadataResp)
+  })
+_sym_db.RegisterMessage(MetadataResp)
+
+FileReq = _reflection.GeneratedProtocolMessageType('FileReq', (_message.Message,), {
+  'DESCRIPTOR' : _FILEREQ,
+  '__module__' : 'commu_pb2'
+  # @@protoc_insertion_point(class_scope:commu.FileReq)
+  })
+_sym_db.RegisterMessage(FileReq)
+
+FileResp = _reflection.GeneratedProtocolMessageType('FileResp', (_message.Message,), {
+  'DESCRIPTOR' : _FILERESP,
+  '__module__' : 'commu_pb2'
+  # @@protoc_insertion_point(class_scope:commu.FileResp)
+  })
+_sym_db.RegisterMessage(FileResp)
+
+ResultReq = _reflection.GeneratedProtocolMessageType('ResultReq', (_message.Message,), {
+  'DESCRIPTOR' : _RESULTREQ,
+  '__module__' : 'commu_pb2'
+  # @@protoc_insertion_point(class_scope:commu.ResultReq)
+  })
+_sym_db.RegisterMessage(ResultReq)
+
+ResultResp = _reflection.GeneratedProtocolMessageType('ResultResp', (_message.Message,), {
+  'DESCRIPTOR' : _RESULTRESP,
+  '__module__' : 'commu_pb2'
+  # @@protoc_insertion_point(class_scope:commu.ResultResp)
+  })
+_sym_db.RegisterMessage(ResultResp)
 
 
 
@@ -124,16 +373,36 @@ _COMMU = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=154,
-  serialized_end=207,
+  serialized_start=445,
+  serialized_end=617,
   methods=[
   _descriptor.MethodDescriptor(
-    name='call',
-    full_name='commu.Commu.call',
+    name='GetMetadata',
+    full_name='commu.Commu.GetMetadata',
     index=0,
     containing_service=None,
-    input_type=_MESSAGE,
-    output_type=_MESSAGE,
+    input_type=_METADATAREQ,
+    output_type=_METADATARESP,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetFile',
+    full_name='commu.Commu.GetFile',
+    index=1,
+    containing_service=None,
+    input_type=_FILEREQ,
+    output_type=_FILERESP,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='UploadResult',
+    full_name='commu.Commu.UploadResult',
+    index=2,
+    containing_service=None,
+    input_type=_RESULTREQ,
+    output_type=_RESULTRESP,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
