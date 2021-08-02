@@ -6,6 +6,8 @@ __all__ = [
     "TaskNoMemberError",
     "TaskUnfinishedRoundError",
     "TaskNoSuchRoundError",
+    "TaskUnknownFileTypeError",
+    "TaskFileNotExistedError"
 ]
 
 
@@ -64,3 +66,21 @@ class TaskNoSuchRoundError(TaskError):
 
     def __str__(self) -> str:
         return f"task {self.task_id} has no such round {self.round_id} for member {self.member_id}"
+
+
+class TaskUnknownFileTypeError(TaskError):
+    def __init__(self, task_id: int, file_type: str) -> None:
+        super().__init__(task_id)
+        self.file_type = file_type
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} unknown file type {self.file_type}"
+
+
+class TaskFileNotExistedError(TaskError):
+    def __init__(self, task_id: int, filename: str) -> None:
+        super().__init__(task_id)
+        self.filename = filename
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} {self.filename} is not existed"

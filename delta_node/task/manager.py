@@ -1,15 +1,19 @@
 import logging
+import os.path
 import threading
 from collections import defaultdict
-from typing import Dict, List
+from concurrent import futures
+from contextlib import contextmanager
+from typing import Dict, Optional
 
-from delta_node import contract
+from delta import task as delta_task
 from sqlalchemy.orm.session import Session
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
                       wait_fixed)
 
-from .. import config, model, node
+from .. import agg, channel, contract, model, node
 from .exceptions import *
+from .location import task_cfg_file, task_weight_file
 from .metadata import TaskMetadata
 from .task import *
 
@@ -39,9 +43,12 @@ class TaskManager(object):
         self._round_id = 0
         self._round_finished = False
 
-    @property
-    def task_metadata(self) -> TaskMetadata:
-        return self._metadata
+        self._agg_lock = threading.Lock()
+        self._agg_group: Optional[channel.ChannelGroup] = None
+
+        cfg_file = task_cfg_file(task_id)
+        with open(cfg_file, mode="rb") as f:
+            self._task_item = delta_task.load(f)
 
     def has_member(self, member_id: str) -> bool:
         return member_id in self._members
@@ -97,32 +104,6 @@ class TaskManager(object):
                         self._round_cond.wait_for(lambda: last_round < self._round_id)
                         return self._round_id
 
-    def start_round(self, member_id: str, *, session: Session = None) -> int:
-        if self._round_id == 0 or self._round_finished:
-            # the first round or last round is finished, start a new round
-            round_id = contract.start_round(self._node_id, self._task_id)
-            self._round_id = round_id
-            member_start_round(self._task_id, member_id, round_id, session=session)
-            return self._round_id
-        else:
-            # current round is not finished
-            round_id, status = get_member_round_status(
-                self._task_id, member_id, session=session
-            )
-            if status == model.RoundStatus.RUNNING:
-                # return running round id
-                return round_id
-            elif round_id < self._round_id:
-                # start new round for member who finished last round
-                member_start_round(
-                    self._task_id, member_id, self._round_id, session=session
-                )
-                return self._round_id
-            else:
-                # member who finished current round
-                # cannot start new round until current round is finished
-                raise TaskUnfinishedRoundError(self._task_id, self._round_id)
-
     def round_status(
         self, member_id: str, round_id: int, *, session: Session = None
     ) -> model.RoundStatus:
@@ -136,16 +117,65 @@ class TaskManager(object):
         else:
             raise TaskNoSuchRoundError(self._task_id, member_id, round_id)
 
-    def finish_round(self, member_id: str, round_id: int, *, session: Session = None):
+    def _finish_member_round(
+        self, member_id: str, round_id: int, *, session: Session = None
+    ):
         member_finish_round(self._task_id, member_id, round_id, session=session)
-        self._update_round_finished(session=session)
 
-    def _update_round_finished(self, *, session: Session = None):
-        members = get_finished_round_member(
-            self._task_id, self._round_id, session=session
-        )
-        if len(members) == len(self._members):
+    def _finish_round(self):
+        with self._round_cond:
             self._round_finished = True
+
+    def get_metadata(self, member_id: str) -> TaskMetadata:
+        self.join(member_id)
+        return self._metadata
+
+    def get_file(self, member_id: str, file_type: str) -> str:
+        if self.has_joined_member(member_id):
+            if file_type == "cfg":
+                filename = task_cfg_file(self._task_id)
+            elif file_type == "weight":
+                round_id = self.start_new_round(member_id)
+                filename = task_weight_file(self._task_id, round_id)
+            else:
+                raise TaskUnknownFileTypeError(self._task_id, file_type)
+            if os.path.exists(filename):
+                return filename
+            else:
+                raise TaskFileNotExistedError(self._task_id, filename)
+        else:
+            raise MemberNotJoinedError(self._task_id, member_id)
+
+    @contextmanager
+    def aggregate(self, member_id: str):
+        in_ch, out_ch = channel.new_channel_pair()
+        master = False
+        with self._agg_lock:
+            if self._agg_group is None:
+                self._agg_group = channel.ChannelGroup()
+                master = True
+
+        self._agg_group.register(member_id, in_ch)
+        pool: Optional[futures.ThreadPoolExecutor] = None
+        fut: Optional[futures.Future] = None
+        if master:
+            agg_method = agg.get_agg_method(self._metadata.secure_level)
+            pool = futures.ThreadPoolExecutor(1)
+            fut = pool.submit(agg_method, self._joined_members, self._agg_group)
+
+        yield out_ch
+
+        self._finish_member_round(member_id, self._round_id)
+        if master:
+            assert fut is not None
+            assert pool is not None
+            result = fut.result()
+            pool.shutdown(True)
+            self._task_item.update(result)
+            weight_file = task_weight_file(self._task_id, self._round_id)
+            with open(weight_file, mode="wb") as f:
+                self._task_item.dump_weight(f)
+            self._finish_round()
 
 
 _task_manager_registry: Dict[int, TaskManager] = {}

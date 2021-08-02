@@ -1,7 +1,6 @@
 import numpy as np
 from typing import IO, List
 
-from numpy.lib.arraysetops import isin
 
 def load_arr(file: IO[bytes]) -> np.ndarray:
     arr = np.load(file)

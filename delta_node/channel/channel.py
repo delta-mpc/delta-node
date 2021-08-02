@@ -3,6 +3,7 @@ from typing import Iterator, Optional, Tuple
 from queue import Queue
 import socket
 
+from .msg import Message
 
 class Control(IntEnum):
     INPUT = 0
@@ -14,17 +15,17 @@ class Control(IntEnum):
 class OuterChannel(object):
     def __init__(self, sock: socket.socket, input_queue: Queue, output_queue: Queue, control_queue: Queue) -> None:
         self._sock = sock
-        self._input_queue = input_queue
-        self._output_queue = output_queue
-        self._control_queue = control_queue
+        self._input_queue = input_queue  # type: Queue[Message]
+        self._output_queue = output_queue  # type: Queue[Message]
+        self._control_queue = control_queue  # type: Queue[Control]
         
     def fileno(self):
         return self._sock.fileno()
     
-    def recv(self, timeout: Optional[float] = None):
-        self._output_queue.get(timeout=timeout)
+    def recv(self, timeout: Optional[float] = None) -> Message:
+        return self._output_queue.get(timeout=timeout)
 
-    def send(self, msg):
+    def send(self, msg: Message):
         self._sock.send(b"x")
         self._input_queue.put(msg)
         
@@ -34,21 +35,25 @@ class OuterChannel(object):
 class InnerChannel(object):
     def __init__(self, sock: socket.socket, input_queue: Queue, output_queue: Queue, control_queue: Queue) -> None:
         self._sock = sock
-        self._input_queue = input_queue
-        self._output_queue = output_queue
-        self._control_queue = control_queue
+        self._input_queue = input_queue  # type: Queue[Message]
+        self._output_queue = output_queue  # type: Queue[Message]
+        self._control_queue = control_queue  # type: Queue[Control]
         
     def fileno(self):
         return self._sock.fileno()
     
-    def recv(self, timeout: Optional[float] = None):
+    def ready_to_read(self):
         self._control_queue.put(Control.INPUT)
+
+    def recv(self, timeout: Optional[float] = None) -> Message:
         self._sock.settimeout(timeout)
         self._sock.recv(1)
-        self._input_queue.get(timeout=timeout)
+        return self._input_queue.get(timeout=timeout)
 
-    def send(self, msg):
+    def ready_to_write(self):
         self._control_queue.put(Control.OUTPUT)
+
+    def send(self, msg: Message):
         self._output_queue.put(msg)
 
     def finish(self):
