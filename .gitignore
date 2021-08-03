@@ -31,3 +31,7 @@ MANIFEST
 
 # vscode
 .vscode
+
+db
+storage
+config_files
