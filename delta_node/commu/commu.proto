@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package commu;
 
-message MetadataReq {
+message TaskReq {
     int32 task_id = 1;
     string member_id = 2;
 }
@@ -13,6 +13,14 @@ message MetadataResp {
     int32 secure_level = 3;
     string algorithm = 4;
     repeated string members = 5;
+}
+
+message JoinResp {
+    bool success = 1;
+}
+
+message RoundResp {
+    int32 round_id = 1;
 }
 
 message FileReq {
@@ -41,7 +49,9 @@ message ResultResp {
 }
 
 service Commu {
-    rpc GetMetadata(MetadataReq) returns (MetadataResp) {}
+    rpc GetMetadata(TaskReq) returns (MetadataResp) {}
+    rpc JoinTask(TaskReq) returns (JoinResp) {}
+    rpc GetRound(TaskReq) returns (RoundResp) {}
     rpc GetFile(FileReq) returns (stream FileResp) {}
     rpc UploadResult(stream ResultReq) returns (stream ResultResp) {} 
 }

@@ -58,7 +58,6 @@ def init_db():
     db_path = config.db.split(r":///", maxsplit=2)[1]
     db_name = db_path.split(r"/")[-1]
     db_dir = db_path[: -len(db_name)]
-    from .. import model
 
     if not os.path.exists(db_path):
         os.makedirs(db_dir, exist_ok=True)

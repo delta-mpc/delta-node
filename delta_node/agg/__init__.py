@@ -1,7 +1,7 @@
 from .simple import aggregate as simple_agg
 
 
-_agg_methods = {1: simple_agg}
+_agg_methods = {0: simple_agg}
 
 
 def get_agg_method(secure_level: int):

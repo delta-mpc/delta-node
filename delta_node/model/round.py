@@ -10,7 +10,7 @@ class RoundStatus(IntEnum):
 
 
 class Round(db.Base):
-    __tablename__ = "task_member"
+    __tablename__ = "round"
 
     id = sa.Column(sa.Integer, primary_key=True)
     task_id = sa.Column(sa.Integer)

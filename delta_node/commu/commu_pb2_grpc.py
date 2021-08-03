@@ -3,7 +3,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import commu_pb2 as commu__pb2
+from . import commu_pb2 as commu__pb2
 
 
 class CommuStub(object):
@@ -17,8 +17,18 @@ class CommuStub(object):
         """
         self.GetMetadata = channel.unary_unary(
                 '/commu.Commu/GetMetadata',
-                request_serializer=commu__pb2.MetadataReq.SerializeToString,
+                request_serializer=commu__pb2.TaskReq.SerializeToString,
                 response_deserializer=commu__pb2.MetadataResp.FromString,
+                )
+        self.JoinTask = channel.unary_unary(
+                '/commu.Commu/JoinTask',
+                request_serializer=commu__pb2.TaskReq.SerializeToString,
+                response_deserializer=commu__pb2.JoinResp.FromString,
+                )
+        self.GetRound = channel.unary_unary(
+                '/commu.Commu/GetRound',
+                request_serializer=commu__pb2.TaskReq.SerializeToString,
+                response_deserializer=commu__pb2.RoundResp.FromString,
                 )
         self.GetFile = channel.unary_stream(
                 '/commu.Commu/GetFile',
@@ -41,6 +51,18 @@ class CommuServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def JoinTask(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetRound(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetFile(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -58,8 +80,18 @@ def add_CommuServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetMetadata': grpc.unary_unary_rpc_method_handler(
                     servicer.GetMetadata,
-                    request_deserializer=commu__pb2.MetadataReq.FromString,
+                    request_deserializer=commu__pb2.TaskReq.FromString,
                     response_serializer=commu__pb2.MetadataResp.SerializeToString,
+            ),
+            'JoinTask': grpc.unary_unary_rpc_method_handler(
+                    servicer.JoinTask,
+                    request_deserializer=commu__pb2.TaskReq.FromString,
+                    response_serializer=commu__pb2.JoinResp.SerializeToString,
+            ),
+            'GetRound': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRound,
+                    request_deserializer=commu__pb2.TaskReq.FromString,
+                    response_serializer=commu__pb2.RoundResp.SerializeToString,
             ),
             'GetFile': grpc.unary_stream_rpc_method_handler(
                     servicer.GetFile,
@@ -93,8 +125,42 @@ class Commu(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/commu.Commu/GetMetadata',
-            commu__pb2.MetadataReq.SerializeToString,
+            commu__pb2.TaskReq.SerializeToString,
             commu__pb2.MetadataResp.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def JoinTask(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/commu.Commu/JoinTask',
+            commu__pb2.TaskReq.SerializeToString,
+            commu__pb2.JoinResp.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetRound(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/commu.Commu/GetRound',
+            commu__pb2.TaskReq.SerializeToString,
+            commu__pb2.RoundResp.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
