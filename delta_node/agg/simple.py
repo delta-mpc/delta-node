@@ -23,10 +23,13 @@ def aggregate(
     assert all(msg.type == "text" for msg in pk_msgs.values())
     _logger.info("recv pk msgs")
 
-    pks = {member_id: msg.content.decode("utf-8") for member_id, msg in pk_msgs.items()}
+    pks = {
+        member_id: msg.content.decode("utf-8") for member_id, msg in pk_msgs.items()
+    }
     pks_str = json.dumps(pks)
     pks_msgs = {
-        member_id: Message("json", pks_str.encode("utf-8")) for member_id in member_ids
+        member_id: Message("json", pks_str.encode("utf-8"))
+        for member_id in member_ids
     }
     group.send_msgs(pks_msgs)
     _logger.info("send pk msgs")
@@ -37,4 +40,5 @@ def aggregate(
 
     arrs = [load_arr(file) for file in result_files.values()]
     result_arr = add_arrs(arrs)
+    group.close()
     return result_arr

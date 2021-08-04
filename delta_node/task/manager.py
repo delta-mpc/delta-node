@@ -207,11 +207,14 @@ class TaskManager(object):
             def agg_update(member_ids: List[str], group: channel.ChannelGroup):
                 _logger.info("agg update")
                 result = agg_method(member_ids, group)
-                group.close()
-                self._task_item.update(result)
-                weight_file = task_weight_file(self._task_id, self._round_id)
-                with open(weight_file, mode="wb") as f:
-                    self._task_item.dump_weight(f)
+                _logger.info("agg finished")
+                try:
+                    self._task_item.update(result)
+                    weight_file = task_weight_file(self._task_id, self._round_id)
+                    with open(weight_file, mode="wb") as f:
+                        self._task_item.dump_weight(f)
+                except Exception as e:
+                    _logger.error(e)
 
             pool = futures.ThreadPoolExecutor(1)
             fut = pool.submit(agg_update, self._joined_members, self._agg_group)
@@ -223,17 +226,19 @@ class TaskManager(object):
         )
 
         yield out_ch
-
-        self._finish_member_round(member_id, self._round_id)
-        if master:
-            assert fut is not None
-            assert pool is not None
-            fut.result()
-            pool.shutdown(True)
-            _logger.info("agg update finish")
-            with self._agg_lock:
-                self._agg_group = None
-            self._finish_round()
+        
+        _logger.info("start finish round")
+        with self._round_cond:
+            self._finish_member_round(member_id, self._round_id)
+            if master:
+                assert fut is not None
+                assert pool is not None
+                fut.result()
+                pool.shutdown(True)
+                _logger.info("agg update finish")
+                with self._agg_lock:
+                    self._agg_group = None
+                self._finish_round()
 
 
 _task_manager_registry: Dict[int, TaskManager] = {}

@@ -1,3 +1,4 @@
+import logging
 import time
 import threading
 from selectors import EVENT_READ, DefaultSelector
@@ -8,6 +9,8 @@ from .. import config
 from .channel import InnerChannel
 from .msg import Message
 
+
+_logger = logging.getLogger(__name__)
 
 class ChannelGroup(object):
     def __init__(self) -> None:
@@ -29,12 +32,13 @@ class ChannelGroup(object):
 
     def close(self):
         self._selector.close()
+        for ch in self._channels.values():
+            ch.close()
         self._channels.clear()
 
     def recv_msg(self, member_id: str, timeout: Optional[float] = None) -> Optional[Message]:
         if member_id in self._channels:
             ch = self._channels[member_id]
-            ch.ready_to_read()
             return ch.recv(timeout=timeout)
 
     def recv_msgs(self, member_ids: List[str], timeout: Optional[float] = None) -> Dict[str, Message]:
@@ -44,29 +48,27 @@ class ChannelGroup(object):
 
         result = {}
         remaining = timeout
-        while len(result) < len(member_ids):
+        while len(result) < len(member_ids) and (remaining is None or remaining > 0):
             start = time.time()
-            events = self._selector.select(timeout)
+            events = self._selector.select(remaining)
             end = time.time()
             if remaining is not None:
                 remaining -= end - start
             for key, _ in events:
                 member_id = key.data
                 ch = self._channels[member_id]
-                msg = ch.recv()
+                msg = ch._recv()
                 result[member_id] = msg
         return result
 
     def send_msg(self, member_id: str, msg: Message):
         if member_id in self._channels:
             ch = self._channels[member_id]
-            ch.ready_to_write()
             ch.send(msg)
 
     def send_msgs(self, messages: Dict[str, Message]):
         for member_id, msg in messages.items():
             ch = self._channels[member_id]
-            ch.ready_to_write()
             ch.send(msg)
 
     def recv_file(self, member_id: str, timeout: Optional[float] = None) -> Optional[IO[bytes]]:
@@ -89,6 +91,7 @@ class ChannelGroup(object):
             return file
 
     def recv_files(self, member_ids: List[str], timeout: Optional[float] = None) -> Dict[str, IO[bytes]]:
+        _logger.info("recv files")
         temp_files: Dict[str, IO[bytes]] = {}
 
         unfinished = member_ids.copy()
@@ -96,6 +99,7 @@ class ChannelGroup(object):
         while len(unfinished) > 0:
             start = time.time()
             data = self.recv_msgs(unfinished, remaining)
+            _logger.info(f"recv data from {data.keys()}")
             end = time.time()
             if remaining is not None:
                 remaining -= end - start
@@ -103,11 +107,12 @@ class ChannelGroup(object):
                 assert chunk.type == "file"
                 if len(chunk.content) == 0:
                     unfinished.remove(member_id)
-                    break
-                if member_id not in temp_files:
-                    temp_files[member_id] = TemporaryFile(mode="w+b")
-                file = temp_files[member_id]
-                file.write(chunk.content)
+                else:
+                    if member_id not in temp_files:
+                        temp_files[member_id] = TemporaryFile(mode="w+b")
+                    file = temp_files[member_id]
+                    file.write(chunk.content)
+        _logger.info("recv files complete")
 
         for member_id in unfinished:
             temp_files.pop(member_id)

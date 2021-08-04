@@ -86,7 +86,6 @@ class CommuClient(object):
                 if opt == channel.Control.INPUT:
                     resp = next(resp_iter)
                     msg = channel.Message(type=resp.type, content=resp.content)
-                    _logger.info(f"recv {msg}")
                     out_ch.send(msg)
                 elif opt == channel.Control.OUTPUT:
                     msg = out_ch.recv()
@@ -97,7 +96,9 @@ class CommuClient(object):
                         type=msg.type,
                         content=msg.content,
                     )
-                    _logger.info(f"send {msg}")
                     q.put(req)
             q.put(None)
             fut.result()
+        # wait for server finish
+        for _ in resp_iter:
+            pass

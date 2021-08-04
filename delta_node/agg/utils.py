@@ -6,10 +6,7 @@ def load_arr(file: IO[bytes]) -> np.ndarray:
     arr = np.load(file)
     if isinstance(arr, np.ndarray):
         return arr
-    elif isinstance(arr, dict):
-        return arr["arr_0"]
-    else:
-        raise ValueError("unsupport file")
+    return arr["arr_0"]
 
 
 def add_arrs(arrs: List[np.ndarray]) -> np.ndarray:

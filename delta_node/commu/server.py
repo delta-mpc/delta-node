@@ -100,11 +100,9 @@ class Servicer(commu_pb2_grpc.CommuServicer):
                             req = next(request_iterator)
                             msg = Message(req.type, req.content)
                             ch.send(msg)
-                            _logger.info(f"recv {msg}")
                         elif opt == Control.OUTPUT:
                             msg = ch.recv()
-                            _logger.info(f"send {msg}")
-                            yield commu_pb2.ResultReq(
+                            yield commu_pb2.ResultResp(
                                 type=msg.type, content=msg.content
                             )
         except task.TaskError as e:

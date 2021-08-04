@@ -1,19 +1,22 @@
-from delta_node import commu, node, db, channel, config
+import json
 import logging
 import shutil
-import json
-import numpy as np
 from io import BytesIO
+
+import numpy as np
+
+from delta_node import channel, commu, config, db, node
+
+_logger = logging.getLogger(__name__)
 
 
 def result_callback(ch: channel.InnerChannel):
-    pk_msg = channel.Message(
-        type="text",
-        content=b"1"
-    )
+    pk_msg = channel.Message(type="text", content=b"1")
     ch.send(pk_msg)
+    _logger.info("send pk msg")
 
     pks_msg = ch.recv()
+    _logger.info("recv pk msgs")
     assert pks_msg.type == "json"
     pks = json.loads(pks_msg.content)
     assert pks["2"] == "1"
@@ -22,14 +25,15 @@ def result_callback(ch: channel.InnerChannel):
     with BytesIO() as f:
         np.savez(f, arr)
         f.seek(0)
-
+        _logger.info("generate result array")
         while True:
             content = f.read(config.MAX_BUFF_SIZE)
             msg = channel.Message(type="file", content=content)
             ch.send(msg)
+            _logger.info("send file content")
             if len(content) == 0:
                 break
-
+    ch.close()
 
 
 def main():
@@ -56,8 +60,6 @@ def main():
         client.upload_result(1, node_id, round_id, result_callback)
         print("upload result")
 
-    
 
 if __name__ == "__main__":
     main()
-    
