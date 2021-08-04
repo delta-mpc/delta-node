@@ -2,9 +2,11 @@ import logging
 import socket
 from enum import IntEnum
 from queue import Queue
-from typing import Iterator, Optional, Tuple
+from typing import IO, Iterator, Optional, Tuple
+import time
 
 from .msg import Message
+from .. import config
 
 _logger = logging.getLogger(__name__)
 
@@ -70,6 +72,22 @@ class InnerChannel(object):
         self.ready_to_read()
         return self._recv(timeout)
 
+    def recv_file(self, dst: IO[bytes], timeout: Optional[float] = None) -> bool:
+        remaining = timeout
+        finish = False
+        while remaining is None or remaining > 0:
+            start = time.time()
+            msg = self.recv()
+            end = time.time()
+            if remaining is not None:
+                remaining -= end - start
+            assert msg.type == "file"
+            if len(msg.content) == 0:
+                finish = True
+                break
+            dst.write(msg.content)
+        return finish
+
     def ready_to_write(self):
         self._control_queue.put(Control.OUTPUT)
 
@@ -79,6 +97,14 @@ class InnerChannel(object):
     def send(self, msg: Message):
         self.ready_to_write()
         self._send(msg)
+
+    def send_file(self, file: IO[bytes]):
+        while True:
+            chunk = file.read(config.MAX_BUFF_SIZE)
+            msg = Message(type="file", content=chunk)
+            self.send(msg)
+            if len(chunk) == 0:
+                break
 
     def close(self):
         self._control_queue.put(Control.FINISH)

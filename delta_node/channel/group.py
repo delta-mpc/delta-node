@@ -2,7 +2,6 @@ import logging
 import time
 import threading
 from selectors import EVENT_READ, DefaultSelector
-from tempfile import TemporaryFile
 from typing import IO, Dict, List, Optional
 
 from .. import config
@@ -36,12 +35,13 @@ class ChannelGroup(object):
             ch.close()
         self._channels.clear()
 
-    def recv_msg(self, member_id: str, timeout: Optional[float] = None) -> Optional[Message]:
-        if member_id in self._channels:
-            ch = self._channels[member_id]
-            return ch.recv(timeout=timeout)
+    def recv_msg(self, member_id: str, timeout: Optional[float] = None) -> Message:
+        assert member_id in self._channels
+        ch = self._channels[member_id]
+        return ch.recv(timeout=timeout)
 
     def recv_msgs(self, member_ids: List[str], timeout: Optional[float] = None) -> Dict[str, Message]:
+        assert all(member_id in self._channels for member_id in member_ids)
         for member_id in member_ids:
             ch = self._channels[member_id]
             ch.ready_to_read()
@@ -62,41 +62,29 @@ class ChannelGroup(object):
         return result
 
     def send_msg(self, member_id: str, msg: Message):
-        if member_id in self._channels:
-            ch = self._channels[member_id]
-            ch.send(msg)
+        assert member_id in self._channels
+        ch = self._channels[member_id]
+        ch.send(msg)
 
     def send_msgs(self, messages: Dict[str, Message]):
+        assert all(member_id in self._channels for member_id in messages)
         for member_id, msg in messages.items():
             ch = self._channels[member_id]
             ch.send(msg)
 
-    def recv_file(self, member_id: str, timeout: Optional[float] = None) -> Optional[IO[bytes]]:
-        if member_id in self._channels:
-            file = TemporaryFile()
+    def recv_file(self, member_id: str, dst: IO[bytes], timeout: Optional[float] = None) -> bool:
+        assert member_id in self._channels
+        ch = self._channels[member_id]
+        return ch.recv_file(dst, timeout)
 
-            remaining = timeout
-            while True:
-                start = time.time()
-                chunk = self.recv_msg(member_id, remaining)
-                end = time.time()
-                if remaining is not None:
-                    remaining -= end - start
-                assert chunk is not None
-                assert chunk.type == "file"
-                if len(chunk.content) == 0:
-                    break
-                file.write(chunk.content)
-            file.seek(0)
-            return file
-
-    def recv_files(self, member_ids: List[str], timeout: Optional[float] = None) -> Dict[str, IO[bytes]]:
+    def recv_files(self, dst_files: Dict[str, IO[bytes]], timeout: Optional[float] = None) -> Dict[str, bool]:
+        assert all(member_id in self._channels for member_id in dst_files)
         _logger.info("recv files")
-        temp_files: Dict[str, IO[bytes]] = {}
 
-        unfinished = member_ids.copy()
+        finish_map = {member_id: False for member_id in dst_files}
+        unfinished = list(dst_files.keys())
         remaining = timeout
-        while len(unfinished) > 0:
+        while len(unfinished) > 0 and (remaining is None or remaining > 0):
             start = time.time()
             data = self.recv_msgs(unfinished, remaining)
             _logger.info(f"recv data from {data.keys()}")
@@ -106,30 +94,21 @@ class ChannelGroup(object):
             for member_id, chunk in data.items():
                 assert chunk.type == "file"
                 if len(chunk.content) == 0:
+                    finish_map[member_id] = True
                     unfinished.remove(member_id)
                 else:
-                    if member_id not in temp_files:
-                        temp_files[member_id] = TemporaryFile(mode="w+b")
-                    file = temp_files[member_id]
+                    file = dst_files[member_id]
                     file.write(chunk.content)
         _logger.info("recv files complete")
-
-        for member_id in unfinished:
-            temp_files.pop(member_id)
-
-        for file in temp_files.values():
-            file.seek(0)
-        return temp_files
+        return finish_map
 
     def send_file(self, member_id: str, file: IO[bytes]):
-        if member_id in self._channels:
-            while True:
-                chunk = file.read(config.MAX_BUFF_SIZE)
-                self.send_msg(member_id, Message(type="file", content=chunk))
-                if len(chunk) == 0:
-                    break
+        assert member_id in self._channels
+        ch = self._channels[member_id]
+        ch.send_file(file)
 
     def send_files(self, files: Dict[str, IO[bytes]]):
+        assert all(member_id in self._channels for member_id in files)
         finished = set()
         while len(finished) < len(files):
             for member_id, file in files.items():
