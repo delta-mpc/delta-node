@@ -2,39 +2,13 @@ import json
 import logging
 import shutil
 from io import BytesIO
+from functools import partial
 
 import numpy as np
 
-from delta_node import channel, commu, config, db, node
+from delta_node import channel, commu, config, db, node, agg
 
 _logger = logging.getLogger(__name__)
-
-
-def result_callback(ch: channel.InnerChannel):
-    pk_msg = channel.Message(type="text", content=b"1")
-    ch.send(pk_msg)
-    _logger.info("send pk msg")
-
-    pks_msg = ch.recv()
-    _logger.info("recv pk msgs")
-    assert pks_msg.type == "json"
-    pks = json.loads(pks_msg.content)
-    assert pks["2"] == "1"
-
-    arr = np.random.rand(100)
-    with BytesIO() as f:
-        np.savez(f, arr)
-        f.seek(0)
-        _logger.info("generate result array")
-        while True:
-            content = f.read(config.MAX_BUFF_SIZE)
-            msg = channel.Message(type="file", content=content)
-            ch.send(msg)
-            _logger.info("send file content")
-            if len(content) == 0:
-                break
-    ch.close()
-
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -57,7 +31,9 @@ def main():
         weight_file = client.get_file(1, node_id, round_id - 1, "weight")
         with open(f"{node_id}.weight", mode="wb") as f:
             shutil.copyfileobj(weight_file, f)
-        client.upload_result(1, node_id, round_id, result_callback)
+        upload_method = agg.get_upload_method(0)
+        result_arr = np.random.rand(100)
+        client.upload_result(1, node_id, round_id, partial(upload_method, result_arr=result_arr))
         print("upload result")
 
 
