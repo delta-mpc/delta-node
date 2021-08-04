@@ -1,5 +1,9 @@
+import random
+from functools import reduce
+from operator import mul
+from typing import IO, Sequence, Union
+
 import numpy as np
-from typing import IO, List
 
 
 def load_arr(file: IO[bytes]) -> np.ndarray:
@@ -9,5 +13,17 @@ def load_arr(file: IO[bytes]) -> np.ndarray:
     return arr["arr_0"]
 
 
-def add_arrs(arrs: List[np.ndarray]) -> np.ndarray:
-    return np.sum(arrs, axis=0)  # type: ignore
+def dump_arr(f: IO[bytes], arr: np.ndarray):
+    np.savez_compressed(f, arr)
+
+
+def make_mask(seed: Union[int, bytes, str], shape: Sequence[int]) -> np.ndarray:
+    state = random.Random(seed)
+    size = reduce(mul, shape)
+
+    mask = np.array(
+        [state.randint(0, 2 ** 31 - 1) for _ in range(size)], dtype=np.int32
+    )
+    mask.resize(shape)
+
+    return mask
