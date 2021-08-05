@@ -4,7 +4,7 @@ from typing import Generator, Optional
 
 import grpc
 
-from .. import config, task
+from .. import config, task, exceptions
 from ..channel import Control, Message
 from . import commu_pb2, commu_pb2_grpc
 
@@ -37,7 +37,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
                 members=metadata.members,
             )
             return resp
-        except task.TaskError as e:
+        except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, str(e))
@@ -50,7 +50,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
             manager.join(member_id)
             resp = commu_pb2.JoinResp(success=True)
             return resp
-        except task.TaskError as e:
+        except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, str(e))
@@ -63,7 +63,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
             round_id = manager.get_round_id(member_id=member_id)
             resp = commu_pb2.RoundResp(round_id=round_id)
             return resp
-        except task.TaskError as e:
+        except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, str(e))
@@ -78,7 +78,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
             manager = task.get_task_manager(task_id)
             filename = manager.get_file(member_id, round_id, file_type)
             yield from file_resp_generator(filename)
-        except task.TaskError as e:
+        except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, str(e))
@@ -105,7 +105,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
                             yield commu_pb2.ResultResp(
                                 type=msg.type, content=msg.content
                             )
-        except task.TaskError as e:
+        except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, str(e))

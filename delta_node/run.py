@@ -1,7 +1,7 @@
 import logging
 import multiprocessing as mp
 
-from . import app, config, contract, db, node, commu
+from . import app, config, db, node, commu, executor
 
 
 def app_run():
@@ -15,27 +15,17 @@ def commu_run():
     try:
         server.start()
         server.wait_for_termination()
-    except KeyboardInterrupt:
+    finally:
         server.stop()
 
 
-def contract_run():
+def executor_run():
     logging.basicConfig(level=logging.INFO)
-    event_filter = contract.new_event_filter()
-    event_filter.start()
-    events = ["Join", "Task", "Train", "PublicKey"]
-    try:
-        while True:
-            for event in events:
-                e = event_filter.wait_for_event(event, timeout=1)
-                if e:
-                    print(e)
-    except KeyboardInterrupt:
-        event_filter.terminate()
-        event_filter.join()
+    executor.run()
 
 
 def run():
+    logging.basicConfig(level=logging.INFO)
     db.init_db()
     node.register_node()
 
@@ -47,7 +37,7 @@ def run():
     commu_process = ctx.Process(target=commu_run)
     commu_process.start()
 
-    contract_process = ctx.Process(target=contract_run)
+    contract_process = ctx.Process(target=executor_run)
     contract_process.start()
 
     contract_process.join()

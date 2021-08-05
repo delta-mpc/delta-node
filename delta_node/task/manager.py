@@ -8,12 +8,12 @@ from typing import Dict, List, Optional, Tuple
 
 from delta import task as delta_task
 from sqlalchemy.orm.session import Session
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_fixed)
 
 from .. import agg, channel, contract, model, node
-from .exceptions import *
+from ..exceptions import *
 from .location import task_cfg_file, task_weight_file
-from .metadata import TaskMetadata
 from .task import *
 
 _logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class TaskManager(object):
             member.node_id for member in task.members if member.joined
         ]
 
-        self._metadata = TaskMetadata(
+        self._metadata = model.TaskMetadata(
             task.name, task.type, task.secure_level, task.algorithm, self._members
         )
 
@@ -165,7 +165,7 @@ class TaskManager(object):
             if status != model.RoundStatus.FINISHED:
                 member_finish_round(self._task_id, member_id, round_id)
 
-    def get_metadata(self, member_id: str) -> TaskMetadata:
+    def get_metadata(self, member_id: str) -> model.TaskMetadata:
         if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
         return self._metadata

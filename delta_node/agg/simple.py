@@ -7,10 +7,9 @@ from tempfile import TemporaryFile
 
 import numpy as np
 
-from .. import node, config
+from .. import node, utils
 from ..channel import ChannelGroup, InnerChannel, Message
 from ..crypto import ecdhe
-from . import utils
 
 _logger = logging.getLogger(__name__)
 

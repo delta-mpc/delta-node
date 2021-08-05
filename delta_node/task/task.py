@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.expression import desc
-from .exceptions import *
+from ..exceptions import *
 
 from .. import db, model
 

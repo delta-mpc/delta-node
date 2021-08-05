@@ -1,22 +1,36 @@
-from typing import IO
+import logging
 import os
 import shutil
-import logging
+from functools import partial
+from typing import IO, Dict, Any, Callable, Iterable
 
 from delta.node import Node
 
-from .location import task_state_file
+from .. import agg, node, utils, data
 from ..commu import CommuClient
-from .. import node
+from ..model import TaskMetadata
+from .location import task_state_file
+from .task import member_start_round, member_finish_round
 
 _logger = logging.getLogger(__name__)
 
+
 class LocalNode(Node):
-    def __init__(self, task_id: int, url: str) -> None:
+    def __init__(
+        self, data_dir, task_id: int, metadata: TaskMetadata, client: CommuClient
+    ) -> None:
+        self._data_dir = data_dir
         self._round_id = 0
+        self._round_finished = True
         self._task_id = task_id
-        self._client = CommuClient(url)
+        self._client = client
+        self._metadata = metadata
         self._node_id = node.get_node_id()
+
+    def new_dataloader(
+        self, dataset: str, dataloader: Dict[str, Any], preprocess: Callable
+    ) -> Iterable:
+        return data.new_dataloader(os.path.join(self._data_dir, dataset), dataloader, preprocess)
 
     def download_state(self, dst: IO[bytes]) -> bool:
         filename = task_state_file(self._task_id, self._round_id)
@@ -26,7 +40,9 @@ class LocalNode(Node):
             _logger.info(f"task {self._task_id} round {self._round_id} download state")
             return True
         else:
-            _logger.info(f"task {self._task_id} round {self._round_id} round does not exist")
+            _logger.info(
+                f"task {self._task_id} round {self._round_id} round does not exist"
+            )
             return False
 
     def upload_state(self, file: IO[bytes]):
@@ -38,12 +54,30 @@ class LocalNode(Node):
     def download_weight(self, dst: IO[bytes]) -> bool:
         try:
             round_id = self._client.get_round_id(self._task_id, self._node_id)
+            _logger.info(f"task {self._task_id} round {round_id} start")
             self._round_id = round_id
-            file = self._client.get_file(self._task_id, self._node_id, round_id - 1, "weight")
-            shutil.copyfileobj(file, dst)
+            self._round_finished = False
+            member_start_round(self._task_id, self._node_id, round_id)
+            self._client.get_file(
+                self._task_id, self._node_id, round_id - 1, "weight", dst
+            )
+            _logger.info(f"task {self._task_id} get weight file of round {self._round_id}")
             return True
         except Exception as e:
             _logger.error(f"task {self._task_id} round {self._round_id} error {e}")
             return False
 
-    
+    def upload_result(self, data: IO[bytes]):
+        try:
+            result_arr = utils.load_arr(data)
+            upload_method = agg.get_upload_method(self._metadata.secure_level)
+            upload_callback = partial(upload_method, result_arr=result_arr)
+            self._client.upload_result(
+                self._task_id, self._node_id, self._round_id, upload_callback
+            )
+            _logger.info(f"task {self._task_id} upload result of round {self._round_id}")
+            self._round_finished = True
+            member_finish_round(self._task_id, self._node_id, self._round_id)
+            _logger.info(f"task {self._task_id} finish round {self._round_id}")
+        except Exception as e:
+            _logger.error(f"task {self._task_id} round {self._round_id} error {e}")

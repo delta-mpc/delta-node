@@ -21,16 +21,14 @@ def main():
     print("join task")
     metadata = client.get_metadata(1, node_id)
     print(metadata)
-    cfg_file = client.get_file(1, node_id, 0, "cfg")
     with open(f"{node_id}.cfg", mode="wb") as f:
-        shutil.copyfileobj(cfg_file, f)
+        client.get_file(1, node_id, 0, "cfg", f)
     print("get cfg")
     for _ in range(10):
         round_id = client.get_round_id(1, node_id)
         print(f"round {round_id}")
-        weight_file = client.get_file(1, node_id, round_id - 1, "weight")
         with open(f"{node_id}.weight", mode="wb") as f:
-            shutil.copyfileobj(weight_file, f)
+            client.get_file(1, node_id, round_id - 1, "weight", f)
         upload_method = agg.get_upload_method(0)
         result_arr = np.random.rand(100)
         client.upload_result(1, node_id, round_id, partial(upload_method, result_arr=result_arr))

@@ -1,7 +1,5 @@
 from collections import defaultdict
-from delta_node import model
 
-from sqlalchemy.sql.functions import mode
 from delta_node.task.manager import TaskManager
 import json
 import logging
@@ -17,14 +15,11 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
-    Path,
-    Query,
     UploadFile,
 )
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from .. import db, task
+from .. import db, task, exceptions
 from . import utils
 
 _logger = logging.getLogger(__name__)
@@ -45,7 +40,7 @@ def _get_task_manager(
             try:
                 manager = task.TaskManager(task_id, session=session)
                 _task_manager_registry[task_id] = manager
-            except task.TaskNotReadyError as e:
+            except exceptions.TaskNotReadyError as e:
                 _logger.info(str(e))
                 raise HTTPException(500, f"task {task_id} is not ready")
         return _task_manager_registry[task_id]

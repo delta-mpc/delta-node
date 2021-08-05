@@ -1,6 +1,10 @@
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import List
+
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
-from enum import IntEnum
+
 from .. import db
 
 
@@ -26,4 +30,15 @@ class Task(db.Base):
     task_id = sa.Column(sa.Integer)
     status = sa.Column(sa.Integer)  # 0: initial  1: running  2: finished  4: error
 
-    members = relationship("TaskMember", primaryjoin="foreign(TaskMember.task_id) == Task.task_id")
+    members = relationship(
+        "TaskMember", primaryjoin="foreign(TaskMember.task_id) == Task.task_id"
+    )
+
+
+@dataclass
+class TaskMetadata(object):
+    name: str
+    type: str
+    secure_level: int
+    algorithm: str
+    members: List[str]

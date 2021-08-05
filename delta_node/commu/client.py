@@ -7,7 +7,7 @@ from typing import IO, Callable
 import grpc
 
 from .. import channel
-from ..task import TaskMetadata
+from ..model import TaskMetadata
 from . import commu_pb2, commu_pb2_grpc
 
 _logger = logging.getLogger(__name__)
@@ -32,9 +32,12 @@ class CommuClient(object):
 
     def join_task(self, task_id: int, member_id: str) -> bool:
         req = commu_pb2.TaskReq(task_id=task_id, member_id=member_id)
-        resp = self._stub.JoinTask(req)
-        success = resp.success
-        return success
+        try:
+            resp = self._stub.JoinTask(req)
+            success = resp.success
+            return success
+        except grpc.RpcError as e:
+            return False
 
     def get_round_id(self, task_id: int, member_id: str) -> int:
         req = commu_pb2.TaskReq(task_id=task_id, member_id=member_id)
@@ -43,19 +46,16 @@ class CommuClient(object):
         return round_id
 
     def get_file(
-        self, task_id: int, member_id: str, round_id: int, file_type: str
-    ) -> IO[bytes]:
+        self, task_id: int, member_id: str, round_id: int, file_type: str, dst: IO[bytes]
+    ):
         req = commu_pb2.FileReq(
             task_id=task_id, member_id=member_id, round_id=round_id, type=file_type
         )
-        file = TemporaryFile(mode="w+b")
         for resp in self._stub.GetFile(req):
             content = resp.content
             if len(content) == 0:
                 break
-            file.write(content)
-        file.seek(0)
-        return file
+            dst.write(content)
 
     def upload_result(
         self,

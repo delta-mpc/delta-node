@@ -26,6 +26,6 @@ server_port: int = _server.get("port", None)
 
 storage_dir: str = _c.get("storage_dir", None)
 
-data: List[str] = _c.get("data", None)
+data_dir: str = _c.get("data_dir", None)
 
 MAX_BUFF_SIZE = 128 * 1024
