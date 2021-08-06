@@ -15,7 +15,7 @@ message MetadataResp {
     repeated string members = 5;
 }
 
-message JoinResp {
+message StatusResp {
     bool success = 1;
 }
 
@@ -50,7 +50,8 @@ message ResultResp {
 
 service Commu {
     rpc GetMetadata(TaskReq) returns (MetadataResp) {}
-    rpc JoinTask(TaskReq) returns (JoinResp) {}
+    rpc JoinTask(TaskReq) returns (StatusResp) {}
+    rpc FinishTask(TaskReq) returns (StatusResp) {}
     rpc GetRound(TaskReq) returns (RoundResp) {}
     rpc GetFile(FileReq) returns (stream FileResp) {}
     rpc UploadResult(stream ResultReq) returns (stream ResultResp) {} 

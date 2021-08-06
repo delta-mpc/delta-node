@@ -8,9 +8,9 @@ from delta.node import Node
 
 from .. import agg, node, utils, data
 from ..commu import CommuClient
-from ..model import TaskMetadata
+from ..model import TaskMetadata, RoundStatus
 from .location import task_state_file
-from .task import member_start_round, member_finish_round
+from .task import member_start_round, member_finish_round, get_member_round_status
 
 _logger = logging.getLogger(__name__)
 
@@ -81,3 +81,13 @@ class LocalNode(Node):
             _logger.info(f"task {self._task_id} finish round {self._round_id}")
         except Exception as e:
             _logger.error(f"task {self._task_id} round {self._round_id} error {e}")
+
+    def finish(self):
+        try:
+            last_round_id, status = get_member_round_status(self._task_id, self._node_id)
+            if status == RoundStatus.RUNNING:
+                member_finish_round(self._task_id, self._node_id, last_round_id)
+            self._client.finish_task(self._task_id, self._node_id)
+        except Exception as e:
+            _logger.error(f"task {self._task_id} round {self._round_id} error {e}")
+

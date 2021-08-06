@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.expression import desc
 from .. import db, model
 from ..exceptions import *
-
+from typing import Tuple
 
 @db.with_session
 def _task_existed(task_id: int, *, session: Session = None):
@@ -98,3 +99,21 @@ def member_finish_round(
     )
     round.status = model.RoundStatus.FINISHED  # type: ignore
     session.commit()
+
+
+@db.with_session
+def get_member_round_status(
+    task_id: int, member_id: str, *, session: Session = None
+) -> Tuple[int, model.RoundStatus]:
+    assert session is not None
+    round = (
+        session.query(model.Round)
+        .filter(model.Round.task_id == task_id)
+        .filter(model.Round.node_id == member_id)
+        .order_by(desc(model.Round.round_id))
+        .first()
+    )
+    if round is None:
+        return 0, model.RoundStatus.FINISHED
+    else:
+        return round.round_id, round.status  # type: ignore

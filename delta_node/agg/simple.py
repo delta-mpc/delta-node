@@ -19,27 +19,30 @@ def aggregate(
 ) -> np.ndarray:
     accept_members = group.wait(member_ids, timeout)
     assert len(accept_members) == len(member_ids)
-    _logger.info("all member registered")
+    _logger.debug("all member registered")
 
     pk_msgs = group.recv_msgs(member_ids, timeout)
     assert len(pk_msgs) == len(member_ids)
     assert all(msg.type == "text" for msg in pk_msgs.values())
-    _logger.info("recv pk msgs")
+    _logger.debug("recv pk msgs")
 
     pks = {member_id: msg.content.decode("utf-8") for member_id, msg in pk_msgs.items()}
+    for member_id, pk in pks.items():
+        _logger.info(f"member: {member_id}, public key: {pk}")
     pks_str = json.dumps(pks)
     pks_msgs = {
         member_id: Message("json", pks_str.encode("utf-8")) for member_id in member_ids
     }
     group.send_msgs(pks_msgs)
-    _logger.info("send pk msgs")
+    _logger.debug("send pk msgs")
 
     result_files = {member_id: TemporaryFile("w+b") for member_id in member_ids}
 
     finish_map = group.recv_files(result_files, timeout)
     assert len(finish_map) == len(member_ids)
     assert all(finish_map.values())
-    _logger.info("recv result files")
+    _logger.debug("recv result files")
+    _logger.info(f"recv result files from {member_ids}")
 
     result_arr = None
     for file in result_files.values():

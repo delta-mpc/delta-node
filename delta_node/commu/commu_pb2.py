@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0b\x63ommu.proto\x12\x05\x63ommu\"-\n\x07TaskReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\"d\n\x0cMetadataResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x14\n\x0csecure_level\x18\x03 \x01(\x05\x12\x11\n\talgorithm\x18\x04 \x01(\t\x12\x0f\n\x07members\x18\x05 \x03(\t\"\x1b\n\x08JoinResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x1d\n\tRoundResp\x12\x10\n\x08round_id\x18\x01 \x01(\x05\"M\n\x07\x46ileReq\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x11\n\tmember_id\x18\x03 \x01(\t\x12\x10\n\x08round_id\x18\x04 \x01(\x05\"-\n\x08\x46ileResp\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"`\n\tResultReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\x12\x10\n\x08round_id\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x05 \x01(\x0c\"+\n\nResultResp\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\x32\x87\x02\n\x05\x43ommu\x12\x34\n\x0bGetMetadata\x12\x0e.commu.TaskReq\x1a\x13.commu.MetadataResp\"\x00\x12-\n\x08JoinTask\x12\x0e.commu.TaskReq\x1a\x0f.commu.JoinResp\"\x00\x12.\n\x08GetRound\x12\x0e.commu.TaskReq\x1a\x10.commu.RoundResp\"\x00\x12.\n\x07GetFile\x12\x0e.commu.FileReq\x1a\x0f.commu.FileResp\"\x00\x30\x01\x12\x39\n\x0cUploadResult\x12\x10.commu.ResultReq\x1a\x11.commu.ResultResp\"\x00(\x01\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0b\x63ommu.proto\x12\x05\x63ommu\"-\n\x07TaskReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\"d\n\x0cMetadataResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x14\n\x0csecure_level\x18\x03 \x01(\x05\x12\x11\n\talgorithm\x18\x04 \x01(\t\x12\x0f\n\x07members\x18\x05 \x03(\t\"\x1d\n\nStatusResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x1d\n\tRoundResp\x12\x10\n\x08round_id\x18\x01 \x01(\x05\"M\n\x07\x46ileReq\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x11\n\tmember_id\x18\x03 \x01(\t\x12\x10\n\x08round_id\x18\x04 \x01(\x05\"-\n\x08\x46ileResp\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"`\n\tResultReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\x12\x10\n\x08round_id\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x05 \x01(\x0c\"+\n\nResultResp\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\x32\xbc\x02\n\x05\x43ommu\x12\x34\n\x0bGetMetadata\x12\x0e.commu.TaskReq\x1a\x13.commu.MetadataResp\"\x00\x12/\n\x08JoinTask\x12\x0e.commu.TaskReq\x1a\x11.commu.StatusResp\"\x00\x12\x31\n\nFinishTask\x12\x0e.commu.TaskReq\x1a\x11.commu.StatusResp\"\x00\x12.\n\x08GetRound\x12\x0e.commu.TaskReq\x1a\x10.commu.RoundResp\"\x00\x12.\n\x07GetFile\x12\x0e.commu.FileReq\x1a\x0f.commu.FileResp\"\x00\x30\x01\x12\x39\n\x0cUploadResult\x12\x10.commu.ResultReq\x1a\x11.commu.ResultResp\"\x00(\x01\x30\x01\x62\x06proto3'
 )
 
 
@@ -124,16 +124,16 @@ _METADATARESP = _descriptor.Descriptor(
 )
 
 
-_JOINRESP = _descriptor.Descriptor(
-  name='JoinResp',
-  full_name='commu.JoinResp',
+_STATUSRESP = _descriptor.Descriptor(
+  name='StatusResp',
+  full_name='commu.StatusResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='success', full_name='commu.JoinResp.success', index=0,
+      name='success', full_name='commu.StatusResp.success', index=0,
       number=1, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -152,7 +152,7 @@ _JOINRESP = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=171,
-  serialized_end=198,
+  serialized_end=200,
 )
 
 
@@ -183,8 +183,8 @@ _ROUNDRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=200,
-  serialized_end=229,
+  serialized_start=202,
+  serialized_end=231,
 )
 
 
@@ -236,8 +236,8 @@ _FILEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=231,
-  serialized_end=308,
+  serialized_start=233,
+  serialized_end=310,
 )
 
 
@@ -275,8 +275,8 @@ _FILERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=310,
-  serialized_end=355,
+  serialized_start=312,
+  serialized_end=357,
 )
 
 
@@ -335,8 +335,8 @@ _RESULTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=357,
-  serialized_end=453,
+  serialized_start=359,
+  serialized_end=455,
 )
 
 
@@ -374,13 +374,13 @@ _RESULTRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=455,
-  serialized_end=498,
+  serialized_start=457,
+  serialized_end=500,
 )
 
 DESCRIPTOR.message_types_by_name['TaskReq'] = _TASKREQ
 DESCRIPTOR.message_types_by_name['MetadataResp'] = _METADATARESP
-DESCRIPTOR.message_types_by_name['JoinResp'] = _JOINRESP
+DESCRIPTOR.message_types_by_name['StatusResp'] = _STATUSRESP
 DESCRIPTOR.message_types_by_name['RoundResp'] = _ROUNDRESP
 DESCRIPTOR.message_types_by_name['FileReq'] = _FILEREQ
 DESCRIPTOR.message_types_by_name['FileResp'] = _FILERESP
@@ -402,12 +402,12 @@ MetadataResp = _reflection.GeneratedProtocolMessageType('MetadataResp', (_messag
   })
 _sym_db.RegisterMessage(MetadataResp)
 
-JoinResp = _reflection.GeneratedProtocolMessageType('JoinResp', (_message.Message,), {
-  'DESCRIPTOR' : _JOINRESP,
+StatusResp = _reflection.GeneratedProtocolMessageType('StatusResp', (_message.Message,), {
+  'DESCRIPTOR' : _STATUSRESP,
   '__module__' : 'commu_pb2'
-  # @@protoc_insertion_point(class_scope:commu.JoinResp)
+  # @@protoc_insertion_point(class_scope:commu.StatusResp)
   })
-_sym_db.RegisterMessage(JoinResp)
+_sym_db.RegisterMessage(StatusResp)
 
 RoundResp = _reflection.GeneratedProtocolMessageType('RoundResp', (_message.Message,), {
   'DESCRIPTOR' : _ROUNDRESP,
@@ -453,8 +453,8 @@ _COMMU = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=501,
-  serialized_end=764,
+  serialized_start=503,
+  serialized_end=819,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetMetadata',
@@ -472,14 +472,24 @@ _COMMU = _descriptor.ServiceDescriptor(
     index=1,
     containing_service=None,
     input_type=_TASKREQ,
-    output_type=_JOINRESP,
+    output_type=_STATUSRESP,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='FinishTask',
+    full_name='commu.Commu.FinishTask',
+    index=2,
+    containing_service=None,
+    input_type=_TASKREQ,
+    output_type=_STATUSRESP,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
     name='GetRound',
     full_name='commu.Commu.GetRound',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_TASKREQ,
     output_type=_ROUNDRESP,
@@ -489,7 +499,7 @@ _COMMU = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetFile',
     full_name='commu.Commu.GetFile',
-    index=3,
+    index=4,
     containing_service=None,
     input_type=_FILEREQ,
     output_type=_FILERESP,
@@ -499,7 +509,7 @@ _COMMU = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UploadResult',
     full_name='commu.Commu.UploadResult',
-    index=4,
+    index=5,
     containing_service=None,
     input_type=_RESULTREQ,
     output_type=_RESULTRESP,

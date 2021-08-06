@@ -36,6 +36,15 @@ class CommuClient(object):
             resp = self._stub.JoinTask(req)
             success = resp.success
             return success
+        except grpc.RpcError:
+            return False
+
+    def finish_task(self, task_id: int, member_id: str) -> bool:
+        req = commu_pb2.TaskReq(task_id=task_id, member_id=member_id)
+        try:
+            resp = self._stub.FinishTask(req)
+            success = resp.success
+            return success
         except grpc.RpcError as e:
             return False
 

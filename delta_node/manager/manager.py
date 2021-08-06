@@ -14,7 +14,7 @@ from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
 from .. import agg, channel, contract, model, node
 from ..exceptions import *
 from .location import task_cfg_file, task_weight_file
-from .task import *
+from .task import * 
 
 _logger = logging.getLogger(__name__)
 
@@ -63,6 +63,18 @@ class TaskManager(object):
             join_task(self._task_id, member_id, session=session)
             self._joined_members.append(member_id)
             contract.join_task(member_id, self._task_id)
+            _logger.info(f"member {member_id} join the task {self._task_id}")
+
+    def finish_task(self, member_id: str, *, session: Session = None):
+        if member_id not in self._joined_members:
+            raise MemberNotJoinedError(self._task_id, member_id)
+        with self._round_cond:
+            last_round_id, status = get_member_round_status(self._task_id, member_id, session=session)
+            if status == model.RoundStatus.RUNNING:
+                member_finish_round(self._task_id, member_id, last_round_id, session=session)
+            if self._round_finished:
+                finish_task(self._task_id)
+                _logger.info(f"task {self._task_id} finished")
 
     def get_round_id(self, member_id: str, *, session: Session = None) -> int:
         if member_id not in self._joined_members:
@@ -70,12 +82,12 @@ class TaskManager(object):
         last_round, status = get_member_round_status(
             self._task_id, member_id, session=session
         )
-        _logger.info(
+        _logger.debug(
             f"task {self._task_id} member {member_id} round {last_round} status {status}"
         )
         with self._round_cond:
             if self._round_finished:
-                _logger.info("round finished")
+                _logger.debug("round finished")
                 if status == model.RoundStatus.RUNNING:
                     # if member doesn't finish last round, finish it and start the new round
                     member_finish_round(
@@ -152,11 +164,6 @@ class TaskManager(object):
                     result_status = status
         return result_round_id, result_status
 
-    def _finish_member_round(
-        self, member_id: str, round_id: int, *, session: Session = None
-    ):
-        member_finish_round(self._task_id, member_id, round_id, session=session)
-
     def _finish_round(self):
         with self._round_cond:
             self._round_finished = True
@@ -205,37 +212,35 @@ class TaskManager(object):
             agg_method = agg.get_agg_method(self._metadata.secure_level)
 
             def agg_update(member_ids: List[str], group: channel.ChannelGroup):
-                _logger.info("agg update")
                 result = agg_method(member_ids, group)
-                _logger.info("agg finished")
+                _logger.info(f"task {self._task_id} round {self._round_id} agg finished")
                 try:
                     self._task_item.update(result)
                     weight_file = task_weight_file(self._task_id, self._round_id)
                     with open(weight_file, mode="wb") as f:
                         self._task_item.dump_weight(f)
+                    _logger.info(f"task {self._task_id} round {self._round_id} update weight")
                 except Exception as e:
                     _logger.error(e)
 
             pool = futures.ThreadPoolExecutor(1)
             fut = pool.submit(agg_update, self._joined_members, self._agg_group)
-            _logger.info("start agg update")
 
         self._agg_group.register(member_id, in_ch)
-        _logger.info(
+        _logger.debug(
             f"register {member_id} for agg of task {self._task_id} round {self._round_id}"
         )
 
         yield out_ch
         
-        _logger.info("start finish round")
         with self._round_cond:
-            self._finish_member_round(member_id, self._round_id)
+            member_finish_round(self._task_id, member_id, self._round_id)
             if master:
                 assert fut is not None
                 assert pool is not None
                 fut.result()
                 pool.shutdown(True)
-                _logger.info("agg update finish")
+                _logger.debug("agg update finish")
                 with self._agg_lock:
                     self._agg_group = None
                 self._finish_round()

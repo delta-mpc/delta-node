@@ -79,7 +79,6 @@ class ChannelGroup(object):
 
     def recv_files(self, dst_files: Dict[str, IO[bytes]], timeout: Optional[float] = None) -> Dict[str, bool]:
         assert all(member_id in self._channels for member_id in dst_files)
-        _logger.info("recv files")
 
         finish_map = {member_id: False for member_id in dst_files}
         unfinished = list(dst_files.keys())
@@ -87,7 +86,6 @@ class ChannelGroup(object):
         while len(unfinished) > 0 and (remaining is None or remaining > 0):
             start = time.time()
             data = self.recv_msgs(unfinished, remaining)
-            _logger.info(f"recv data from {data.keys()}")
             end = time.time()
             if remaining is not None:
                 remaining -= end - start
@@ -99,7 +97,6 @@ class ChannelGroup(object):
                 else:
                     file = dst_files[member_id]
                     file.write(chunk.content)
-        _logger.info("recv files complete")
         return finish_map
 
     def send_file(self, member_id: str, file: IO[bytes]):

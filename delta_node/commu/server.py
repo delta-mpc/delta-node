@@ -4,7 +4,7 @@ from typing import Generator, Optional
 
 import grpc
 
-from .. import config, task, exceptions
+from .. import config, manager, exceptions
 from ..channel import Control, Message
 from . import commu_pb2, commu_pb2_grpc
 
@@ -27,8 +27,8 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         task_id = request.task_id
         member_id = request.member_id
         try:
-            manager = task.get_task_manager(task_id=task_id)
-            metadata = manager.get_metadata(member_id)
+            task_manager = manager.get_task_manager(task_id=task_id)
+            metadata = task_manager.get_metadata(member_id)
             resp = commu_pb2.MetadataResp(
                 name=metadata.name,
                 type=metadata.type,
@@ -46,21 +46,35 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         task_id = request.task_id
         member_id = request.member_id
         try:
-            manager = task.get_task_manager(task_id=task_id)
-            manager.join(member_id)
-            resp = commu_pb2.JoinResp(success=True)
+            task_manager = manager.get_task_manager(task_id=task_id)
+            task_manager.join(member_id)
+            resp = commu_pb2.StatusResp(success=True)
             return resp
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
+    def FinishTask(self, request, context):
+        task_id = request.task_id
+        member_id = request.member_id
+        try:
+            task_manager = manager.get_task_manager(task_id=task_id)
+            task_manager.finish_task(member_id)
+            resp = commu_pb2.StatusResp(success=True)
+            return resp
+        except exceptions.TaskError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        except Exception as e:
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
+
+
     def GetRound(self, request, context):
         task_id = request.task_id
         member_id = request.member_id
         try:
-            manager = task.get_task_manager(task_id=task_id)
-            round_id = manager.get_round_id(member_id=member_id)
+            task_manager = manager.get_task_manager(task_id=task_id)
+            round_id = task_manager.get_round_id(member_id=member_id)
             resp = commu_pb2.RoundResp(round_id=round_id)
             return resp
         except exceptions.TaskError as e:
@@ -75,8 +89,8 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         round_id = request.round_id
 
         try:
-            manager = task.get_task_manager(task_id)
-            filename = manager.get_file(member_id, round_id, file_type)
+            task_manager = manager.get_task_manager(task_id)
+            filename = task_manager.get_file(member_id, round_id, file_type)
             yield from file_resp_generator(filename)
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
@@ -92,9 +106,9 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         _logger.info(f"task {task_id} member {member_id} upload result")
 
         try:
-            manager = task.get_task_manager(task_id)
-            if manager.has_joined_member(member_id):
-                with manager.aggregate(member_id) as ch:
+            task_manager = manager.get_task_manager(task_id)
+            if task_manager.has_joined_member(member_id):
+                with task_manager.aggregate(member_id) as ch:
                     for opt in ch.control_flow():
                         if opt == Control.INPUT:
                             req = next(request_iterator)
