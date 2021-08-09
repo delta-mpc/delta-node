@@ -40,6 +40,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
+            _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
     def JoinTask(self, request, context):
@@ -53,6 +54,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
+            _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
     def FinishTask(self, request, context):
@@ -66,6 +68,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
+            _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
 
@@ -80,6 +83,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
+            _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
     def GetFile(self, request, context):
@@ -95,6 +99,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
+            _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
 
@@ -122,6 +127,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
+            _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
 

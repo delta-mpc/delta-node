@@ -1,5 +1,5 @@
-from delta_node import run
+from delta_node import main
 
 
 if __name__ == "__main__":
-    run()
+    main()

@@ -18,7 +18,7 @@ _event_func_map = {
 def _call_event_func(
     event: str, start: int, page: int, page_size: int = 20
 ) -> List[Dict[str, Any]]:
-    url = config.contract_address + "/event/" + _event_func_map[event]
+    url = config.chain_address + "/event/" + _event_func_map[event]
     data = {"page": page, "page_size": page_size, "start": start}
     resp = requests.get(url, data)
     resp.raise_for_status()

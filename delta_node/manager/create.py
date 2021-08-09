@@ -38,7 +38,7 @@ def create_task(
         type=type,
         secure_level=secure_level,
         algorithm=algorithm,
-        url=config.url,
+        url=config.node_address,
         member_count=len(members),
         node_id=node_id,
         task_id=task_id,

@@ -22,54 +22,29 @@ __all__ = [
 
 
 def register_node(url: str) -> str:
-    if config.contract_impl == "substrate":
-        from .substrate import contract
-    elif config.contract_impl == "monkey":
-        from .monkey import contract
-    else:
-        raise ImportError("unknown contract impl")
+    from .monkey import contract
 
     return contract.register_node(url)
 
 
 def create_task(node_id: str, task_name: str) -> int:
-    if config.contract_impl == "substrate":
-        from .substrate import contract
-    elif config.contract_impl == "monkey":
-        from .monkey import contract
-    else:
-        raise ImportError("unknown contract impl")
+    from .monkey import contract
 
     return contract.create_task(node_id, task_name)
 
 
 def join_task(node_id: str, task_id: int) -> bool:
-    if config.contract_impl == "substrate":
-        from .substrate import contract
-    elif config.contract_impl == "monkey":
-        from .monkey import contract
-    else:
-        raise ImportError("unknown contract impl")
+    from .monkey import contract
     return contract.join_task(node_id, task_id)
 
 
 def start_round(node_id: str, task_id: int) -> int:
-    if config.contract_impl == "substrate":
-        from .substrate import contract
-    elif config.contract_impl == "monkey":
-        from .monkey import contract
-    else:
-        raise ImportError("unknown contract impl")
+    from .monkey import contract
     return contract.start_round(node_id, task_id)
 
 
 def publish_pub_key(node_id: str, task_id: int, round_id: int, pub_key: str):
-    if config.contract_impl == "substrate":
-        from .substrate import contract
-    elif config.contract_impl == "monkey":
-        from .monkey import contract
-    else:
-        raise ImportError("unknown contract impl")
+    from .monkey import contract
     return contract.publish_pub_key(node_id, task_id, round_id, pub_key)
 
 
@@ -102,10 +77,5 @@ class EventFilter(threading.Thread, metaclass=ABCMeta):
 
 
 def new_event_filter(*args, **kwargs) -> EventFilter:
-    if config.contract_impl == "substrate":
-        from .substrate import event_filter
-    elif config.contract_impl == "monkey":
-        from .monkey import event_filter
-    else:
-        raise ImportError("unknown contract impl")
+    from .monkey import event_filter
     return event_filter.EventFilter(*args, **kwargs)

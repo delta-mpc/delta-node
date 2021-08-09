@@ -1,7 +1,6 @@
 import logging
 from concurrent import futures
 from queue import Queue
-from tempfile import TemporaryFile
 from typing import IO, Callable
 
 import grpc
@@ -36,7 +35,8 @@ class CommuClient(object):
             resp = self._stub.JoinTask(req)
             success = resp.success
             return success
-        except grpc.RpcError:
+        except grpc.RpcError as e:
+            _logger.error(e)
             return False
 
     def finish_task(self, task_id: int, member_id: str) -> bool:
@@ -46,6 +46,7 @@ class CommuClient(object):
             success = resp.success
             return success
         except grpc.RpcError as e:
+            _logger.error(e)
             return False
 
     def get_round_id(self, task_id: int, member_id: str) -> int:

@@ -55,7 +55,7 @@ setup(
     cmdclass={"test": PyTest},
     test_suite="tests",
     entry_points={
-        'console_scripts': ['delte_node_start=delta_node.run:run']
+        'console_scripts': ['delte_node_start=delta_node.main:main']
     },
     zip_safe=False,
     author="miaohong",

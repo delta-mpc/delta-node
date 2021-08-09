@@ -15,13 +15,13 @@ _node_id = None
 def register_node(session: Session = None):
     assert session is not None
     global _node_id
-    node = session.query(model.Node).filter(model.Node.url == config.url).one_or_none()
+    node = session.query(model.Node).filter(model.Node.url == config.node_address).one_or_none()
     if node is None:
         _logger.info(
             "unregistered node, start to register node", extra={"app": "server"}
         )
-        node_id = contract.register_node(config.url)
-        node = model.Node(url=config.url, node_id=node_id)
+        node_id = contract.register_node(config.node_address)
+        node = model.Node(url=config.node_address, node_id=node_id)
         session.add(node)
         session.commit()
         _node_id = node_id
@@ -41,7 +41,7 @@ def get_node_id(session: Session = None):
     global _node_id
     if _node_id is None:
         node = (
-            session.query(model.Node).filter(model.Node.url == config.url).one_or_none()
+            session.query(model.Node).filter(model.Node.url == config.node_address).one_or_none()
         )
         if node is None:
             _logger.error("node unregistered", extra={"app": "server"})

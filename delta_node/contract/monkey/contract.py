@@ -8,7 +8,7 @@ __all__ = ["register_node", "create_task", "join_task", "start_round", "publish_
 
 
 def call_tx_func(func_name: str, data: Dict[str, Any]):
-    url = config.contract_address + "/" + func_name
+    url = config.chain_address + "/" + func_name
     resp = requests.post(url, json=data)
     resp.raise_for_status()
     return resp.json()
