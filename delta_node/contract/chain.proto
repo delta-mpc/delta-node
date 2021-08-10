@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package chain;
+
+message NodeReq {
+    string url = 1;
+}
+
+message NodeResp {
+    string node_id = 1;
+}
+
+message TaskReq {
+    string node_id = 1;
+    string name = 2;
+}
+
+message TaskResp {
+    uint32 task_id = 1;
+}
+
+message JoinReq {
+    string node_id = 1;
+    uint32 task_id = 2;
+}
+
+message JoinResp {
+    bool success = 1;
+}
+
+message RoundReq {
+    string node_id = 1;
+    uint32 task_id = 2;
+}
+
+message RoundResp {
+    uint32 round_id = 3;
+}
+
+message KeyReq {
+    string node_id = 1;
+    uint32 task_id = 2;
+    uint32 round_id = 3;
+    string key = 4;
+}
+
+message KeyResp {
+    bool success = 1;
+}
+
+message EventReq{
+    string node_id = 1;
+}
+
+message EventResp {
+    string name = 1;
+    string address = 2;
+    string url = 3;
+    uint32 task_id = 4;
+    uint32 epoch = 5;
+    string key = 6;
+}
+
+
+service Chain {
+    rpc RegisterNode(NodeReq) returns (NodeResp) {}
+    rpc CreateTask(TaskReq) returns (TaskResp) {}
+    rpc JoinTask(JoinReq) returns (JoinResp) {}
+    rpc StartRound(RoundReq) returns (RoundResp) {}
+    rpc PublishPubKey(KeyReq) returns (KeyResp) {}
+    rpc Events(EventReq) returns (stream EventResp) {}
+}

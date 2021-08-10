@@ -49,7 +49,6 @@ setup(
         'protobuf~=3.17.3',
         'PyYAML~=5.4.1',
         'python-multipart~=0.0.5',
-        'grpcio==1.39.0'
     ],
     tests_require=["pytest"],
     cmdclass={"test": PyTest},

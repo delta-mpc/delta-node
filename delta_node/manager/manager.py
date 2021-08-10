@@ -99,7 +99,7 @@ class TaskManager(object):
                 # new round
                 round_id = contract.start_round(self._node_id, self._task_id)
                 _logger.info(f"start new round {round_id}")
-                assert last_round < round_id
+                assert last_round < round_id, f"last round {last_round}, new round {round_id}"
                 self._round_id = round_id
                 self._round_finished = False
                 member_start_round(self._task_id, member_id, round_id, session=session)
