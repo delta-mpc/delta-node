@@ -25,7 +25,7 @@ class TaskManager(object):
         task = get_task(task_id, session=session)
         if task is None:
             err = f"task {task_id} is not ready"
-            _logger.error(err)
+            _logger.error(err, extra={"task_id": task_id})
             raise TaskNotReadyError(task_id)
         self._members = [member.node_id for member in task.members]
         self._joined_members = [
@@ -42,6 +42,9 @@ class TaskManager(object):
         round_id, round_status = self._round_status()
         self._round_id = round_id
         self._round_finished = round_status == model.RoundStatus.FINISHED
+        self._task_finished = task.status == model.TaskStatus.FINISHED
+        if self._task_finished:
+            raise TaskFinishedError(task_id)
 
         self._agg_lock = threading.Lock()
         self._agg_group: Optional[channel.ChannelGroup] = None
@@ -63,7 +66,7 @@ class TaskManager(object):
             join_task(self._task_id, member_id, session=session)
             self._joined_members.append(member_id)
             contract.join_task(member_id, self._task_id)
-            _logger.info(f"member {member_id} join the task {self._task_id}")
+            _logger.info(f"member {member_id} join the task {self._task_id}", extra={"task_id": self._task_id})
 
     def finish_task(self, member_id: str, *, session: Session = None):
         if member_id not in self._joined_members:
@@ -72,9 +75,9 @@ class TaskManager(object):
             last_round_id, status = get_member_round_status(self._task_id, member_id, session=session)
             if status == model.RoundStatus.RUNNING:
                 member_finish_round(self._task_id, member_id, last_round_id, session=session)
-            if self._round_finished:
+            if self._round_finished and not self._task_finished:
                 finish_task(self._task_id)
-                _logger.info(f"task {self._task_id} finished")
+                _logger.info(f"task {self._task_id} finished", extra={"task_id": self._task_id})
 
     def get_round_id(self, member_id: str, *, session: Session = None) -> int:
         if member_id not in self._joined_members:
@@ -98,7 +101,7 @@ class TaskManager(object):
                     )
                 # new round
                 round_id = contract.start_round(self._node_id, self._task_id)
-                _logger.info(f"start new round {round_id}")
+                _logger.info(f"task {self._task_id} start new round {round_id}", extra={"task_id": self._task_id})
                 assert last_round < round_id, f"last round {last_round}, new round {round_id}"
                 self._round_id = round_id
                 self._round_finished = False
@@ -209,17 +212,16 @@ class TaskManager(object):
         pool: Optional[futures.ThreadPoolExecutor] = None
         fut: Optional[futures.Future] = None
         if master:
-            agg_method = agg.get_agg_method(self._metadata.secure_level)
 
             def agg_update(member_ids: List[str], group: channel.ChannelGroup):
-                result = agg_method(member_ids, group)
-                _logger.info(f"task {self._task_id} round {self._round_id} agg finished")
+                aggregator = agg.new_aggregator(self._metadata.secure_level, self._task_id)
+                result = aggregator.aggregate(member_ids, group)
                 try:
                     self._task_item.update(result)
                     weight_file = task_weight_file(self._task_id, self._round_id)
                     with open(weight_file, mode="wb") as f:
                         self._task_item.dump_weight(f)
-                    _logger.info(f"task {self._task_id} round {self._round_id} update weight")
+                    _logger.info(f"task {self._task_id} round {self._round_id} update weight", extra={"task_id": self._task_id})
                 except Exception as e:
                     _logger.error(e)
 

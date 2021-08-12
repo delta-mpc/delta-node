@@ -6,19 +6,22 @@ import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 
 from .. import db
+from . import utils
 
 
 class TaskStatus(IntEnum):
     INIT = 0
-    RUNNING = 2
-    FINISHED = 3
-    ERROR = 4
+    RUNNING = 1
+    FINISHED = 2
+    ERROR = 3
 
 
 class Task(db.Base):
     __tablename__ = "task"
 
     id = sa.Column(sa.Integer, primary_key=True)
+    created_at = sa.Column(sa.Integer, default=utils.timestamp)
+
     name = sa.Column(sa.String)
     type = sa.Column(sa.String)
     secure_level = sa.Column(sa.Integer)
@@ -26,8 +29,8 @@ class Task(db.Base):
     url = sa.Column(sa.String)
     member_count = sa.Column(sa.Integer)  # 0 means unlimited member count
 
-    node_id = sa.Column(sa.String)  # creator of the task
-    task_id = sa.Column(sa.Integer)
+    node_id = sa.Column(sa.String, index=True)  # creator of the task
+    task_id = sa.Column(sa.Integer, index=True)
     status = sa.Column(sa.Integer)  # 0: initial  1: running  2: finished  4: error
 
     members = relationship(

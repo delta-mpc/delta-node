@@ -1,8 +1,9 @@
-from .event_filter import EventFilter
-from .client import ChainClient
-from .event import Event
-from .. import config, node
+from typing import List
 
+from .. import config, node
+from .client import ChainClient
+from .event_filter import EventFilter
+from .utils import Event, Node
 
 __all__ = [
     "register_node",
@@ -16,6 +17,10 @@ __all__ = [
 ]
 
 _client = ChainClient(config.chain_address)
+
+
+def get_nodes(page: int = 1, page_size: int = 20) -> List[Node]:
+    return _client.get_nodes(page, page_size)
 
 
 def register_node(url: str) -> str:

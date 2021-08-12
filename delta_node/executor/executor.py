@@ -21,9 +21,9 @@ def execute_task(task_id: int, url: str, creator_id: str):
     client = CommuClient(url)
     node_id = node.get_node_id()
     if client.join_task(task_id, node_id):
-        _logger.info(f"member {node_id} join task {task_id}")
+        _logger.info(f"member {node_id} join task {task_id}", extra={"task_id": task_id})
         metadata = client.get_metadata(task_id, node_id)
-        _logger.info(f"member {node_id} get metadata of task {task_id}")
+        _logger.info(f"member {node_id} get metadata of task {task_id}", extra={"task_id": task_id})
         add_task(task_id, url, creator_id, metadata)
         join_task(task_id, node_id)
         local_node = LocalNode(config.data_dir, task_id, metadata, client)
@@ -31,7 +31,7 @@ def execute_task(task_id: int, url: str, creator_id: str):
         with BytesIO() as f:
             client.get_file(task_id, node_id, 0, "cfg", f)
             task = delta_task.load(f)
-            _logger.info(f"member {node_id} get task cfg of task {task_id}")
+            _logger.info(f"member {node_id} get task cfg of task {task_id}", extra={"task_id": task_id})
         task.run(local_node)
     else:
         _logger.info(f"member {node_id} cannot join task {task_id}")

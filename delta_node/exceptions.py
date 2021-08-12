@@ -7,7 +7,8 @@ __all__ = [
     "TaskUnfinishedRoundError",
     "TaskNoSuchRoundError",
     "TaskUnknownFileTypeError",
-    "TaskFileNotExistedError"
+    "TaskFileNotExistedError",
+    "TaskFinishedError"
 ]
 
 
@@ -84,3 +85,11 @@ class TaskFileNotExistedError(TaskError):
 
     def __str__(self) -> str:
         return f"task {self.task_id} {self.filename} is not existed"
+
+
+class TaskFinishedError(TaskError):
+    def __init__(self, task_id: int) -> None:
+        super().__init__(task_id)
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} already finished"

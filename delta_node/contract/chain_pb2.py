@@ -19,10 +19,120 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0b\x63hain.proto\x12\x05\x63hain\"\x16\n\x07NodeReq\x12\x0b\n\x03url\x18\x01 \x01(\t\"\x1b\n\x08NodeResp\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"(\n\x07TaskReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"\x1b\n\x08TaskResp\x12\x0f\n\x07task_id\x18\x01 \x01(\r\"+\n\x07JoinReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\r\"\x1b\n\x08JoinResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\",\n\x08RoundReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\r\"\x1d\n\tRoundResp\x12\x10\n\x08round_id\x18\x03 \x01(\r\"I\n\x06KeyReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\r\x12\x10\n\x08round_id\x18\x03 \x01(\r\x12\x0b\n\x03key\x18\x04 \x01(\t\"\x1a\n\x07KeyResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x1b\n\x08\x45ventReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"d\n\tEventResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\x0f\n\x07task_id\x18\x04 \x01(\r\x12\r\n\x05\x65poch\x18\x05 \x01(\r\x12\x0b\n\x03key\x18\x06 \x01(\t2\xb0\x02\n\x05\x43hain\x12\x31\n\x0cRegisterNode\x12\x0e.chain.NodeReq\x1a\x0f.chain.NodeResp\"\x00\x12/\n\nCreateTask\x12\x0e.chain.TaskReq\x1a\x0f.chain.TaskResp\"\x00\x12-\n\x08JoinTask\x12\x0e.chain.JoinReq\x1a\x0f.chain.JoinResp\"\x00\x12\x31\n\nStartRound\x12\x0f.chain.RoundReq\x1a\x10.chain.RoundResp\"\x00\x12\x30\n\rPublishPubKey\x12\r.chain.KeyReq\x1a\x0e.chain.KeyResp\"\x00\x12/\n\x06\x45vents\x12\x0f.chain.EventReq\x1a\x10.chain.EventResp\"\x00\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0b\x63hain.proto\x12\x05\x63hain\"+\n\x08NodesReq\x12\x0c\n\x04page\x18\x01 \x01(\r\x12\x11\n\tpage_size\x18\x14 \x01(\r\"\x1f\n\x04Node\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0b\n\x03url\x18\x02 \x01(\t\"\'\n\tNodesResp\x12\x1a\n\x05nodes\x18\x01 \x03(\x0b\x32\x0b.chain.Node\"\x16\n\x07NodeReq\x12\x0b\n\x03url\x18\x01 \x01(\t\"\x1b\n\x08NodeResp\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"(\n\x07TaskReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"\x1b\n\x08TaskResp\x12\x0f\n\x07task_id\x18\x01 \x01(\r\"+\n\x07JoinReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\r\"\x1b\n\x08JoinResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\",\n\x08RoundReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\r\"\x1d\n\tRoundResp\x12\x10\n\x08round_id\x18\x03 \x01(\r\"I\n\x06KeyReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\r\x12\x10\n\x08round_id\x18\x03 \x01(\r\x12\x0b\n\x03key\x18\x04 \x01(\t\"\x1a\n\x07KeyResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x1b\n\x08\x45ventReq\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"d\n\tEventResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\x0f\n\x07task_id\x18\x04 \x01(\r\x12\r\n\x05\x65poch\x18\x05 \x01(\r\x12\x0b\n\x03key\x18\x06 \x01(\t2\xe1\x02\n\x05\x43hain\x12/\n\x08GetNodes\x12\x0f.chain.NodesReq\x1a\x10.chain.NodesResp\"\x00\x12\x31\n\x0cRegisterNode\x12\x0e.chain.NodeReq\x1a\x0f.chain.NodeResp\"\x00\x12/\n\nCreateTask\x12\x0e.chain.TaskReq\x1a\x0f.chain.TaskResp\"\x00\x12-\n\x08JoinTask\x12\x0e.chain.JoinReq\x1a\x0f.chain.JoinResp\"\x00\x12\x31\n\nStartRound\x12\x0f.chain.RoundReq\x1a\x10.chain.RoundResp\"\x00\x12\x30\n\rPublishPubKey\x12\r.chain.KeyReq\x1a\x0e.chain.KeyResp\"\x00\x12/\n\x06\x45vents\x12\x0f.chain.EventReq\x1a\x10.chain.EventResp\"\x00\x30\x01\x62\x06proto3'
 )
 
 
+
+
+_NODESREQ = _descriptor.Descriptor(
+  name='NodesReq',
+  full_name='chain.NodesReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='page', full_name='chain.NodesReq.page', index=0,
+      number=1, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='page_size', full_name='chain.NodesReq.page_size', index=1,
+      number=20, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=22,
+  serialized_end=65,
+)
+
+
+_NODE = _descriptor.Descriptor(
+  name='Node',
+  full_name='chain.Node',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='chain.Node.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='url', full_name='chain.Node.url', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=67,
+  serialized_end=98,
+)
+
+
+_NODESRESP = _descriptor.Descriptor(
+  name='NodesResp',
+  full_name='chain.NodesResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='nodes', full_name='chain.NodesResp.nodes', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=100,
+  serialized_end=139,
+)
 
 
 _NODEREQ = _descriptor.Descriptor(
@@ -52,8 +162,8 @@ _NODEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=22,
-  serialized_end=44,
+  serialized_start=141,
+  serialized_end=163,
 )
 
 
@@ -84,8 +194,8 @@ _NODERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=46,
-  serialized_end=73,
+  serialized_start=165,
+  serialized_end=192,
 )
 
 
@@ -123,8 +233,8 @@ _TASKREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=75,
-  serialized_end=115,
+  serialized_start=194,
+  serialized_end=234,
 )
 
 
@@ -155,8 +265,8 @@ _TASKRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=117,
-  serialized_end=144,
+  serialized_start=236,
+  serialized_end=263,
 )
 
 
@@ -194,8 +304,8 @@ _JOINREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=146,
-  serialized_end=189,
+  serialized_start=265,
+  serialized_end=308,
 )
 
 
@@ -226,8 +336,8 @@ _JOINRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=191,
-  serialized_end=218,
+  serialized_start=310,
+  serialized_end=337,
 )
 
 
@@ -265,8 +375,8 @@ _ROUNDREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=220,
-  serialized_end=264,
+  serialized_start=339,
+  serialized_end=383,
 )
 
 
@@ -297,8 +407,8 @@ _ROUNDRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=266,
-  serialized_end=295,
+  serialized_start=385,
+  serialized_end=414,
 )
 
 
@@ -350,8 +460,8 @@ _KEYREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=297,
-  serialized_end=370,
+  serialized_start=416,
+  serialized_end=489,
 )
 
 
@@ -382,8 +492,8 @@ _KEYRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=372,
-  serialized_end=398,
+  serialized_start=491,
+  serialized_end=517,
 )
 
 
@@ -414,8 +524,8 @@ _EVENTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=400,
-  serialized_end=427,
+  serialized_start=519,
+  serialized_end=546,
 )
 
 
@@ -481,10 +591,14 @@ _EVENTRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=429,
-  serialized_end=529,
+  serialized_start=548,
+  serialized_end=648,
 )
 
+_NODESRESP.fields_by_name['nodes'].message_type = _NODE
+DESCRIPTOR.message_types_by_name['NodesReq'] = _NODESREQ
+DESCRIPTOR.message_types_by_name['Node'] = _NODE
+DESCRIPTOR.message_types_by_name['NodesResp'] = _NODESRESP
 DESCRIPTOR.message_types_by_name['NodeReq'] = _NODEREQ
 DESCRIPTOR.message_types_by_name['NodeResp'] = _NODERESP
 DESCRIPTOR.message_types_by_name['TaskReq'] = _TASKREQ
@@ -498,6 +612,27 @@ DESCRIPTOR.message_types_by_name['KeyResp'] = _KEYRESP
 DESCRIPTOR.message_types_by_name['EventReq'] = _EVENTREQ
 DESCRIPTOR.message_types_by_name['EventResp'] = _EVENTRESP
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+NodesReq = _reflection.GeneratedProtocolMessageType('NodesReq', (_message.Message,), {
+  'DESCRIPTOR' : _NODESREQ,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.NodesReq)
+  })
+_sym_db.RegisterMessage(NodesReq)
+
+Node = _reflection.GeneratedProtocolMessageType('Node', (_message.Message,), {
+  'DESCRIPTOR' : _NODE,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.Node)
+  })
+_sym_db.RegisterMessage(Node)
+
+NodesResp = _reflection.GeneratedProtocolMessageType('NodesResp', (_message.Message,), {
+  'DESCRIPTOR' : _NODESRESP,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.NodesResp)
+  })
+_sym_db.RegisterMessage(NodesResp)
 
 NodeReq = _reflection.GeneratedProtocolMessageType('NodeReq', (_message.Message,), {
   'DESCRIPTOR' : _NODEREQ,
@@ -592,13 +727,23 @@ _CHAIN = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=532,
-  serialized_end=836,
+  serialized_start=651,
+  serialized_end=1004,
   methods=[
+  _descriptor.MethodDescriptor(
+    name='GetNodes',
+    full_name='chain.Chain.GetNodes',
+    index=0,
+    containing_service=None,
+    input_type=_NODESREQ,
+    output_type=_NODESRESP,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
   _descriptor.MethodDescriptor(
     name='RegisterNode',
     full_name='chain.Chain.RegisterNode',
-    index=0,
+    index=1,
     containing_service=None,
     input_type=_NODEREQ,
     output_type=_NODERESP,
@@ -608,7 +753,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='CreateTask',
     full_name='chain.Chain.CreateTask',
-    index=1,
+    index=2,
     containing_service=None,
     input_type=_TASKREQ,
     output_type=_TASKRESP,
@@ -618,7 +763,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='JoinTask',
     full_name='chain.Chain.JoinTask',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_JOINREQ,
     output_type=_JOINRESP,
@@ -628,7 +773,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='StartRound',
     full_name='chain.Chain.StartRound',
-    index=3,
+    index=4,
     containing_service=None,
     input_type=_ROUNDREQ,
     output_type=_ROUNDRESP,
@@ -638,7 +783,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='PublishPubKey',
     full_name='chain.Chain.PublishPubKey',
-    index=4,
+    index=5,
     containing_service=None,
     input_type=_KEYREQ,
     output_type=_KEYRESP,
@@ -648,7 +793,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='Events',
     full_name='chain.Chain.Events',
-    index=5,
+    index=6,
     containing_service=None,
     input_type=_EVENTREQ,
     output_type=_EVENTRESP,

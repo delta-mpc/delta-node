@@ -2,6 +2,20 @@ syntax = "proto3";
 
 package chain;
 
+message NodesReq {
+    uint32 page = 1;
+    uint32 page_size = 20;
+}
+
+message Node {
+    string id = 1;
+    string url = 2;
+}
+
+message NodesResp {
+    repeated Node nodes = 1;
+}
+
 message NodeReq {
     string url = 1;
 }
@@ -63,6 +77,7 @@ message EventResp {
 
 
 service Chain {
+    rpc GetNodes(NodesReq) returns (NodesResp) {}
     rpc RegisterNode(NodeReq) returns (NodeResp) {}
     rpc CreateTask(TaskReq) returns (TaskResp) {}
     rpc JoinTask(JoinReq) returns (JoinResp) {}

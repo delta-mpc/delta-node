@@ -1,7 +1,9 @@
-import sqlalchemy as sa
-from .. import db
-
 from enum import IntEnum
+
+import sqlalchemy as sa
+
+from .. import db
+from . import utils
 
 
 class RoundStatus(IntEnum):
@@ -13,7 +15,8 @@ class Round(db.Base):
     __tablename__ = "round"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    task_id = sa.Column(sa.Integer)
+    created_at = sa.Column(sa.Integer, default=utils.timestamp)
+    task_id = sa.Column(sa.Integer, index=True)
     node_id = sa.Column(sa.String)
     round_id = sa.Column(sa.Integer)
     status = sa.Column(sa.Integer)

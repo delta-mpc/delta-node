@@ -1,17 +1,35 @@
-from . import simple
+from typing import Dict, List, Optional
+
+from . import base, simple
+
+_impls = {0: simple}
+
+_aggregators: Dict[int, base.Aggregator] = {}
+
+_uploaders: Dict[int, base.Uploader] = {}
 
 
-_agg_methods = {0: simple.aggregate}
-
-_upload_methods = {0: simple.upload}
-
-def get_agg_method(secure_level: int):
-    if secure_level not in _agg_methods:
+def new_aggregator(
+    secure_level: int,
+    task_id: int,
+    timeout: Optional[float] = None,
+) -> base.Aggregator:
+    if secure_level not in _impls:
         raise KeyError(f"no such secure level {secure_level}")
-    return _agg_methods[secure_level]
+    if task_id not in _aggregators:
+        impl = _impls[secure_level]
+        aggregator = impl.Aggregator(task_id, timeout)
+        _aggregators[task_id] = aggregator
+    return _aggregators[task_id]
 
 
-def get_upload_method(secure_level: int):
-    if secure_level not in _agg_methods:
+def new_uploader(
+    secure_level: int, task_id: int, node_id: str, timeout: Optional[float] = None
+) -> base.Uploader:
+    if secure_level not in _impls:
         raise KeyError(f"no such secure level {secure_level}")
-    return _upload_methods[secure_level]
+    if task_id not in _uploaders:
+        impl = _impls[secure_level]
+        uploader = impl.Uploader(node_id, task_id, timeout)
+        _uploaders[task_id] = uploader
+    return _uploaders[task_id]

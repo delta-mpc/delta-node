@@ -1,14 +1,20 @@
-from typing import Iterable
+from typing import Iterable, List
 import grpc
 
 from . import chain_pb2, chain_pb2_grpc
-from .event import Event
+from .utils import Event, Node
 
 
 class ChainClient(object):
     def __init__(self, address: str) -> None:
         self._channel = grpc.insecure_channel(address)
         self._stub = chain_pb2_grpc.ChainStub(self._channel)
+
+    def get_nodes(self, page: int = 1, page_size: int = 20) -> List[Node]:
+        req = chain_pb2.NodesReq(page=page, page_size=page_size)
+        resp = self._stub.GetNodes(req)
+        nodes = [Node(id=node.id, url=node.url) for node in resp.nodes]
+        return nodes
 
     def register_node(self, url: str) -> str:
         req = chain_pb2.NodeReq(url=url)

@@ -1,19 +1,19 @@
 import argparse
-import os
 import multiprocessing as mp
+import os
 
 
-def app_run():
+def app_run(q):
     from . import app, config, log
 
-    log.init()
+    log.worker_init(q)
     app.run("0.0.0.0", config.api_port)
 
 
-def commu_run():
+def commu_run(q):
     from . import commu, config, log
 
-    log.init()
+    log.worker_init(q)
     server = commu.CommuServer(f"0.0.0.0:{config.node_port}")
     try:
         server.start()
@@ -22,39 +22,40 @@ def commu_run():
         server.stop()
 
 
-def executor_run():
+def executor_run(q):
     from . import executor, log
 
-    log.init()
+    log.worker_init(q)
     executor.run()
 
 
 def run():
-    from . import db, log, node, config
+    from . import config, db, log, node
 
     if config.chain_address is None or len(config.chain_address) == 0:
         raise RuntimeError("chain connector address is required")
     if config.node_host is None or len(config.node_host) == 0:
         raise RuntimeError("node address host is required")
 
-    log.init()
+    ctx = mp.get_context("spawn")
+    queue = ctx.Manager().Queue()
+    listener = log.main_init(queue)
     db.init_db()
     node.register_node()
 
-    ctx = mp.get_context("spawn")
-
-    app_process = ctx.Process(target=app_run)
+    app_process = ctx.Process(target=app_run, args=(queue,))
     app_process.start()
 
-    commu_process = ctx.Process(target=commu_run)
+    commu_process = ctx.Process(target=commu_run, args=(queue,))
     commu_process.start()
 
-    contract_process = ctx.Process(target=executor_run)
+    contract_process = ctx.Process(target=executor_run, args=(queue,))
     contract_process.start()
 
     contract_process.join()
     commu_process.join()
     app_process.join()
+    listener.stop()
 
 
 def init():
@@ -78,6 +79,10 @@ def init():
     if not os.path.exists(config.data_dir):
         os.makedirs(config.data_dir, exist_ok=True)
 
+    if not os.path.exists(config.log_dir):
+        os.makedirs(config.log_dir, exist_ok=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
@@ -85,9 +90,7 @@ def main():
         choices=["init", "run"],
         help="delta node start action: 'init' to init delta node config, 'run' to start the node",
     )
-    parser.add_argument(
-        "--version", action="version", version="%(prog)s 2.0"
-    )
+    parser.add_argument("--version", action="version", version="%(prog)s 2.0")
     args = parser.parse_args()
     if args.action == "init":
         init()

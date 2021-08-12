@@ -4,7 +4,7 @@ from queue import Empty, Queue
 from typing import Dict, Optional
 
 from .client import ChainClient
-from .event import Event
+from .utils import Event
 
 
 class EventFilter(threading.Thread):
