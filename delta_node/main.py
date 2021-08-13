@@ -83,11 +83,17 @@ def init():
         os.makedirs(config.log_dir, exist_ok=True)
 
 
+def mnist():
+    from . import mnist
+
+    mnist.mnist_train()
+
+
 def main():
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
         "action",
-        choices=["init", "run"],
+        choices=["init", "run", "get-mnist"],
         help="delta node start action: 'init' to init delta node config, 'run' to start the node",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0")
@@ -96,3 +102,5 @@ def main():
         init()
     elif args.action == "run":
         run()
+    elif args.action == "get-mnist":
+        mnist()
