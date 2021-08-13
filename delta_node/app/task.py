@@ -6,7 +6,7 @@ from tempfile import TemporaryFile
 from typing import List
 from zipfile import ZipFile
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 
@@ -85,6 +85,28 @@ def get_tasks(
     ]
     resp = utils.TasksResp(tasks=task_items, total_pages=page_count)
     return resp
+
+
+@router.get("/task/list", response_model=List[utils.Task])
+def get_task_list(task_ids: List[int] = Query(...), *, session: Session = Depends(db.get_session)):
+    tasks = (
+        session.query(model.Task)
+        .filter(model.Task.task_id.in_(task_ids))
+        .all()
+    )
+    task_items = [
+        utils.Task(
+            name=task.name,
+            type=task.type,
+            creator=task.node_id,
+            id=task.task_id,
+            created_at=task.created_at,
+            status=model.TaskStatus(task.status).name,
+        )
+        for task in tasks
+    ]
+    task_items = sorted(task_items, key=lambda task: task_ids.index(task.id))
+    return task_items
 
 
 @router.get("/task/metadata", response_model=utils.Task)
