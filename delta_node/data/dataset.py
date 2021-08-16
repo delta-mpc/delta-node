@@ -74,10 +74,10 @@ class DirectoryDataset(Dataset):
             self._xs.extend([os.path.join(root, filename) for filename in filenames])
         elif len(filenames) == 0 and len(dirnames) > 0:
             for dirname in dirnames:
-                root, sub_dirs, sub_files = next(os.walk(dirname))
+                sub_root, sub_dirs, sub_files = next(os.walk(os.path.join(root, dirname)))
                 if len(sub_files) > 0 and len(sub_dirs) == 0:
                     self._xs.extend(
-                        [os.path.join(root, filename) for filename in sub_files]
+                        [os.path.join(sub_root, filename) for filename in sub_files]
                     )
                     self._ys.extend([dirname] * len(sub_files))
                 else:
