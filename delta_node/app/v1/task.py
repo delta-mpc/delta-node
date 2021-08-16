@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 
-from .. import db, manager, model
-from . import utils
+from delta_node.app import utils
+from delta_node import db, model, manager
 
 _logger = logging.getLogger(__name__)
 
@@ -88,12 +88,10 @@ def get_tasks(
 
 
 @router.get("/task/list", response_model=List[utils.Task])
-def get_task_list(task_ids: List[int] = Query(...), *, session: Session = Depends(db.get_session)):
-    tasks = (
-        session.query(model.Task)
-        .filter(model.Task.task_id.in_(task_ids))
-        .all()
-    )
+def get_task_list(
+    task_ids: List[int] = Query(...), *, session: Session = Depends(db.get_session)
+):
+    tasks = session.query(model.Task).filter(model.Task.task_id.in_(task_ids)).all()
     task_items = [
         utils.Task(
             name=task.name,

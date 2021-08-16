@@ -1,9 +1,8 @@
 from typing import List
 
+from delta_node import contract
+from delta_node.app import utils
 from fastapi import APIRouter
-
-from .. import contract
-from . import utils
 
 router = APIRouter()
 
