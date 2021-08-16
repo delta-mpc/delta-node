@@ -7,6 +7,8 @@ import struct
 import numpy as np
 from tempfile import TemporaryFile
 
+from tqdm import tqdm
+
 from . import config
 
 
@@ -42,6 +44,9 @@ def read_mnist(image_fileobj: IO[bytes], label_fileobj: IO[bytes]):
         magic_lab, label_num = struct.unpack_from(magic_byte_lab, label_buf, offset_lab)
         offset_lab += struct.calcsize(magic_byte_lab)
 
+        assert image_num == label_num
+        yield label_num
+
         buffer_size = 100
         while True:
             if step_label >= label_num:
@@ -64,17 +69,35 @@ def read_mnist(image_fileobj: IO[bytes], label_fileobj: IO[bytes]):
 
 def download_mnist(image_url: str, label_url: str):
     with TemporaryFile(mode="w+b") as img_file, TemporaryFile(mode="w+b") as label_file:
-        resp = requests.get(image_url, stream=True)
-        resp.raise_for_status()
-        shutil.copyfileobj(resp.raw, img_file)
-        img_file.seek(0)
+        img_resp = requests.get(image_url, stream=True)
+        img_resp.raise_for_status()
+        img_size = int(img_resp.headers.get("content-length", 0))
 
-        resp = requests.get(label_url, stream=True)
-        resp.raise_for_status()
-        shutil.copyfileobj(resp.raw, label_file)
+        label_resp = requests.get(label_url, stream=True)
+        label_resp.raise_for_status()
+        label_size = int(label_resp.headers.get("content-length", 0))
+
+        total_size = img_size + label_size
+        print("downloading mnist dataset")
+        process_bar = tqdm(total=total_size, unit="iB", unit_scale=True)
+
+        chunk_size = 1024
+        for data in img_resp.iter_content(chunk_size):
+            img_file.write(data)
+            process_bar.update(len(data))
+        img_file.seek(0)
+        for data in label_resp.iter_content(chunk_size):
+            label_file.write(data)
+            process_bar.update(len(data))
         label_file.seek(0)
 
-        for i, (img, label) in enumerate(read_mnist(img_file, label_file)):
+        process_bar.close()
+
+        reader = read_mnist(img_file, label_file)
+        img_count = next(reader)
+        print("unpacking mnist dataset")
+        process_bar = tqdm(total=img_count)
+        for i, (img, label) in enumerate(reader):
             img_filename = os.path.join(
                 config.data_dir, "mnist", f"{label}", f"{i}.npy"
             )
@@ -82,6 +105,8 @@ def download_mnist(image_url: str, label_url: str):
             if not os.path.exists(img_dir):
                 os.makedirs(img_dir, exist_ok=True)
             np.save(img_filename, img)
+            process_bar.update(1)
+        process_bar.close()
 
 
 def mnist_train():
