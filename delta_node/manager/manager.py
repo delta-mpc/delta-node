@@ -1,3 +1,4 @@
+import shutil
 import logging
 import os.path
 import threading
@@ -8,13 +9,12 @@ from typing import Dict, List, Optional, Tuple
 
 from delta import task as delta_task
 from sqlalchemy.orm.session import Session
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_fixed)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from .. import agg, channel, contract, model, node
 from ..exceptions import *
-from .location import task_cfg_file, task_weight_file
-from .task import * 
+from .location import task_cfg_file, task_result_file, task_weight_file
+from .task import *
 
 _logger = logging.getLogger(__name__)
 
@@ -60,28 +60,46 @@ class TaskManager(object):
         return member_id in self._joined_members
 
     def join(self, member_id: str, *, session: Session = None):
+        if self._task_finished:
+            raise TaskFinishedError(self._task_id)
         if member_id not in self._members:
             raise TaskNoMemberError(self._task_id, member_id)
         if member_id not in self._joined_members:
             join_task(self._task_id, member_id, session=session)
             self._joined_members.append(member_id)
             contract.join_task(member_id, self._task_id)
-            _logger.info(f"member {member_id} join the task {self._task_id}", extra={"task_id": self._task_id})
+            _logger.info(
+                f"member {member_id} join the task {self._task_id}",
+                extra={"task_id": self._task_id},
+            )
 
     def finish_task(self, member_id: str, *, session: Session = None):
         if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
         with self._round_cond:
-            last_round_id, status = get_member_round_status(self._task_id, member_id, session=session)
+            last_round_id, status = get_member_round_status(
+                self._task_id, member_id, session=session
+            )
             if status == model.RoundStatus.RUNNING:
-                member_finish_round(self._task_id, member_id, last_round_id, session=session)
+                member_finish_round(
+                    self._task_id, member_id, last_round_id, session=session
+                )
             if self._round_finished and not self._task_finished:
                 finish_task(self._task_id)
-                _logger.info(f"task {self._task_id} finished", extra={"task_id": self._task_id})
+                self._task_finished = True
+                last_weight_file = task_weight_file(self._task_id, self._round_id)
+                result_file = task_result_file(self._task_id)
+                shutil.copyfile(last_weight_file, result_file)
+                _logger.info(
+                    f"task {self._task_id} finished", extra={"task_id": self._task_id}
+                )
 
     def get_round_id(self, member_id: str, *, session: Session = None) -> int:
         if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
+        if self._task_finished:
+            raise TaskFinishedError(self._task_id)
+
         last_round, status = get_member_round_status(
             self._task_id, member_id, session=session
         )
@@ -101,8 +119,13 @@ class TaskManager(object):
                     )
                 # new round
                 round_id = contract.start_round(self._node_id, self._task_id)
-                _logger.info(f"task {self._task_id} start new round {round_id}", extra={"task_id": self._task_id})
-                assert last_round < round_id, f"last round {last_round}, new round {round_id}"
+                _logger.info(
+                    f"task {self._task_id} start new round {round_id}",
+                    extra={"task_id": self._task_id},
+                )
+                assert (
+                    last_round < round_id
+                ), f"last round {last_round}, new round {round_id}"
                 self._round_id = round_id
                 self._round_finished = False
                 member_start_round(self._task_id, member_id, round_id, session=session)
@@ -144,7 +167,9 @@ class TaskManager(object):
                         _logger.info(
                             f"task {self._task_id} member {member_id} wait for next round"
                         )
-                        self._round_cond.wait_for(lambda: last_round < self._round_id)
+                        self._round_cond.wait_for(lambda: last_round < self._round_id or self._task_finished)
+                        if self._task_finished:
+                            raise TaskFinishedError(self._task_id)
                         return self._round_id
 
     def _round_status(
@@ -178,9 +203,15 @@ class TaskManager(object):
     def get_metadata(self, member_id: str) -> model.TaskMetadata:
         if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
+        if self._task_finished:
+            raise TaskFinishedError(self._task_id)
+
+        start_task(self._task_id)
         return self._metadata
 
     def get_file(self, member_id: str, round_id: int, file_type: str) -> str:
+        if self._task_finished:
+            raise TaskFinishedError(self._task_id)
         if self.has_joined_member(member_id):
             if file_type == "cfg":
                 filename = task_cfg_file(self._task_id)
@@ -199,6 +230,9 @@ class TaskManager(object):
     def aggregate(self, member_id: str):
         if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
+        if self._task_finished:
+            raise TaskFinishedError(self._task_id)
+
         in_ch, out_ch = channel.new_channel_pair()
         master = False
         with self._agg_lock:
@@ -214,14 +248,19 @@ class TaskManager(object):
         if master:
 
             def agg_update(member_ids: List[str], group: channel.ChannelGroup):
-                aggregator = agg.new_aggregator(self._metadata.secure_level, self._task_id)
+                aggregator = agg.new_aggregator(
+                    self._metadata.secure_level, self._task_id
+                )
                 result = aggregator.aggregate(member_ids, group)
                 try:
                     self._task_item.update(result)
                     weight_file = task_weight_file(self._task_id, self._round_id)
                     with open(weight_file, mode="wb") as f:
                         self._task_item.dump_weight(f)
-                    _logger.info(f"task {self._task_id} round {self._round_id} update weight", extra={"task_id": self._task_id})
+                    _logger.info(
+                        f"task {self._task_id} round {self._round_id} update weight",
+                        extra={"task_id": self._task_id},
+                    )
                 except Exception as e:
                     _logger.error(e)
 
@@ -234,7 +273,7 @@ class TaskManager(object):
         )
 
         yield out_ch
-        
+
         with self._round_cond:
             member_finish_round(self._task_id, member_id, self._round_id)
             if master:
@@ -269,7 +308,11 @@ def get_task_manager(task_id: int, *, session: Session = None) -> TaskManager:
             if task_id not in _task_manager_registry:
                 manager = _new_task_manager(task_id, session=session)
                 _task_manager_registry[task_id] = manager
-        except TaskError:
-            raise NoSuchTaskError(task_id)
+        except TaskError as e:
+            _logger.error(e)
+            raise
+        except Exception as e:
+            _logger.exception(e)
+            raise
         res = _task_manager_registry[task_id]
         return res

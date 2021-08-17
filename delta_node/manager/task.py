@@ -14,7 +14,8 @@ __all__ = [
     "get_member_round_status",
     "member_finish_round",
     "get_finished_round_member",
-    "finish_task"
+    "start_task",
+    "finish_task",
 ]
 
 
@@ -161,6 +162,17 @@ def get_finished_round_member(
     )
     res = [r.node_id for r in rounds]
     return res
+
+
+@db.with_session
+def start_task(task_id: int, *, session: Session = None):
+    assert session is not None
+    task = session.query(model.Task).filter(model.Task.task_id == task_id).one_or_none()
+    if task is None:
+        raise NoSuchTaskError(task_id)
+    task.status = model.TaskStatus.RUNNING  # type: ignore
+    session.add(task)
+    session.commit()
 
 
 @db.with_session

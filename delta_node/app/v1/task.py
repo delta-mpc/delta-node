@@ -7,7 +7,8 @@ from typing import List
 from zipfile import ZipFile
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query
-from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, func
 
 from delta_node.app import utils
@@ -60,7 +61,10 @@ def upload_task(
 
 @router.get("/tasks", response_model=utils.TasksResp)
 def get_tasks(
-    page: int = 1, page_size: int = 20, *, session: Session = Depends(db.get_session)
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, gt=0),
+    *,
+    session: Session = Depends(db.get_session),
 ):
     tasks = (
         session.query(model.Task)
@@ -124,11 +128,42 @@ def get_task_metadata(task_id: int, *, session: Session = Depends(db.get_session
     return task_item
 
 
+@router.get("/task/result")
+def get_task_result(task_id: int, *, session: Session = Depends(db.get_session)):
+    task = (
+        session.query(model.Task)
+        .options(joinedload("members"))
+        .filter(model.Task.task_id == task_id)
+        .one_or_none()
+    )
+    if task is None:
+        raise HTTPException(400, f"no such task of task id {task_id}")
+    if task.status != model.TaskStatus.FINISHED:
+        raise HTTPException(400, f"task {task_id} has not finished")
+
+    result_filename = manager.task_result_file(task_id)
+
+    def file_iter():
+        chunk_size = 4096
+        with open(result_filename, mode="rb") as f:
+            while True:
+                content = f.read(chunk_size)
+                if len(content) < chunk_size:
+                    break
+                yield content
+
+    return StreamingResponse(
+        file_iter(),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename={task_id}.result"},
+    )
+
+
 @router.get("/task/logs", response_model=List[utils.TaskLog])
 def get_task_logs(
     task_id: int,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, gt=0),
     *,
     session: Session = Depends(db.get_session),
 ):
