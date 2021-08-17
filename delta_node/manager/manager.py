@@ -31,6 +31,7 @@ class TaskManager(object):
         self._joined_members = [
             member.node_id for member in task.members if member.joined
         ]
+        self._join_cond = threading.Condition()
 
         self._metadata = model.TaskMetadata(
             task.name, task.type, task.secure_level, task.algorithm, self._members
@@ -66,12 +67,20 @@ class TaskManager(object):
             raise TaskNoMemberError(self._task_id, member_id)
         if member_id not in self._joined_members:
             join_task(self._task_id, member_id, session=session)
-            self._joined_members.append(member_id)
             contract.join_task(member_id, self._task_id)
-            _logger.info(
-                f"member {member_id} join the task {self._task_id}",
-                extra={"task_id": self._task_id},
-            )
+            with self._join_cond:
+                self._joined_members.append(member_id)
+                _logger.info(
+                    f"member {member_id} join the task {self._task_id}",
+                    extra={"task_id": self._task_id},
+                )
+                # wait until all members join the task
+                if len(self._joined_members) == len(self._members):
+                    self._join_cond.notify_all()
+                else:
+                    self._join_cond.wait_for(
+                        lambda: len(self._joined_members) == len(self._members)
+                    )
 
     def finish_task(self, member_id: str, *, session: Session = None):
         if member_id not in self._joined_members:
@@ -167,7 +176,9 @@ class TaskManager(object):
                         _logger.info(
                             f"task {self._task_id} member {member_id} wait for next round"
                         )
-                        self._round_cond.wait_for(lambda: last_round < self._round_id or self._task_finished)
+                        self._round_cond.wait_for(
+                            lambda: last_round < self._round_id or self._task_finished
+                        )
                         if self._task_finished:
                             raise TaskFinishedError(self._task_id)
                         return self._round_id
