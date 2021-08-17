@@ -25,9 +25,9 @@ class EventFilter(threading.Thread):
             return None
 
     def run(self):
-        for event in self._client.events(self._node_id):
+        for event in self._client.subscribe(self._node_id):
             name = event.name
             self._event_queue[name].put(event)
 
     def terminate(self):
-        raise KeyboardInterrupt
+        self._client.unsubscribe(self._node_id)

@@ -8,7 +8,8 @@ __all__ = [
     "TaskNoSuchRoundError",
     "TaskUnknownFileTypeError",
     "TaskFileNotExistedError",
-    "TaskFinishedError"
+    "TaskFinishedError",
+    "TaskNotFinishedError"
 ]
 
 
@@ -40,6 +41,7 @@ class MemberNotJoinedError(TaskError):
 
     def __str__(self) -> str:
         return f"member {self.member_id} has not joined task {self.task_id}"
+
 
 class TaskNoMemberError(TaskError):
     def __init__(self, task_id: int, member_id: str) -> None:
@@ -93,3 +95,11 @@ class TaskFinishedError(TaskError):
 
     def __str__(self) -> str:
         return f"task {self.task_id} already finished"
+
+
+class TaskNotFinishedError(TaskError):
+    def __init__(self, task_id: int) -> None:
+        super().__init__(task_id)
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} has not finished"
