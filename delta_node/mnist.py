@@ -1,16 +1,15 @@
-import os
-import shutil
 import gzip
-from typing import IO
-import requests
+import os
+import random
 import struct
-import numpy as np
 from tempfile import TemporaryFile
+from typing import IO
 
+import numpy as np
+import requests
 from tqdm import tqdm
 
 from . import config
-
 
 URL_PREFIX = "https://dataset.bj.bcebos.com/mnist/"
 TEST_IMAGE_URL = URL_PREFIX + "t10k-images-idx3-ubyte.gz"
@@ -67,7 +66,7 @@ def read_mnist(image_fileobj: IO[bytes], label_fileobj: IO[bytes]):
                 yield images[i, :], int(labels[i])
 
 
-def download_mnist(image_url: str, label_url: str):
+def download_mnist(image_url: str, label_url: str, ratio: float = 1):
     with TemporaryFile(mode="w+b") as img_file, TemporaryFile(mode="w+b") as label_file:
         img_resp = requests.get(image_url, stream=True)
         img_resp.raise_for_status()
@@ -104,14 +103,15 @@ def download_mnist(image_url: str, label_url: str):
             img_dir, _ = os.path.split(img_filename)
             if not os.path.exists(img_dir):
                 os.makedirs(img_dir, exist_ok=True)
-            np.save(img_filename, img)
+            if random.random() < ratio:
+                np.save(img_filename, img)
             process_bar.update(1)
         process_bar.close()
 
 
 def mnist_train():
-    download_mnist(TRAIN_IMAGE_URL, TRAIN_LABEL_URL)
+    download_mnist(TRAIN_IMAGE_URL, TRAIN_LABEL_URL, 0.67)
 
 
 def mnist_test():
-    download_mnist(TEST_IMAGE_URL, TEST_LABEL_URL)
+    download_mnist(TEST_IMAGE_URL, TEST_LABEL_URL, 0.67)
