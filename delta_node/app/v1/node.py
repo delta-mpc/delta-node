@@ -7,8 +7,9 @@ from fastapi import APIRouter
 router = APIRouter()
 
 
-@router.get("/nodes", response_model=List[utils.Node])
+@router.get("/nodes", response_model=utils.NodesResp)
 def get_nodes(page: int = 1, page_size: int = 20):
-    nodes = contract.get_nodes(page, page_size)
-    res = [utils.Node(id=node.id, url=node.url) for node in nodes]
+    resp = contract.get_nodes(page, page_size)
+    node_list = [utils.Node(id=node.id, url=node.url, name=node.name) for node in resp.nodes]
+    res = utils.NodesResp(nodes=node_list, total_pages=resp.total_pages)
     return res

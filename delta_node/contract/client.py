@@ -3,7 +3,7 @@ from typing import Iterable, List
 import grpc
 
 from . import chain_pb2, chain_pb2_grpc
-from .utils import Event, Node
+from .utils import Event, NodesResp, Node
 
 
 _logger = logging.getLogger(__name__)
@@ -16,12 +16,12 @@ class ChainClient(object):
 
         self._subscribe_futures = {}
 
-    def get_nodes(self, page: int = 1, page_size: int = 20) -> List[Node]:
+    def get_nodes(self, page: int = 1, page_size: int = 20) -> NodesResp:
         req = chain_pb2.NodesReq(page=page, page_size=page_size)
         try:
             resp = self._stub.GetNodes(req)
-            nodes = [Node(id=node.id, url=node.url) for node in resp.nodes]
-            return nodes
+            nodes = [Node(id=node.id, url=node.url, name=node.name) for node in resp.nodes]
+            return NodesResp(nodes=nodes, total_pages=resp.total_pages)
         except grpc.RpcError as e:
             _logger.error(e)
             raise

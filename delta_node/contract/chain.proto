@@ -10,10 +10,12 @@ message NodesReq {
 message Node {
     string id = 1;
     string url = 2;
+    string name = 3;
 }
 
 message NodesResp {
     repeated Node nodes = 1;
+    uint32 total_pages = 2;
 }
 
 message NodeReq {

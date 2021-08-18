@@ -11,6 +11,12 @@ class CreateTaskResp(BaseModel):
 class Node(BaseModel):
     id: str
     url: str
+    name: str
+
+
+class NodesResp(BaseModel):
+    nodes: List[Node]
+    total_pages: int
 
 
 class Task(BaseModel):
