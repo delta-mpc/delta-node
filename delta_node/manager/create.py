@@ -42,7 +42,7 @@ def create_task(
         member_count=len(members),
         node_id=node_id,
         task_id=task_id,
-        status=model.TaskStatus.INIT,
+        status=model.TaskStatus.PENDING,
     )
     session.add(task)
     # add members to db

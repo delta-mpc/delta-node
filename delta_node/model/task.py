@@ -10,7 +10,7 @@ from . import utils
 
 
 class TaskStatus(IntEnum):
-    INIT = 0
+    PENDING = 0
     RUNNING = 1
     FINISHED = 2
     ERROR = 3
