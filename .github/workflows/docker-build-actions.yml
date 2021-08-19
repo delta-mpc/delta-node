@@ -1,0 +1,14 @@
+name: build docker image
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: build docker image
+        run: docker build -t delta-node .
