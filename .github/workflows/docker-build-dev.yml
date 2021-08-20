@@ -5,7 +5,9 @@ on:
       - main
     tags-ignore:
       - v*
-
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   build:
