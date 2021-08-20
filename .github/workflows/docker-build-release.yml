@@ -1,12 +1,10 @@
 name: build docker image release
 on:
-  push:
-    branches: 
-    - main
+  release:
+    types: [created]
 
 jobs:
   build:
-    if: github.ref == 'ref/tags/v*'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
