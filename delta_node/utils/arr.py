@@ -22,7 +22,7 @@ def make_mask(seed: Union[int, bytes, str], shape: Sequence[int]) -> np.ndarray:
     size = reduce(mul, shape)
 
     mask = np.array(
-        [state.randint(0, 2 ** 31 - 1) for _ in range(size)], dtype=np.int32
+        [state.randint(0, 2 ** 63 - 1) for _ in range(size)], dtype=np.int64
     )
     mask.resize(shape)
 

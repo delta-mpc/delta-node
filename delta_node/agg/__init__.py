@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional
 
-from . import base, simple
+from . import base, simple, secure
 
-_impls = {0: simple}
+_impls = {0: simple, 1: secure}
 
 _aggregators: Dict[int, base.Aggregator] = {}
 
@@ -24,12 +24,16 @@ def new_aggregator(
 
 
 def new_uploader(
-    secure_level: int, task_id: int, node_id: str, timeout: Optional[float] = None
+    secure_level: int,
+    node_id: str,
+    task_id: int,
+    timeout: Optional[float] = None,
+    **kwargs,
 ) -> base.Uploader:
     if secure_level not in _impls:
         raise KeyError(f"no such secure level {secure_level}")
     if task_id not in _uploaders:
         impl = _impls[secure_level]
-        uploader = impl.Uploader(node_id, task_id, timeout)
+        uploader = impl.Uploader(node_id, task_id, timeout, **kwargs)
         _uploaders[task_id] = uploader
     return _uploaders[task_id]

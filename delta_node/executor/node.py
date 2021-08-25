@@ -86,7 +86,7 @@ class LocalNode(Node):
     def upload_result(self, data: IO[bytes]):
         try:
             result_arr = utils.load_arr(data)
-            uploader = agg.new_uploader(self._metadata.secure_level, self._task_id, self._node_id)
+            uploader = agg.new_uploader(self._metadata.secure_level, self._node_id, self._task_id)
             uploader.upload_result(result_arr)
             self._client.upload_result(
                 self._task_id, self._node_id, self._round_id, uploader.callback

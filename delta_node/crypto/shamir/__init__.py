@@ -1,0 +1,1 @@
+from .shamir import SecretShare, PRIME
