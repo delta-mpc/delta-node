@@ -1,4 +1,5 @@
 import logging
+import multiprocessing as mp
 from concurrent import futures
 from functools import partial
 from io import BytesIO
@@ -6,18 +7,17 @@ from typing import Dict
 
 import delta.task as delta_task
 
-from .. import contract, node, config
+from .. import config, contract, log, node
 from ..commu import CommuClient
 from ..model import TaskStatus
 from .node import LocalNode
 from .task import add_task, join_task
 
-
 _logger = logging.getLogger(__name__)
 
 
-def execute_task(task_id: int, url: str, creator_id: str):
-    logging.basicConfig(level=logging.INFO)
+def execute_task(log_queue: mp.Queue, task_id: int, url: str, creator_id: str):
+    log.init(log_queue)
     client = CommuClient(url)
     node_id = node.get_node_id()
     if client.join_task(task_id, node_id):
@@ -60,6 +60,7 @@ class Executor(object):
                 if event is not None:
                     fut = self._pool.submit(
                         execute_task,
+                        log_queue=log.get_log_queue(),
                         task_id=event.task_id,
                         url=event.url,
                         creator_id=event.address,

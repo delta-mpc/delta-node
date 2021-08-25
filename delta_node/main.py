@@ -6,14 +6,16 @@ import os
 def app_run(q):
     from . import app, config, log
 
-    log.worker_init(q)
+    log.init(q)
+    log.set_log_queue(q)
     app.run("0.0.0.0", config.api_port)
 
 
 def commu_run(q):
     from . import commu, config, log
 
-    log.worker_init(q)
+    log.init(q)
+    log.set_log_queue(q)
     server = commu.CommuServer(f"0.0.0.0:{config.node_port}")
     try:
         server.start()
@@ -25,7 +27,8 @@ def commu_run(q):
 def executor_run(q):
     from . import executor, log
 
-    log.worker_init(q)
+    log.init(q)
+    log.set_log_queue(q)
     executor.run()
 
 
@@ -38,24 +41,26 @@ def run():
         raise RuntimeError("node address host is required")
 
     ctx = mp.get_context("spawn")
-    queue = ctx.Manager().Queue()
-    listener = log.main_init(queue)
-    db.init_db()
-    node.register_node()
+    with ctx.Manager() as manager:
+        queue = manager.Queue()
+        listener = log.create_log_listener(queue)
+        log.init(queue)
+        db.init_db()
+        node.register_node()
 
-    app_process = ctx.Process(target=app_run, args=(queue,))
-    app_process.start()
+        app_process = ctx.Process(target=app_run, args=(queue,))
+        app_process.start()
 
-    commu_process = ctx.Process(target=commu_run, args=(queue,))
-    commu_process.start()
+        commu_process = ctx.Process(target=commu_run, args=(queue,))
+        commu_process.start()
 
-    contract_process = ctx.Process(target=executor_run, args=(queue,))
-    contract_process.start()
+        contract_process = ctx.Process(target=executor_run, args=(queue,))
+        contract_process.start()
 
-    contract_process.join()
-    commu_process.join()
-    app_process.join()
-    listener.stop()
+        contract_process.join()
+        commu_process.join()
+        app_process.join()
+        listener.stop()
 
 
 def init():
