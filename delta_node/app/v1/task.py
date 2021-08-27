@@ -74,7 +74,7 @@ def get_tasks(
         .all()
     )
     task_count = session.query(func.count(model.Task.id)).scalar()
-    page_count = (task_count + page_size - 1) // page_size + 1
+    page_count = (task_count + page_size - 1) // page_size
 
     task_items = [
         utils.Task(
