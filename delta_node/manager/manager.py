@@ -7,7 +7,7 @@ from concurrent import futures
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple
 
-from delta import task as delta_task
+from delta.serialize import load_task
 from sqlalchemy.orm.session import Session
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
@@ -27,35 +27,39 @@ class TaskManager(object):
             err = f"task {task_id} is not ready"
             _logger.error(err, extra={"task_id": task_id})
             raise TaskNotReadyError(task_id)
-        self._members = [member.node_id for member in task.members]
-        self._joined_members = [
-            member.node_id for member in task.members if member.joined
-        ]
+
+        self._task_finished = task.status == model.TaskStatus.FINISHED
+        if self._task_finished:
+            raise TaskFinishedError(task_id)
+
+        cfg_file = task_cfg_file(task.task_id)
+        self._task_item = load_task(cfg_file)
+
+        latest_rounds = get_latest_rounds(task_id, session=session)
+        self._round_id = 0
+        self._round_finished = True
+        self._joined_members = []
+        
+        if len(latest_rounds) > 0:
+            self._round_id == latest_rounds[0].round_id
+            if any(round.status == model.RoundStatus.FINISHED for round in latest_rounds):
+                self._round_finished = True
+            else:
+                self._round_finished = False
+                self._joined_members = [round.node_id for round in latest_rounds]
+        
         self._join_cond = threading.Condition()
 
         self._metadata = model.TaskMetadata(
-            task.name, task.type, task.secure_level, task.algorithm, self._members
+            task.name, task.type, task.dataset
         )
 
         self._node_id = node.get_node_id(session=session)
 
         self._round_cond = threading.Condition()
-        round_id, round_status = self._round_status()
-        self._round_id = round_id
-        self._round_finished = round_status == model.RoundStatus.FINISHED
-        self._task_finished = task.status == model.TaskStatus.FINISHED
-        if self._task_finished:
-            raise TaskFinishedError(task_id)
-
         self._agg_lock = threading.Lock()
         self._agg_group: Optional[channel.ChannelGroup] = None
 
-        cfg_file = task_cfg_file(task_id)
-        with open(cfg_file, mode="rb") as f:
-            self._task_item = delta_task.load(f)
-
-    def has_member(self, member_id: str) -> bool:
-        return member_id in self._members
 
     def has_joined_member(self, member_id: str) -> bool:
         return member_id in self._joined_members
@@ -63,24 +67,21 @@ class TaskManager(object):
     def join(self, member_id: str, *, session: Session = None):
         if self._task_finished:
             raise TaskFinishedError(self._task_id)
-        if member_id not in self._members:
-            raise TaskNoMemberError(self._task_id, member_id)
-        if member_id not in self._joined_members:
-            join_task(self._task_id, member_id, session=session)
-            contract.join_task(member_id, self._task_id)
-            with self._join_cond:
-                self._joined_members.append(member_id)
-                _logger.info(
-                    f"member {member_id} join the task {self._task_id}",
-                    extra={"task_id": self._task_id},
+        join_task(self._task_id, member_id, session=session)
+        contract.join_task(member_id, self._task_id)
+        with self._join_cond:
+            self._joined_members.append(member_id)
+            _logger.info(
+                f"member {member_id} join the task {self._task_id}",
+                extra={"task_id": self._task_id},
+            )
+            # wait until all members join the task
+            if len(self._joined_members) == len(self._members):
+                self._join_cond.notify_all()
+            else:
+                self._join_cond.wait_for(
+                    lambda: len(self._joined_members) == len(self._members)
                 )
-                # wait until all members join the task
-                if len(self._joined_members) == len(self._members):
-                    self._join_cond.notify_all()
-                else:
-                    self._join_cond.wait_for(
-                        lambda: len(self._joined_members) == len(self._members)
-                    )
 
     def finish_task(self, member_id: str, *, session: Session = None):
         if member_id not in self._joined_members:

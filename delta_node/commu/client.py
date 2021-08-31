@@ -23,9 +23,7 @@ class CommuClient(object):
         metadata = TaskMetadata(
             name=resp.name,
             type=resp.type,
-            secure_level=resp.secure_level,
-            algorithm=resp.algorithm,
-            members=resp.members,
+            dataset=resp.dataset
         )
         return metadata
 

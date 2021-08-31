@@ -17,6 +17,6 @@ class Round(db.Base):
     id = sa.Column(sa.Integer, primary_key=True)
     created_at = sa.Column(sa.Integer, default=utils.timestamp)
     task_id = sa.Column(sa.Integer, index=True)
-    node_id = sa.Column(sa.String)
-    round_id = sa.Column(sa.Integer)
+    node_id = sa.Column(sa.String, index=True)
+    round_id = sa.Column(sa.Integer, index=True)
     status = sa.Column(sa.Integer)

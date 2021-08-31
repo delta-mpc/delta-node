@@ -105,6 +105,8 @@ class DirectoryDataset(Dataset):
 
 
 def new_dataloader(dataset_name: str, dataloader_cfg: Dict[str, Any], preprocess: Callable):
+    if os.path.exists(dataset_name):
+        raise ValueError(f"{dataset_name} does not exist")
     if os.path.isfile(dataset_name):
         dataset = FileDataset(dataset_name, preprocess)
     elif os.path.isdir(dataset_name):

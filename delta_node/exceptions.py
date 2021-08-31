@@ -1,4 +1,5 @@
 __all__ = [
+    "TaskCreateError",
     "TaskError",
     "NoSuchTaskError",
     "MemberNotJoinedError",
@@ -9,8 +10,16 @@ __all__ = [
     "TaskUnknownFileTypeError",
     "TaskFileNotExistedError",
     "TaskFinishedError",
-    "TaskNotFinishedError"
+    "TaskNotFinishedError",
 ]
+
+
+class TaskCreateError(Exception):
+    def __init__(self, msg: str) -> None:
+        self.msg = msg
+
+    def __str__(self) -> str:
+        return self.msg
 
 
 class TaskError(Exception):

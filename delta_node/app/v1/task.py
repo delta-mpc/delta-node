@@ -13,6 +13,7 @@ from sqlalchemy import desc, func
 
 from delta_node.app import utils
 from delta_node import db, model, manager
+from delta_node.exceptions import TaskCreateError
 
 _logger = logging.getLogger(__name__)
 
@@ -36,27 +37,12 @@ def upload_task(
     session: Session = Depends(db.get_session),
 ):
     with tmp_upload_file(file) as tmp:
-        with ZipFile(tmp, mode="r") as zip_f:
-            namelist = zip_f.namelist()
-            for name in ["metadata", "cfg", "weight"]:
-                if name not in namelist:
-                    err = f"missing {name} in task file"
-                    _logger.error(err)
-                    raise HTTPException(400, err)
-
-            with zip_f.open("metadata", mode="r") as f:
-                metadata = json.load(f)
-
-            cfg_file = zip_f.open("cfg", mode="r")
-            weight_file = zip_f.open("weight", mode="r")
-            task_id = manager.create_task(
-                metadata, cfg_file, weight_file, session=session
-            )
-            cfg_file.close()
-            weight_file.close()
-
-    resp = utils.CreateTaskResp(task_id=task_id)
-    return resp
+        try:
+            task_id = manager.create_task(tmp, session=session)
+            resp = utils.CreateTaskResp(task_id=task_id)
+            return resp
+        except TaskCreateError as e:
+            raise HTTPException(400, e.msg)
 
 
 @router.get("/tasks", response_model=utils.TasksResp)

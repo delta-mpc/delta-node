@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.sql.expression import desc
+from sqlalchemy import desc, func
 from ..exceptions import *
 
 from .. import db, model
@@ -12,6 +12,7 @@ __all__ = [
     "join_task",
     "member_start_round",
     "get_member_round_status",
+    "get_latest_rounds",
     "member_finish_round",
     "get_finished_round_member",
     "start_task",
@@ -130,6 +131,27 @@ def get_member_round_status(
         return 0, model.RoundStatus.FINISHED
     else:
         return round.round_id, round.status  # type: ignore
+
+
+@db.with_session
+def get_latest_rounds(task_id: int, *, session: Session = None) -> List[model.Round]:
+    assert session is not None
+    latest_round = (
+        session.query(model.Round)
+        .filter(model.Round.task_id == task_id)
+        .order_by(desc(model.Round.round_id))
+        .first()
+    )
+    if latest_round is not None:
+        rounds = (
+            session.query(model.Round)
+            .filter(model.Round.task_id == task_id)
+            .filter(model.Round.round_id == latest_round.round_id)
+            .all()
+        )
+        return rounds
+    else:
+        return []
 
 
 @db.with_session

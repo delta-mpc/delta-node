@@ -3,6 +3,7 @@ import multiprocessing as mp
 from concurrent import futures
 from functools import partial
 from io import BytesIO
+import os
 from typing import Dict
 
 import delta.task as delta_task
@@ -16,25 +17,45 @@ from .task import add_task, join_task
 _logger = logging.getLogger(__name__)
 
 
+def _check_dataset(dataset: str) -> bool:
+    return os.path.exists(os.path.join(config.data_dir, dataset))
+
+
 def execute_task(log_queue: mp.Queue, task_id: int, url: str, creator_id: str):
     log.init(log_queue)
     client = CommuClient(url)
     node_id = node.get_node_id()
-    if client.join_task(task_id, node_id):
-        _logger.info(f"member {node_id} join task {task_id}", extra={"task_id": task_id})
-        metadata = client.get_metadata(task_id, node_id)
-        _logger.info(f"member {node_id} get metadata of task {task_id}", extra={"task_id": task_id})
-        add_task(task_id, url, creator_id, metadata)
-        join_task(task_id, node_id)
-        local_node = LocalNode(config.data_dir, task_id, metadata, client)
+    metadata = client.get_metadata(task_id, node_id)
+    _logger.info(
+        f"member {node_id} get metadata of task {task_id}",
+    )
 
-        with BytesIO() as f:
-            client.get_file(task_id, node_id, 0, "cfg", f)
-            task = delta_task.load(f)
-            _logger.info(f"member {node_id} get task cfg of task {task_id}", extra={"task_id": task_id})
-        task.run(local_node)
+    if _check_dataset(metadata.dataset):
+        _logger.info(
+            f"member {node_id} can join the task {task_id}"
+        )
+        if client.join_task(task_id, node_id):
+            _logger.info(
+                f"member {node_id} join task {task_id}", extra={"task_id": task_id}
+            )
+            add_task(task_id, url, creator_id, metadata)
+            join_task(task_id, node_id)
+            local_node = LocalNode(config.data_dir, task_id, metadata, client)
+
+            with BytesIO() as f:
+                client.get_file(task_id, node_id, 0, "cfg", f)
+                task = delta_task.load(f)
+                _logger.info(
+                    f"member {node_id} get task cfg of task {task_id}",
+                    extra={"task_id": task_id},
+                )
+            task.run(local_node)
+        else:
+            _logger.info(f"member {node_id} cannot join task {task_id}")
     else:
-        _logger.info(f"member {node_id} cannot join task {task_id}")
+        _logger.info(
+            f"member {node_id} cannot join the task {task_id}"
+        )
 
 
 class Executor(object):

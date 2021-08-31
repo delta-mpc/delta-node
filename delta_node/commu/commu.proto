@@ -10,9 +10,7 @@ message TaskReq {
 message MetadataResp {
     string name = 1;
     string type = 2;
-    int32 secure_level = 3;
-    string algorithm = 4;
-    repeated string members = 5;
+    string dataset = 3;
 }
 
 message StatusResp {

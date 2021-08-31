@@ -24,10 +24,8 @@ class Task(db.Base):
 
     name = sa.Column(sa.String)
     type = sa.Column(sa.String)
-    secure_level = sa.Column(sa.Integer)
-    algorithm = sa.Column(sa.String)
+    dataset = sa.Column(sa.String)
     url = sa.Column(sa.String)
-    member_count = sa.Column(sa.Integer)  # 0 means unlimited member count
 
     node_id = sa.Column(sa.String, index=True)  # creator of the task
     task_id = sa.Column(sa.Integer, index=True)
@@ -42,6 +40,4 @@ class Task(db.Base):
 class TaskMetadata(object):
     name: str
     type: str
-    secure_level: int
-    algorithm: str
-    members: List[str]
+    dataset: str

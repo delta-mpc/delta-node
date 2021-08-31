@@ -11,6 +11,7 @@ from . import commu_pb2, commu_pb2_grpc
 
 _logger = logging.getLogger(__name__)
 
+
 def file_resp_generator(filename: str) -> Generator[commu_pb2.FileResp, None, None]:
     with open(filename, mode="rb") as f:
         while True:
@@ -30,11 +31,7 @@ class Servicer(commu_pb2_grpc.CommuServicer):
             task_manager = manager.get_task_manager(task_id=task_id)
             metadata = task_manager.get_metadata(member_id)
             resp = commu_pb2.MetadataResp(
-                name=metadata.name,
-                type=metadata.type,
-                secure_level=metadata.secure_level,
-                algorithm=metadata.algorithm,
-                members=metadata.members,
+                name=metadata.name, type=metadata.type, dataset=metadata.dataset
             )
             return resp
         except exceptions.TaskError as e:
@@ -71,7 +68,6 @@ class Servicer(commu_pb2_grpc.CommuServicer):
             _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
-
     def GetRound(self, request, context):
         task_id = request.task_id
         member_id = request.member_id
@@ -101,7 +97,6 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         except Exception as e:
             _logger.exception(e)
             context.abort(grpc.StatusCode.INTERNAL, str(e))
-
 
     def UploadResult(self, request_iterator, context):
         init_msg = next(request_iterator)

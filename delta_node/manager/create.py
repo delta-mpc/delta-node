@@ -1,55 +1,43 @@
-import shutil
-from typing import IO, Any, Dict
+from typing import IO
 
+import delta.serialize
+from delta.task import HorizontolTask
 from delta_node import config
 from sqlalchemy.orm import Session
 
-from .. import contract, db, model, node
+from .. import contract, db, model, node, serialize
 from .location import task_cfg_file, task_weight_file
+from ..exceptions import TaskCreateError
 
 
 @db.with_session
-def create_task(
-    metadata: Dict[str, Any],
-    cfg_file: IO[bytes],
-    weight_file: IO[bytes],
-    session: Session = None,
-) -> int:
+def create_task(task_file: IO[bytes], *, session: Session = None):
     assert session is not None
-    name = metadata["name"]
-    type = metadata["type"]
-    secure_level = metadata["secure_level"]
-    algorithm = metadata["algorithm"]
-    members = metadata["members"]
+    task = delta.serialize.load_task(task_file)
+    if task.type not in ["horizontal"]:
+        raise TaskCreateError(f"unknown task type {task.type}")
 
     node_id = node.get_node_id(session=session)
-    task_id = contract.create_task(node_id, name)
+    task_id = contract.create_task(node_id, task.name)
 
-    # save cfg
     with open(task_cfg_file(task_id), mode="wb") as f:
-        shutil.copyfileobj(cfg_file, f)
-    # save weight
-    with open(task_weight_file(task_id, 0), mode="wb") as f:
-        shutil.copyfileobj(weight_file, f)
+        task.dump(f)
 
-    # add task to db
-    task = model.Task(
-        name=name,
-        type=type,
-        secure_level=secure_level,
-        algorithm=algorithm,
+    if task.type == "horizontol":
+        assert isinstance(task, HorizontolTask), TaskCreateError("task type not match task.type")
+        with open(task_weight_file(task_id, 0), mode="wb") as f:
+            weight_arr = task.get_weight()
+            serialize.dump_arr(f, weight_arr)
+
+    task_item = model.Task(
+        name=task.name,
+        type=task.type,
+        dataset=task.dataset,
         url=config.node_address,
-        member_count=len(members),
         node_id=node_id,
         task_id=task_id,
         status=model.TaskStatus.PENDING,
     )
-    session.add(task)
-    # add members to db
-    task_members = []
-    for member_id in members:
-        member = model.TaskMember(task_id=task_id, node_id=member_id, joined=False)
-        task_members.append(member)
-    session.bulk_save_objects(task_members)
+    session.add(task_item)
     session.commit()
     return task_id
