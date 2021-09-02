@@ -1,6 +1,7 @@
 __all__ = [
     "TaskCreateError",
     "TaskError",
+    "TaskErrorWithMsg",
     "NoSuchTaskError",
     "MemberNotJoinedError",
     "TaskNotReadyError",
@@ -11,6 +12,8 @@ __all__ = [
     "TaskFileNotExistedError",
     "TaskFinishedError",
     "TaskNotFinishedError",
+    "TaskRoundNotFinishedError",
+    "TaskContinue",
 ]
 
 
@@ -25,6 +28,15 @@ class TaskCreateError(Exception):
 class TaskError(Exception):
     def __init__(self, task_id: int) -> None:
         self.task_id = task_id
+
+
+class TaskErrorWithMsg(TaskError):
+    def __init__(self, task_id: int, msg: str) -> None:
+        super().__init__(task_id)
+        self.msg = msg
+
+    def __str__(self) -> str:
+        return self.msg
 
 
 class NoSuchTaskError(TaskError):
@@ -106,9 +118,26 @@ class TaskFinishedError(TaskError):
         return f"task {self.task_id} already finished"
 
 
+class TaskRoundNotFinishedError(TaskError):
+    def __init__(self, task_id: int, round_id: int) -> None:
+        super().__init__(task_id)
+        self.round_id = round_id
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} round {self.round_id} is not finished"
+
+
 class TaskNotFinishedError(TaskError):
     def __init__(self, task_id: int) -> None:
         super().__init__(task_id)
 
     def __str__(self) -> str:
         return f"task {self.task_id} has not finished"
+
+class TaskContinue(TaskError):
+    def __init__(self, task_id: int, msg: str) -> None:
+        super().__init__(task_id)
+        self.msg = msg
+    
+    def __str__(self) -> str:
+        return f"task {self.task_id} err {self.msg} should continue"

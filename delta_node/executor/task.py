@@ -1,3 +1,4 @@
+from delta_node.data import dataset
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import desc
 from .. import db, model
@@ -25,40 +26,13 @@ def add_task(
         task = model.Task(
             name=metadata.name,
             type=metadata.type,
-            secure_level=metadata.secure_level,
-            algorithm=metadata.algorithm,
-            member_count=len(metadata.members),
+            dataset=metadata.dataset,
             url=url,
             node_id=creator_id,
             task_id=task_id,
             status=model.TaskStatus.RUNNING,
         )
         session.add(task)
-
-        task_members = []
-        for member_id in metadata.members:
-            task_member = model.TaskMember(
-                task_id=task_id, node_id=member_id, joined=False
-            )
-            task_members.append(task_member)
-        session.bulk_save_objects(task_members)
-        session.commit()
-
-
-@db.with_session
-def join_task(task_id: int, member_id: str, *, session: Session = None):
-    assert session is not None
-    member = (
-        session.query(model.TaskMember)
-        .filter(model.TaskMember.task_id == task_id)
-        .filter(model.TaskMember.node_id == member_id)
-        .one_or_none()
-    )
-    if member is None:
-        raise TaskNoMemberError(task_id, member_id)
-    if not member.joined:
-        member.joined = True  # type: ignore
-        session.add(member)
         session.commit()
 
 
@@ -102,18 +76,21 @@ def member_finish_round(
 
 
 @db.with_session
-def get_member_round_status(
+def get_member_round(
     task_id: int, member_id: str, *, session: Session = None
-) -> Tuple[int, model.RoundStatus]:
+) -> model.Round:
     assert session is not None
     round = (
         session.query(model.Round)
         .filter(model.Round.task_id == task_id)
         .filter(model.Round.node_id == member_id)
-        .order_by(desc(model.Round.round_id))
-        .first()
+        .one_or_none()
     )
     if round is None:
-        return 0, model.RoundStatus.FINISHED
-    else:
-        return round.round_id, round.status  # type: ignore
+        return model.Round(
+            task_id=task_id,
+            node_id=member_id,
+            round_id=0,
+            status=model.RoundStatus.FINISHED,
+        )
+    return round

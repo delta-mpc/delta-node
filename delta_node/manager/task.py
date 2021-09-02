@@ -1,11 +1,10 @@
 from typing import List, Optional, Tuple
 
-from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, func
-from ..exceptions import *
+from sqlalchemy.orm import Session, joinedload
 
 from .. import db, model
-
+from ..exceptions import *
 
 __all__ = [
     "get_task",
@@ -17,6 +16,7 @@ __all__ = [
     "get_finished_round_member",
     "start_task",
     "finish_task",
+    "get_member_round",
 ]
 
 
@@ -206,3 +206,24 @@ def finish_task(task_id: int, *, session: Session = None):
     task.status = model.TaskStatus.FINISHED  # type: ignore
     session.add(task)
     session.commit()
+
+
+@db.with_session
+def get_member_round(
+    task_id: int, member_id: str, *, session: Session = None
+) -> model.Round:
+    assert session is not None
+    round = (
+        session.query(model.Round)
+        .filter(model.Round.task_id == task_id)
+        .filter(model.Round.node_id == member_id)
+        .one_or_none()
+    )
+    if round is None:
+        return model.Round(
+            task_id=task_id,
+            node_id=member_id,
+            round_id=0,
+            status=model.RoundStatus.FINISHED,
+        )
+    return round

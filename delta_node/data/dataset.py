@@ -1,5 +1,6 @@
 import os
-from typing import Any, Callable, Union, Dict
+from typing import Any, Callable, List, Tuple, Union, Dict
+import random
 
 import numpy as np
 import pandas as pd
@@ -74,17 +75,23 @@ class DirectoryDataset(Dataset):
             self._xs.extend([os.path.join(root, filename) for filename in filenames])
         elif len(filenames) == 0 and len(dirnames) > 0:
             for dirname in dirnames:
-                sub_root, sub_dirs, sub_files = next(os.walk(os.path.join(root, dirname)))
+                sub_root, sub_dirs, sub_files = next(
+                    os.walk(os.path.join(root, dirname))
+                )
                 if len(sub_files) > 0 and len(sub_dirs) == 0:
                     self._xs.extend(
                         [os.path.join(sub_root, filename) for filename in sub_files]
                     )
                     self._ys.extend([dirname] * len(sub_files))
                 else:
-                    raise ValueError("directory can only contain files or sub directory that contains file")
+                    raise ValueError(
+                        "directory can only contain files or sub directory that contains file"
+                    )
         else:
-            raise ValueError("directory can only contain files or sub directory that contains file")
-    
+            raise ValueError(
+                "directory can only contain files or sub directory that contains file"
+            )
+
     def __getitem__(self, index):
         filename = self._xs[index]
         x = load_file(filename)
@@ -104,7 +111,22 @@ class DirectoryDataset(Dataset):
         return len(self._xs)
 
 
-def new_dataloader(dataset_name: str, dataloader_cfg: Dict[str, Any], preprocess: Callable):
+class IndexLookUpDataset(Dataset):
+    def __init__(self, indices: List[int], dataset: Dataset) -> None:
+        self._indices = indices
+        self._dataset = dataset
+
+    def __getitem__(self, index):
+        i = self._indices[index]
+        return self._dataset[i]
+
+    def __len__(self) -> int:
+        return len(self._indices)
+
+
+def new_dataloader(
+    dataset_name: str, dataloader_cfg: Dict[str, Any], preprocess: Callable
+):
     if os.path.exists(dataset_name):
         raise ValueError(f"{dataset_name} does not exist")
     if os.path.isfile(dataset_name):
@@ -115,3 +137,52 @@ def new_dataloader(dataset_name: str, dataloader_cfg: Dict[str, Any], preprocess
         raise ValueError("dataset should be a file or a directory")
     dataloader = DataLoader(dataset, **dataloader_cfg)
     return dataloader
+
+
+def split_dataset(
+    dataset: Dataset, frac: float
+) -> Tuple[IndexLookUpDataset, IndexLookUpDataset]:
+    assert frac > 0 and frac < 1
+
+    size = len(dataset)  # type: ignore
+    frac_count = int(size * frac)
+    indices = list(range(size))
+
+    random.shuffle(indices)
+
+    left_indices, right_indices = indices[:frac_count], indices[frac_count:]
+    return IndexLookUpDataset(left_indices, dataset), IndexLookUpDataset(
+        right_indices, dataset
+    )
+
+
+def new_train_val_dataloader(dataset_name: str, validate_frac: float, dataloader_cfg: Dict[str, Any], preprocess: Callable):
+    assert "train" in dataloader_cfg, "dataloader_cfg should contain train"
+    assert "validate" in dataloader_cfg, "dataloader_cfg should contain validate"
+
+    if os.path.exists(dataset_name):
+        raise ValueError(f"{dataset_name} does not exist")
+    if os.path.isfile(dataset_name):
+        dataset = FileDataset(dataset_name, preprocess)
+        val_dataset, train_dataset = split_dataset(dataset, validate_frac)
+    elif os.path.isdir(dataset_name):
+        train_path = os.path.join(dataset_name, "train")
+        val_path = os.path.join(dataset_name, "val")
+        if os.path.exists(train_path) and os.path.isdir(train_path) and os.path.exists(val_path) and os.path.isdir(val_path):
+            train_root, train_dirs, train_files = next(os.walk(train_path))
+            val_root, val_dirs, val_files = next(os.walk(val_path))
+            if len(train_files) == 1 and len(val_files) == 1:
+                train_dataset = FileDataset(os.path.join(train_root, train_files[0]), preprocess)
+                val_dataset = FileDataset(os.path.join(val_root, val_files[0]), preprocess)
+            else:
+                train_dataset = DirectoryDataset(train_path)
+                val_dataset = DirectoryDataset(val_path)
+        else:
+            dataset = DirectoryDataset(dataset_name, preprocess)
+            val_dataset, train_dataset = split_dataset(dataset, validate_frac)
+    else:
+        raise ValueError("dataset should be a file or a directory")
+    
+    train_loader = DataLoader(train_dataset, **dataloader_cfg["train"])
+    val_loader = DataLoader(val_dataset, **dataloader_cfg["val"])
+    return train_loader, val_loader

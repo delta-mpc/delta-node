@@ -45,8 +45,8 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         member_id = request.member_id
         try:
             task_manager = manager.get_task_manager(task_id=task_id)
-            task_manager.join(member_id)
-            resp = commu_pb2.StatusResp(success=True)
+            res = task_manager.join(member_id)
+            resp = commu_pb2.StatusResp(success=res)
             return resp
         except exceptions.TaskError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))

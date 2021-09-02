@@ -1,3 +1,4 @@
+import time
 import shutil
 import logging
 import os.path
@@ -8,6 +9,8 @@ from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple
 
 from delta.serialize import load_task
+from delta.task import HorizontolTask
+import numpy as np
 from sqlalchemy.orm.session import Session
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
@@ -28,27 +31,31 @@ class TaskManager(object):
             _logger.error(err, extra={"task_id": task_id})
             raise TaskNotReadyError(task_id)
 
-        self._task_finished = task.status == model.TaskStatus.FINISHED
-        if self._task_finished:
+        self._task_status = task.status
+        if self._task_status == model.TaskStatus.FINISHED:
             raise TaskFinishedError(task_id)
 
         cfg_file = task_cfg_file(task.task_id)
         self._task_item = load_task(cfg_file)
+        assert self._task_item.type == "horizontol" and isinstance(self._task_item, HorizontolTask)
+        self._alg = self._task_item.algorithm()
 
         latest_rounds = get_latest_rounds(task_id, session=session)
         self._round_id = 0
-        self._round_finished = True
+        self._round_status = model.RoundStatus.FINISHED
         self._joined_members = []
         
         if len(latest_rounds) > 0:
             self._round_id == latest_rounds[0].round_id
             if any(round.status == model.RoundStatus.FINISHED for round in latest_rounds):
-                self._round_finished = True
+                self._round_status = model.RoundStatus.FINISHED
             else:
-                self._round_finished = False
+                self._round_status = model.RoundStatus.RUNNING
                 self._joined_members = [round.node_id for round in latest_rounds]
         
-        self._join_cond = threading.Condition()
+        self._join_lock = threading.Lock()
+        self._join_event = threading.Event()
+        self._in_join_phase = False        
 
         self._metadata = model.TaskMetadata(
             task.name, task.type, task.dataset
@@ -64,24 +71,62 @@ class TaskManager(object):
     def has_joined_member(self, member_id: str) -> bool:
         return member_id in self._joined_members
 
-    def join(self, member_id: str, *, session: Session = None):
-        if self._task_finished:
+    def join(self, member_id: str, *, session: Session = None) -> bool:
+        if self._task_status == model.TaskStatus.FINISHED:
             raise TaskFinishedError(self._task_id)
-        join_task(self._task_id, member_id, session=session)
-        contract.join_task(member_id, self._task_id)
-        with self._join_cond:
-            self._joined_members.append(member_id)
-            _logger.info(
-                f"member {member_id} join the task {self._task_id}",
-                extra={"task_id": self._task_id},
-            )
-            # wait until all members join the task
-            if len(self._joined_members) == len(self._members):
-                self._join_cond.notify_all()
-            else:
-                self._join_cond.wait_for(
-                    lambda: len(self._joined_members) == len(self._members)
-                )
+        if self._round_status == model.RoundStatus.FINISHED:
+            raise TaskUnfinishedRoundError(self._task_id, self._round_id)
+
+        if len(self._joined_members) > 0 and not self._in_join_phase:
+            # not in join phase
+            return False
+        if len(self._joined_members) >= self._alg.max_clients:
+            # reach max clients
+            return False        
+        
+        def end_join_phase():
+            with self._join_lock:
+                if len(self._joined_members) >= self._alg.min_clients:
+                    self._round_id = contract.start_round(self._node_id, self._task_id)
+                    self._round_status = model.RoundStatus.RUNNING
+                self._in_join_phase = False
+                self._join_event.set()
+
+        timer = None
+        try:
+            with self._join_lock:
+                if len(self._joined_members) == 0:
+                    # start the task
+                    if self._task_status == model.TaskStatus.PENDING:
+                        start_task(self._task_id, session=session)
+                        self._task_status == model.TaskStatus.RUNNING
+
+                    # start new join phase
+                    self._in_join_phase = True
+                    if self._alg.wait_timeout is not None:
+                        timer = threading.Timer(self._alg.wait_timeout, end_join_phase)
+                        timer.start()
+
+                if member_id not in self._joined_members:
+                    self._joined_members.append(member_id)
+
+                if self._alg.wait_timeout is None and len(self._joined_members) >= self._alg.min_clients:
+                    end_join_phase()
+
+            if self._join_event.wait(self._alg.wait_timeout):
+                self._join_event.clear()
+                member_start_round(self._task_id, member_id, self._round_id, session=session)
+                return True
+            return False
+        except Exception as e:
+            _logger.exception(e)
+            if timer is not None:
+                timer.cancel()
+            raise
+        finally:
+            if timer is not None:
+                timer.join()
+
 
     def finish_task(self, member_id: str, *, session: Session = None):
         if member_id not in self._joined_members:
@@ -184,34 +229,6 @@ class TaskManager(object):
                             raise TaskFinishedError(self._task_id)
                         return self._round_id
 
-    def _round_status(
-        self, *, session: Session = None
-    ) -> Tuple[int, model.RoundStatus]:
-        result_round_id = 0
-        result_status = model.RoundStatus.FINISHED
-        for member_id in self._members:
-            max_round_id, status = get_member_round_status(
-                self._task_id, member_id, session=session
-            )
-            if result_round_id == 0:
-                result_round_id = max_round_id
-                result_status = status
-            elif max_round_id < result_round_id:
-                result_round_id = max_round_id
-                result_status = status
-            elif max_round_id == result_round_id:
-                if status == model.RoundStatus.RUNNING:
-                    result_status = status
-        return result_round_id, result_status
-
-    def _finish_round(self):
-        with self._round_cond:
-            self._round_finished = True
-        for member_id in self._members:
-            round_id, status = get_member_round_status(self._task_id, member_id)
-            if status != model.RoundStatus.FINISHED:
-                member_finish_round(self._task_id, member_id, round_id)
-
     def get_metadata(self, member_id: str) -> model.TaskMetadata:
         if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
@@ -261,14 +278,13 @@ class TaskManager(object):
 
             def agg_update(member_ids: List[str], group: channel.ChannelGroup):
                 aggregator = agg.new_aggregator(
-                    self._metadata.secure_level, self._task_id
+                    self._metadata.name, self._task_id
                 )
                 result = aggregator.aggregate(member_ids, group)
                 try:
-                    self._task_item.update(result)
                     weight_file = task_weight_file(self._task_id, self._round_id)
                     with open(weight_file, mode="wb") as f:
-                        self._task_item.dump_weight(f)
+                        np.savez_compressed(result)
                     _logger.info(
                         f"task {self._task_id} round {self._round_id} update weight",
                         extra={"task_id": self._task_id},
@@ -296,7 +312,8 @@ class TaskManager(object):
                 _logger.debug("agg update finish")
                 with self._agg_lock:
                     self._agg_group = None
-                self._finish_round()
+                with self._join_lock:
+                    self._round_status = model.RoundStatus.FINISHED
 
 
 _task_manager_registry: Dict[int, TaskManager] = {}
