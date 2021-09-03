@@ -7,43 +7,40 @@ from tempfile import TemporaryFile
 from typing import Dict, List, Optional
 
 import numpy as np
-from delta_node.crypto.shamir.shamir import SecretShare
 
 from .. import serialize, utils
 from ..channel import ChannelGroup, InnerChannel, Message
 from ..crypto import aes, ecdhe, shamir
-from . import base
+from .base import Algorithm
 
 _logger = logging.getLogger(__name__)
 
 
-class Aggregator(base.Aggregator):
-    def __init__(self, task_id: int, timeout: Optional[float], **kwargs) -> None:
-        super().__init__(task_id, timeout=timeout)
-        precision: int = kwargs.get("precision", 8)
-        assert isinstance(precision, int), "precision should be a int"
-        curve: str = kwargs.get("curve", "secp256r1")
-        assert isinstance(curve, str), "curve should be a string"
-        assert curve in ecdhe.CURVES, f"{curve} is not a valid ecdhe curve name"
-        threshold: int = kwargs.get("threshold", 2)
-        assert isinstance(threshold, int)
+class FaultTolerantFedAvg(Algorithm):
+    @property
+    def name(self) -> str:
+        return "FaultTolerantFedAvg"
 
-        self._precision = precision
-        self._curve_name = curve
-        self._threshold = threshold
-
-        self._curve = ecdhe.CURVES[self._curve_name]
-        self._secret_share = shamir.SecretShare(self._threshold)
-
-    def aggregate(self, member_ids: List[str], group: ChannelGroup) -> np.ndarray:
+    def aggregate(self, member_ids: List[str], group: ChannelGroup, **kwargs) -> np.ndarray:
         try:
             u0_list = group.wait(member_ids, timeout=self._timeout)
             _logger.debug(f"members {u0_list} regsiteded")
 
+            precision: int = kwargs.get("precision", 8)
+            assert isinstance(precision, int), "precision should be a int"
+            curve_name: str = kwargs.get("curve", "secp256r1")
+            assert isinstance(curve_name, str), "curve should be a string"
+            assert curve_name in ecdhe.CURVES, f"{curve_name} is not a valid ecdhe curve name"
+            curve = ecdhe.CURVES[curve_name]
+
+            threshold: int = kwargs.get("threshold", 2)
+            assert isinstance(threshold, int)
+            secret_share = shamir.SecretShare(threshold)
+
             cfg = {
-                "precision": self._precision,
-                "curve": self._curve_name,
-                "threshold": self._threshold,
+                "precision": precision,
+                "curve": curve_name,
+                "threshold": threshold,
             }
             cfg_bytes = json.dumps(cfg).encode("utf-8")
             cfg_msgs = {u: Message("json", cfg_bytes) for u in u0_list}
@@ -103,7 +100,7 @@ class Aggregator(base.Aggregator):
             mask_arr = None
             for u, file in arr_files.items():
                 file.seek(0)
-                arr = utils.load_arr(file)
+                arr = serialize.load_arr(file)
                 _logger.debug(f"member {u} mask array: {arr}")
                 if mask_arr is None:
                     mask_arr = arr
@@ -119,7 +116,7 @@ class Aggregator(base.Aggregator):
             resolve_share_msgs = group.recv_msgs(u3_list, timeout=self._timeout)
             u4_list = list(resolve_share_msgs.keys())
             assert set(u4_list) & set(u3_list) == set(u4_list)
-            assert len(u4_list) >= self._threshold
+            assert len(u4_list) >= threshold
             _logger.debug(f"recv shares from {u4_list}")
 
             resolve_shares = defaultdict(list)
@@ -134,7 +131,7 @@ class Aggregator(base.Aggregator):
             for u, shares in resolve_shares.items():
                 _logger.debug(f"member {u} shares {shares}")
                 if len(shares) > 0:
-                    val = self._secret_share.resolve_shares(shares)
+                    val = secret_share.resolve_shares(shares)
                     if u in u3_list:
                         _logger.debug(f"member {u} bu {val}")
                         bus[u] = val
@@ -152,14 +149,14 @@ class Aggregator(base.Aggregator):
                 pk = s_pks[u]
                 for v, sk in sks.items():
                     sk = serialize.int_to_bytes(sk)
-                    ck = ecdhe.generate_shared_key(sk, pk, self._curve)
+                    ck = ecdhe.generate_shared_key(sk, pk, curve)
                     mask = utils.make_mask(serialize.bytes_to_int(ck), mask_arr.shape)
                     if u < v:
                         mask = -mask
                     ck_mask += mask
 
             result_arr = mask_arr - bu_mask + ck_mask
-            result_arr = utils.unfix_precision(result_arr, self._precision)
+            result_arr = utils.unfix_precision(result_arr, precision)
             result_arr /= len(u3_list)
             _logger.debug(f"result array {result_arr}")
             return result_arr
@@ -169,14 +166,9 @@ class Aggregator(base.Aggregator):
         finally:
             group.close()
 
-
-class Uploader(base.Uploader):
-    def __init__(self, node_id: str, task_id: int, timeout: Optional[float]) -> None:
-        super().__init__(node_id, task_id, timeout=timeout)
-
-    def callback(self, ch: InnerChannel):
+    def upload(self, node_id: str, result: np.ndarray, ch: InnerChannel):
         try:
-            assert self._result_arr is not None
+            assert result is not None
             cfg_msg = ch.recv(timeout=self._timeout)
             _logger.debug(f"recv cfg msg {cfg_msg}")
             assert cfg_msg.type == "json"
@@ -193,9 +185,9 @@ class Uploader(base.Uploader):
             assert isinstance(threshold, int)
 
             curve = ecdhe.CURVES[curve_name]
-            secret_share = SecretShare(threshold)
-            _logger.debug(f"result arr {self._result_arr}")
-            result_arr = utils.fix_precision(self._result_arr, precision)
+            _logger.debug(f"result arr {result}")
+            result_arr = utils.fix_precision(result, precision)
+            secret_share = shamir.SecretShare(threshold)
 
             c_sk, c_pk = ecdhe.generate_key_pair(curve)
             _logger.debug(f"c_sk {c_sk} c_pk {c_pk}")
@@ -223,7 +215,7 @@ class Uploader(base.Uploader):
                 s_pk = serialize.str_to_key(pks["s_pk"])
                 _logger.debug(f"member {u} c_pk {c_pk} s_pk {s_pk}")
                 enc_keys[u] = ecdhe.generate_shared_key(c_sk, c_pk, curve)
-                if u != self._node_id:
+                if u != node_id:
                     mask_keys[u] = ecdhe.generate_shared_key(s_sk, s_pk, curve)
 
             bu = random.randint(1, shamir.PRIME - 1)
@@ -245,7 +237,7 @@ class Uploader(base.Uploader):
                 enc_data = aes.encrypt(key, json.dumps(data).encode("utf-8"))
                 remote_shares_dict[u] = enc_data.decode("utf-8")
 
-                if u == self._node_id:
+                if u == node_id:
                     local_shares_dict[u] = data
 
             remote_shares_msg = Message(
@@ -263,7 +255,7 @@ class Uploader(base.Uploader):
             _logger.debug(f"recv shares from {u2_list}")
 
             for u, enc_share in enc_shares.items():
-                if u != self._node_id:
+                if u != node_id:
                     key = enc_keys[u]
                     share_str = aes.decrypt(key, enc_share.encode("utf-8")).decode(
                         "utf-8"
@@ -276,9 +268,9 @@ class Uploader(base.Uploader):
             ck_mask = np.zeros(result_arr.shape, dtype=np.int32)
 
             for u, mask_key in mask_keys.items():
-                if u != self._node_id:
+                if u != node_id:
                     mask = utils.make_mask(mask_key, result_arr.shape)
-                    if u < self._node_id:
+                    if u < node_id:
                         mask = -mask
                     ck_mask += mask
 
@@ -288,7 +280,7 @@ class Uploader(base.Uploader):
             _logger.debug(f"mask array {mask_arr}")
 
             with BytesIO() as f:
-                utils.dump_arr(f, mask_arr)
+                serialize.dump_arr(f, mask_arr)
                 f.seek(0)
                 ch.send_file(f)
                 _logger.debug("send result arr to server")
@@ -316,10 +308,11 @@ class Uploader(base.Uploader):
             ch.send(resolve_share_msg)
             _logger.debug("send resolve share msg to server")
             ch.close()
-            self._result_arr = None
         except Exception as e:
             _logger.exception(e)
             raise
         finally:
             ch.close()
-            self._result_arr = None
+
+    def update(self, weight: np.ndarray, result: np.ndarray) -> np.ndarray:
+        return result

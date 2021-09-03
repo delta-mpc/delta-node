@@ -7,15 +7,17 @@ from sqlalchemy.orm import Session
 
 from .. import contract, db, model, node, serialize
 from .location import task_cfg_file, task_weight_file
-from ..exceptions import TaskCreateError
+from ..exceptions import TaskErrorWithMsg
 
 
 @db.with_session
 def create_task(task_file: IO[bytes], *, session: Session = None):
     assert session is not None
     task = delta.serialize.load_task(task_file)
-    if task.type not in ["horizontal"]:
-        raise TaskCreateError(f"unknown task type {task.type}")
+    if task.type not in ["horizontol"]:
+        raise TaskErrorWithMsg(0, f"unknown task type {task.type}")
+    if task.type == "horizontol":
+        assert isinstance(task, HorizontolTask), TaskErrorWithMsg(0, "task type not match task.type")
 
     node_id = node.get_node_id(session=session)
     task_id = contract.create_task(node_id, task.name)
@@ -24,7 +26,7 @@ def create_task(task_file: IO[bytes], *, session: Session = None):
         task.dump(f)
 
     if task.type == "horizontol":
-        assert isinstance(task, HorizontolTask), TaskCreateError("task type not match task.type")
+        assert isinstance(task, HorizontolTask)
         with open(task_weight_file(task_id, 0), mode="wb") as f:
             weight_arr = task.get_weight()
             serialize.dump_arr(f, weight_arr)

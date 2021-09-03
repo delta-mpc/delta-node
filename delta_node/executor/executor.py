@@ -8,7 +8,7 @@ import os
 import queue
 from typing import Dict
 
-import delta.task as delta_task
+from delta.serialize import load_task
 from delta.task import HorizontolTask
 
 from .. import config, contract, log, node
@@ -32,7 +32,9 @@ def _check_dataset(dataset: str) -> bool:
     return os.path.exists(os.path.join(config.data_dir, dataset))
 
 
-def execute_task(log_queue: mp.Queue, task_id: int, url: str, creator_id: str, task_queue: mp.Queue):
+def execute_task(
+    log_queue: mp.Queue, task_id: int, url: str, creator_id: str, task_queue: mp.Queue
+):
     log.init(log_queue)
     client = CommuClient(url)
     node_id = node.get_node_id()
@@ -41,35 +43,35 @@ def execute_task(log_queue: mp.Queue, task_id: int, url: str, creator_id: str, t
         f"member {node_id} get metadata of task {task_id}",
     )
 
-    if _check_dataset(metadata.dataset):
-        _logger.info(
-            f"member {node_id} can join the task {task_id}"
-        )
-        _logger.info(
-            f"member {node_id} join task {task_id}", extra={"task_id": task_id}
-        )
-        add_task(task_id, url, creator_id, metadata)
+    try:
+        if _check_dataset(metadata.dataset):
+            _logger.info(f"member {node_id} can join the task {task_id}")
+            add_task(task_id, url, creator_id, metadata)
 
-        with BytesIO() as f:
-            client.get_file(task_id, node_id, 0, "cfg", f)
-            task = delta_task.load(f)
-            _logger.info(
-                f"member {node_id} get task cfg of task {task_id}",
-                extra={"task_id": task_id},
-            )
-            if task.type == "horizontol":
-                assert isinstance(task, HorizontolTask)
-                local_node = HorizontolLocalNode(task_id, client, config.data_dir, metadata, task.algorithm())
-                try:
-                    task.run(local_node)
-                except TaskContinue:
-                    task_queue.put(TaskEvent(task_id, url, creator_id))
-            else:
-                raise RuntimeError(f"unknown task type {task.type}")
-    else:
-        _logger.info(
-            f"member {node_id} cannot join the task {task_id}"
-        )
+            with BytesIO() as f:
+                client.get_file(task_id, node_id, "cfg", f)
+                f.seek(0)
+                task = load_task(f)
+                _logger.info(
+                    f"member {node_id} get task cfg of task {task_id}",
+                    extra={"task_id": task_id},
+                )
+                if task.type == "horizontol":
+                    assert isinstance(task, HorizontolTask)
+                    local_node = HorizontolLocalNode(
+                        task_id, client, config.data_dir, metadata, task.algorithm()
+                    )
+                    try:
+                        task.run(local_node)
+                    except TaskContinue:
+                        task_queue.put(TaskEvent(task_id, url, creator_id))
+                else:
+                    raise RuntimeError(f"unknown task type {task.type}")
+        else:
+            _logger.info(f"member {node_id} cannot join the task {task_id}")
+    except Exception as e:
+        _logger.exception(e)
+        raise
 
 
 class Executor(object):
@@ -92,18 +94,21 @@ class Executor(object):
             self._event_filter.start()
             while True:
                 event = self._event_filter.wait_for_event("Task", timeout=0.1)
-                _logger.info(event)
                 if event is not None:
-                    self._task_queue.put(TaskEvent(event.task_id, event.url, event.address))
+                    _logger.info(event)
+                    self._task_queue.put(
+                        TaskEvent(event.task_id, event.url, event.address)
+                    )
                 try:
                     task_event = self._task_queue.get(block=False)
+                    _logger.info(f"execute task {task_event.task_id}")
                     fut = self._pool.submit(
                         execute_task,
                         log_queue=log.get_log_queue(),
                         task_id=task_event.task_id,
                         url=task_event.url,
-                        creator_id=task_event.address,
-                        task_queue=self._task_queue
+                        creator_id=task_event.creator_id,
+                        task_queue=self._task_queue,
                     )
                     self._task_status[task_event.task_id] = TaskStatus.RUNNING
                     fut.add_done_callback(

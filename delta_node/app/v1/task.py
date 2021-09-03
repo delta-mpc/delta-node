@@ -13,7 +13,7 @@ from sqlalchemy import desc, func
 
 from delta_node.app import utils
 from delta_node import db, model, manager
-from delta_node.exceptions import TaskCreateError
+from delta_node.exceptions import TaskError
 
 _logger = logging.getLogger(__name__)
 
@@ -41,8 +41,9 @@ def upload_task(
             task_id = manager.create_task(tmp, session=session)
             resp = utils.CreateTaskResp(task_id=task_id)
             return resp
-        except TaskCreateError as e:
-            raise HTTPException(400, e.msg)
+        except TaskError as e:
+            _logger.exception(e)
+            raise HTTPException(400, str(e))
 
 
 @router.get("/tasks", response_model=utils.TasksResp)

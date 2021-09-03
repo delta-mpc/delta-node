@@ -6,7 +6,6 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
-
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -20,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0b\x63ommu.proto\x12\x05\x63ommu\"-\n\x07TaskReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\";\n\x0cMetadataResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x03 \x01(\t\"\x1d\n\nStatusResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x1d\n\tRoundResp\x12\x10\n\x08round_id\x18\x01 \x01(\x05\"M\n\x07\x46ileReq\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x11\n\tmember_id\x18\x03 \x01(\t\x12\x10\n\x08round_id\x18\x04 \x01(\x05\"-\n\x08\x46ileResp\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"`\n\tResultReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\x12\x10\n\x08round_id\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x05 \x01(\x0c\"+\n\nResultResp\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\x32\xbc\x02\n\x05\x43ommu\x12\x34\n\x0bGetMetadata\x12\x0e.commu.TaskReq\x1a\x13.commu.MetadataResp\"\x00\x12/\n\x08JoinTask\x12\x0e.commu.TaskReq\x1a\x11.commu.StatusResp\"\x00\x12\x31\n\nFinishTask\x12\x0e.commu.TaskReq\x1a\x11.commu.StatusResp\"\x00\x12.\n\x08GetRound\x12\x0e.commu.TaskReq\x1a\x10.commu.RoundResp\"\x00\x12.\n\x07GetFile\x12\x0e.commu.FileReq\x1a\x0f.commu.FileResp\"\x00\x30\x01\x12\x39\n\x0cUploadResult\x12\x10.commu.ResultReq\x1a\x11.commu.ResultResp\"\x00(\x01\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0b\x63ommu.proto\x12\x05\x63ommu\"-\n\x07TaskReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\";\n\x0cMetadataResp\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x03 \x01(\t\"\x1d\n\nStatusResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x1d\n\tRoundResp\x12\x10\n\x08round_id\x18\x01 \x01(\x05\";\n\x07\x46ileReq\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x11\n\tmember_id\x18\x03 \x01(\t\"-\n\x08\x46ileResp\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"c\n\tUploadReq\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x11\n\tmember_id\x18\x02 \x01(\t\x12\x13\n\x0bupload_type\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x05 \x01(\x0c\"+\n\nUploadResp\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\x32\xb6\x02\n\x05\x43ommu\x12\x34\n\x0bGetMetadata\x12\x0e.commu.TaskReq\x1a\x13.commu.MetadataResp\"\x00\x12/\n\x08JoinTask\x12\x0e.commu.TaskReq\x1a\x11.commu.StatusResp\"\x00\x12\x31\n\nFinishTask\x12\x0e.commu.TaskReq\x1a\x11.commu.StatusResp\"\x00\x12.\n\x08GetRound\x12\x0e.commu.TaskReq\x1a\x10.commu.RoundResp\"\x00\x12.\n\x07GetFile\x12\x0e.commu.FileReq\x1a\x0f.commu.FileResp\"\x00\x30\x01\x12\x33\n\x06Upload\x12\x10.commu.UploadReq\x1a\x11.commu.UploadResp\"\x00(\x01\x30\x01\x62\x06proto3'
 )
 
 
@@ -204,13 +203,6 @@ _FILEREQ = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='round_id', full_name='commu.FileReq.round_id', index=3,
-      number=4, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -224,7 +216,7 @@ _FILEREQ = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=192,
-  serialized_end=269,
+  serialized_end=251,
 )
 
 
@@ -262,49 +254,49 @@ _FILERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=271,
-  serialized_end=316,
+  serialized_start=253,
+  serialized_end=298,
 )
 
 
-_RESULTREQ = _descriptor.Descriptor(
-  name='ResultReq',
-  full_name='commu.ResultReq',
+_UPLOADREQ = _descriptor.Descriptor(
+  name='UploadReq',
+  full_name='commu.UploadReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='task_id', full_name='commu.ResultReq.task_id', index=0,
+      name='task_id', full_name='commu.UploadReq.task_id', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='member_id', full_name='commu.ResultReq.member_id', index=1,
+      name='member_id', full_name='commu.UploadReq.member_id', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='round_id', full_name='commu.ResultReq.round_id', index=2,
-      number=3, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='upload_type', full_name='commu.UploadReq.upload_type', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='type', full_name='commu.ResultReq.type', index=3,
+      name='type', full_name='commu.UploadReq.type', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='content', full_name='commu.ResultReq.content', index=4,
+      name='content', full_name='commu.UploadReq.content', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
@@ -322,28 +314,28 @@ _RESULTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=318,
-  serialized_end=414,
+  serialized_start=300,
+  serialized_end=399,
 )
 
 
-_RESULTRESP = _descriptor.Descriptor(
-  name='ResultResp',
-  full_name='commu.ResultResp',
+_UPLOADRESP = _descriptor.Descriptor(
+  name='UploadResp',
+  full_name='commu.UploadResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='type', full_name='commu.ResultResp.type', index=0,
+      name='type', full_name='commu.UploadResp.type', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='content', full_name='commu.ResultResp.content', index=1,
+      name='content', full_name='commu.UploadResp.content', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
@@ -361,8 +353,8 @@ _RESULTRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=416,
-  serialized_end=459,
+  serialized_start=401,
+  serialized_end=444,
 )
 
 DESCRIPTOR.message_types_by_name['TaskReq'] = _TASKREQ
@@ -371,8 +363,8 @@ DESCRIPTOR.message_types_by_name['StatusResp'] = _STATUSRESP
 DESCRIPTOR.message_types_by_name['RoundResp'] = _ROUNDRESP
 DESCRIPTOR.message_types_by_name['FileReq'] = _FILEREQ
 DESCRIPTOR.message_types_by_name['FileResp'] = _FILERESP
-DESCRIPTOR.message_types_by_name['ResultReq'] = _RESULTREQ
-DESCRIPTOR.message_types_by_name['ResultResp'] = _RESULTRESP
+DESCRIPTOR.message_types_by_name['UploadReq'] = _UPLOADREQ
+DESCRIPTOR.message_types_by_name['UploadResp'] = _UPLOADRESP
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 TaskReq = _reflection.GeneratedProtocolMessageType('TaskReq', (_message.Message,), {
@@ -417,19 +409,19 @@ FileResp = _reflection.GeneratedProtocolMessageType('FileResp', (_message.Messag
   })
 _sym_db.RegisterMessage(FileResp)
 
-ResultReq = _reflection.GeneratedProtocolMessageType('ResultReq', (_message.Message,), {
-  'DESCRIPTOR' : _RESULTREQ,
+UploadReq = _reflection.GeneratedProtocolMessageType('UploadReq', (_message.Message,), {
+  'DESCRIPTOR' : _UPLOADREQ,
   '__module__' : 'commu_pb2'
-  # @@protoc_insertion_point(class_scope:commu.ResultReq)
+  # @@protoc_insertion_point(class_scope:commu.UploadReq)
   })
-_sym_db.RegisterMessage(ResultReq)
+_sym_db.RegisterMessage(UploadReq)
 
-ResultResp = _reflection.GeneratedProtocolMessageType('ResultResp', (_message.Message,), {
-  'DESCRIPTOR' : _RESULTRESP,
+UploadResp = _reflection.GeneratedProtocolMessageType('UploadResp', (_message.Message,), {
+  'DESCRIPTOR' : _UPLOADRESP,
   '__module__' : 'commu_pb2'
-  # @@protoc_insertion_point(class_scope:commu.ResultResp)
+  # @@protoc_insertion_point(class_scope:commu.UploadResp)
   })
-_sym_db.RegisterMessage(ResultResp)
+_sym_db.RegisterMessage(UploadResp)
 
 
 
@@ -440,8 +432,8 @@ _COMMU = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=462,
-  serialized_end=778,
+  serialized_start=447,
+  serialized_end=757,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetMetadata',
@@ -494,12 +486,12 @@ _COMMU = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
-    name='UploadResult',
-    full_name='commu.Commu.UploadResult',
+    name='Upload',
+    full_name='commu.Commu.Upload',
     index=5,
     containing_service=None,
-    input_type=_RESULTREQ,
-    output_type=_RESULTRESP,
+    input_type=_UPLOADREQ,
+    output_type=_UPLOADRESP,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),

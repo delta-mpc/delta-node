@@ -25,7 +25,6 @@ message FileReq {
     string type = 1;
     int32 task_id = 2;
     string member_id = 3;
-    int32 round_id = 4;
 }
 
 message FileResp {
@@ -33,15 +32,15 @@ message FileResp {
     bytes content = 2;
 }
 
-message ResultReq {
+message UploadReq {
     int32 task_id = 1;
     string member_id = 2;
-    int32 round_id = 3;
+    string upload_type = 3;
     string type = 4;
     bytes content = 5;
 }
 
-message ResultResp {
+message UploadResp {
     string type = 1;
     bytes content = 2;
 }
@@ -52,5 +51,5 @@ service Commu {
     rpc FinishTask(TaskReq) returns (StatusResp) {}
     rpc GetRound(TaskReq) returns (RoundResp) {}
     rpc GetFile(FileReq) returns (stream FileResp) {}
-    rpc UploadResult(stream ResultReq) returns (stream ResultResp) {} 
+    rpc Upload(stream UploadReq) returns (stream UploadResp) {} 
 }

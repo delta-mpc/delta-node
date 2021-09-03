@@ -9,7 +9,7 @@ from delta.algorithm.horizontal import HorizontalAlgorithm
 from delta.node import Node
 from delta.serialize import load_arr
 
-from .. import agg, data, node
+from .. import algorithm, data, node
 from ..commu import CommuClient
 from ..exceptions import TaskContinue
 from ..model import RoundStatus, TaskMetadata
@@ -91,9 +91,7 @@ class HorizontolLocalNode(Node):
                 self._round_id = round_id
                 self._round_status = RoundStatus.RUNNING
                 member_start_round(self._task_id, self._node_id, round_id)
-                self._client.get_file(
-                    self._task_id, self._node_id, round_id - 1, "weight", dst
-                )
+                self._client.get_file(self._task_id, self._node_id, "weight", dst)
                 _logger.info(
                     f"task {self._task_id} get weight file of round {self._round_id}",
                     extra={"task_id": self._task_id},
@@ -120,10 +118,12 @@ class HorizontolLocalNode(Node):
     def upload_result(self, src: IO[bytes]):
         try:
             result_arr = load_arr(src)
-            uploader = agg.new_uploader(self._alg.name, self._node_id, self._task_id)
-            uploader.upload_result(result_arr)
+            alg = algorithm.new_algorithm(
+                self._alg.name, self._task_id, self._alg.connnection_timeout
+            )
+            extra_msg, callback = alg.upload_result(self._node_id, result_arr)
             self._client.upload_result(
-                self._task_id, self._node_id, self._round_id, uploader.callback
+                self._task_id, self._node_id, extra_msg, callback
             )
             _logger.info(
                 f"task {self._task_id} upload result of round {self._round_id}",
@@ -145,12 +145,12 @@ class HorizontolLocalNode(Node):
     def upload_metrics(self, src: IO[bytes]):
         try:
             metrics: Dict[str, float] = json.load(src)
-            ordered_keys = sorted(metrics.keys())
-            values = np.array([metrics[key] for key in ordered_keys])
-            uploader = agg.new_uploader(self._alg.name, self._node_id, self._task_id)
-            uploader.upload_result(values)
-            self._client.upload_result(
-                self._task_id, self._node_id, self._round_id, uploader.callback
+            alg = algorithm.new_algorithm(
+                self._alg.name, self._task_id, self._alg.connnection_timeout
+            )
+            extra_msg, callback = alg.upload_metrics(self._node_id, metrics)
+            self._client.upload_metrics(
+                self._task_id, self._node_id, extra_msg, callback
             )
             _logger.info(
                 f"task {self._task_id} upload metrics of round {self._round_id}",
@@ -180,113 +180,3 @@ class HorizontolLocalNode(Node):
                 extra={"task_id": self._task_id},
             )
             raise TaskContinue(self._task_id, str(e))
-
-
-# class LocalNode(Node):
-#     def __init__(
-#         self, data_dir, task_id: int, metadata: TaskMetadata, client: CommuClient
-#     ) -> None:
-#         self._data_dir = data_dir
-#         self._round_id = 0
-#         self._round_finished = True
-#         self._task_id = task_id
-#         self._client = client
-#         self._metadata = metadata
-#         self._node_id = node.get_node_id()
-
-#     def new_dataloader(
-#         self, dataset: str, dataloader: Dict[str, Any], preprocess: Callable
-#     ) -> Iterable:
-#         return data.new_dataloader(
-#             os.path.join(self._data_dir, dataset), dataloader, preprocess
-#         )
-
-#     def download_state(self, dst: IO[bytes]) -> bool:
-#         filename = task_state_file(self._task_id, self._round_id)
-#         if os.path.exists(filename):
-#             with open(filename, mode="rb") as f:
-#                 shutil.copyfileobj(f, dst)
-#             _logger.info(
-#                 f"task {self._task_id} round {self._round_id} download state",
-#                 extra={"task_id": self._task_id},
-#             )
-#             return True
-#         else:
-#             _logger.info(
-#                 f"task {self._task_id} round {self._round_id} round does not exist",
-#                 extra={"task_id": self._task_id},
-#             )
-#             return False
-
-#     def upload_state(self, file: IO[bytes]):
-#         filename = task_state_file(self._task_id, self._round_id)
-#         with open(filename, mode="wb") as f:
-#             shutil.copyfileobj(file, f)
-#         _logger.info(
-#             f"task {self._task_id} round {self._round_id} upload state",
-#             extra={"task_id": self._task_id},
-#         )
-
-#     def download_weight(self, dst: IO[bytes]) -> bool:
-#         try:
-#             round_id = self._client.get_round_id(self._task_id, self._node_id)
-#             _logger.info(f"task {self._task_id} round {round_id} start")
-#             self._round_id = round_id
-#             self._round_finished = False
-#             member_start_round(self._task_id, self._node_id, round_id)
-#             self._client.get_file(
-#                 self._task_id, self._node_id, round_id - 1, "weight", dst
-#             )
-#             _logger.info(
-#                 f"task {self._task_id} get weight file of round {self._round_id}",
-#                 extra={"task_id": self._task_id},
-#             )
-#             return True
-#         except Exception as e:
-#             _logger.error(
-#                 f"task {self._task_id} round {self._round_id} error {e}",
-#                 extra={"task_id": self._task_id},
-#             )
-#             return False
-
-#     def upload_result(self, data: IO[bytes]):
-#         try:
-#             result_arr = utils.load_arr(data)
-#             uploader = agg.new_uploader(self._metadata.secure_level, self._node_id, self._task_id)
-#             uploader.upload_result(result_arr)
-#             self._client.upload_result(
-#                 self._task_id, self._node_id, self._round_id, uploader.callback
-#             )
-#             _logger.info(
-#                 f"task {self._task_id} upload result of round {self._round_id}",
-#                 extra={"task_id": self._task_id},
-#             )
-#             self._round_finished = True
-#             member_finish_round(self._task_id, self._node_id, self._round_id)
-#             _logger.info(
-#                 f"task {self._task_id} finish round {self._round_id}",
-#                 extra={"task_id": self._task_id},
-#             )
-#         except Exception as e:
-#             _logger.error(
-#                 f"task {self._task_id} round {self._round_id} error {e}",
-#                 extra={"task_id": self._task_id},
-#             )
-
-#     def finish(self):
-#         try:
-#             last_round_id, status = get_member_round_status(
-#                 self._task_id, self._node_id
-#             )
-#             if status == RoundStatus.RUNNING:
-#                 member_finish_round(self._task_id, self._node_id, last_round_id)
-#             self._client.finish_task(self._task_id, self._node_id)
-#             _logger.info(
-#                 f"task {self._task_id} finished, total round {self._round_id}",
-#                 extra={"task_id": self._task_id},
-#             )
-#         except Exception as e:
-#             _logger.error(
-#                 f"task {self._task_id} round {self._round_id} error {e}",
-#                 extra={"task_id": self._task_id},
-#             )

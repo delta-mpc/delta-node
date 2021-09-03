@@ -1,12 +1,10 @@
 __all__ = [
-    "TaskCreateError",
     "TaskError",
     "TaskErrorWithMsg",
     "NoSuchTaskError",
     "MemberNotJoinedError",
     "TaskNotReadyError",
     "TaskNoMemberError",
-    "TaskUnfinishedRoundError",
     "TaskNoSuchRoundError",
     "TaskUnknownFileTypeError",
     "TaskFileNotExistedError",
@@ -14,15 +12,8 @@ __all__ = [
     "TaskNotFinishedError",
     "TaskRoundNotFinishedError",
     "TaskContinue",
+    "TaskRoundNotStartedError",
 ]
-
-
-class TaskCreateError(Exception):
-    def __init__(self, msg: str) -> None:
-        self.msg = msg
-
-    def __str__(self) -> str:
-        return self.msg
 
 
 class TaskError(Exception):
@@ -71,15 +62,6 @@ class TaskNoMemberError(TaskError):
 
     def __str__(self) -> str:
         return f"task {self.task_id} has no member {self.member_id}"
-
-
-class TaskUnfinishedRoundError(TaskError):
-    def __init__(self, task_id: int, round_id: int) -> None:
-        super().__init__(task_id)
-        self.round_id = round_id
-
-    def __str__(self) -> str:
-        return f"task {self.task_id} round {self.round_id} is not finished"
 
 
 class TaskNoSuchRoundError(TaskError):
@@ -134,10 +116,19 @@ class TaskNotFinishedError(TaskError):
     def __str__(self) -> str:
         return f"task {self.task_id} has not finished"
 
+
 class TaskContinue(TaskError):
     def __init__(self, task_id: int, msg: str) -> None:
         super().__init__(task_id)
         self.msg = msg
-    
+
     def __str__(self) -> str:
         return f"task {self.task_id} err {self.msg} should continue"
+
+
+class TaskRoundNotStartedError(TaskError):
+    def __init__(self, task_id: int) -> None:
+        super().__init__(task_id)
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} hasn't start a new round"

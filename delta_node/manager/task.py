@@ -8,12 +8,9 @@ from ..exceptions import *
 
 __all__ = [
     "get_task",
-    "join_task",
     "member_start_round",
-    "get_member_round_status",
     "get_latest_rounds",
     "member_finish_round",
-    "get_finished_round_member",
     "start_task",
     "finish_task",
     "get_member_round",
@@ -76,23 +73,6 @@ def get_task(task_id: int, *, session: Session = None) -> Optional[model.Task]:
 
 
 @db.with_session
-def join_task(task_id: int, member_id: str, *, session: Session = None):
-    assert session is not None
-    member = (
-        session.query(model.TaskMember)
-        .filter(model.TaskMember.task_id == task_id)
-        .filter(model.TaskMember.node_id == member_id)
-        .one_or_none()
-    )
-    if member is None:
-        raise TaskNoMemberError(task_id, member_id)
-    if not member.joined:
-        member.joined = True  # type: ignore
-        session.add(member)
-        session.commit()
-
-
-@db.with_session
 def member_start_round(
     task_id: int, member_id: str, round_id: int, *, session: Session = None
 ):
@@ -113,24 +93,6 @@ def member_start_round(
         )
         session.add(round)
         session.commit()
-
-
-@db.with_session
-def get_member_round_status(
-    task_id: int, member_id: str, *, session: Session = None
-) -> Tuple[int, model.RoundStatus]:
-    assert session is not None
-    round = (
-        session.query(model.Round)
-        .filter(model.Round.task_id == task_id)
-        .filter(model.Round.node_id == member_id)
-        .order_by(desc(model.Round.round_id))
-        .first()
-    )
-    if round is None:
-        return 0, model.RoundStatus.FINISHED
-    else:
-        return round.round_id, round.status  # type: ignore
 
 
 @db.with_session
@@ -168,22 +130,6 @@ def member_finish_round(
     )
     round.status = model.RoundStatus.FINISHED  # type: ignore
     session.commit()
-
-
-@db.with_session
-def get_finished_round_member(
-    task_id: int, round_id: int, *, session: Session = None
-) -> List[str]:
-    assert session is not None
-    rounds = (
-        session.query(model.Round)
-        .filter(model.Round.task_id == task_id)
-        .filter(model.Round.round_id == round_id)
-        .filter(model.Round.status == model.RoundStatus.FINISHED)
-        .all()
-    )
-    res = [r.node_id for r in rounds]
-    return res
 
 
 @db.with_session

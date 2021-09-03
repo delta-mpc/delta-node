@@ -127,7 +127,7 @@ class IndexLookUpDataset(Dataset):
 def new_dataloader(
     dataset_name: str, dataloader_cfg: Dict[str, Any], preprocess: Callable
 ):
-    if os.path.exists(dataset_name):
+    if not os.path.exists(dataset_name):
         raise ValueError(f"{dataset_name} does not exist")
     if os.path.isfile(dataset_name):
         dataset = FileDataset(dataset_name, preprocess)
@@ -160,7 +160,7 @@ def new_train_val_dataloader(dataset_name: str, validate_frac: float, dataloader
     assert "train" in dataloader_cfg, "dataloader_cfg should contain train"
     assert "validate" in dataloader_cfg, "dataloader_cfg should contain validate"
 
-    if os.path.exists(dataset_name):
+    if not os.path.exists(dataset_name):
         raise ValueError(f"{dataset_name} does not exist")
     if os.path.isfile(dataset_name):
         dataset = FileDataset(dataset_name, preprocess)
@@ -184,5 +184,5 @@ def new_train_val_dataloader(dataset_name: str, validate_frac: float, dataloader
         raise ValueError("dataset should be a file or a directory")
     
     train_loader = DataLoader(train_dataset, **dataloader_cfg["train"])
-    val_loader = DataLoader(val_dataset, **dataloader_cfg["val"])
+    val_loader = DataLoader(val_dataset, **dataloader_cfg["validate"])
     return train_loader, val_loader

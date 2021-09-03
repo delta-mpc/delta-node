@@ -20,11 +20,7 @@ class CommuClient(object):
     def get_metadata(self, task_id: int, member_id: str) -> TaskMetadata:
         req = commu_pb2.TaskReq(task_id=task_id, member_id=member_id)
         resp = self._stub.GetMetadata(req)
-        metadata = TaskMetadata(
-            name=resp.name,
-            type=resp.type,
-            dataset=resp.dataset
-        )
+        metadata = TaskMetadata(name=resp.name, type=resp.type, dataset=resp.dataset)
         return metadata
 
     def join_task(self, task_id: int, member_id: str) -> bool:
@@ -53,12 +49,8 @@ class CommuClient(object):
         round_id = resp.round_id
         return round_id
 
-    def get_file(
-        self, task_id: int, member_id: str, round_id: int, file_type: str, dst: IO[bytes]
-    ):
-        req = commu_pb2.FileReq(
-            task_id=task_id, member_id=member_id, round_id=round_id, type=file_type
-        )
+    def get_file(self, task_id: int, member_id: str, file_type: str, dst: IO[bytes]):
+        req = commu_pb2.FileReq(task_id=task_id, member_id=member_id, type=file_type)
         for resp in self._stub.GetFile(req):
             content = resp.content
             if len(content) == 0:
@@ -69,22 +61,41 @@ class CommuClient(object):
         self,
         task_id: int,
         member_id: str,
-        round_id: int,
+        extra_msg: bytes,
+        callback: Callable[[channel.InnerChannel], None],
+    ):
+        self._upload(task_id, member_id, "result", extra_msg, callback)
+
+    def upload_metrics(
+        self,
+        task_id: int,
+        member_id: str,
+        extra_msg: bytes,
+        callback: Callable[[channel.InnerChannel], None],
+    ):
+        self._upload(task_id, member_id, "metrics", extra_msg, callback)
+
+    def _upload(
+        self,
+        task_id: int,
+        member_id: str,
+        upload_type: str,
+        extra_msg: bytes,
         callback: Callable[[channel.InnerChannel], None],
     ):
         in_ch, out_ch = channel.new_channel_pair()
 
         q = Queue()
-        init_msg = commu_pb2.ResultReq(
+        init_msg = commu_pb2.UploadReq(
             task_id=task_id,
             member_id=member_id,
-            round_id=round_id,
+            upload_type=upload_type,
             type="init",
-            content=b"",
+            content=extra_msg,
         )
         q.put(init_msg)
         req_iter = iter(q.get, None)
-        resp_iter = self._stub.UploadResult(req_iter)
+        resp_iter = self._stub.Upload(req_iter)
         _logger.info(f"task {task_id} member {member_id} upload result")
 
         with futures.ThreadPoolExecutor(1) as pool:
@@ -97,10 +108,10 @@ class CommuClient(object):
                     out_ch.send(msg)
                 elif opt == channel.Control.OUTPUT:
                     msg = out_ch.recv()
-                    req = commu_pb2.ResultReq(
+                    req = commu_pb2.UploadReq(
                         task_id=task_id,
                         member_id=member_id,
-                        round_id=round_id,
+                        upload_type=upload_type,
                         type=msg.type,
                         content=msg.content,
                     )
