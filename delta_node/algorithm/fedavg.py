@@ -2,7 +2,6 @@ import json
 import logging
 from io import BytesIO
 from tempfile import TemporaryFile
-from typing import List, Optional
 
 import numpy as np
 
@@ -67,7 +66,7 @@ class FedAvg(Algorithm):
             finish_map = group.recv_files(result_files, self._timeout)
             assert len(finish_map) == len(member_ids)
             assert all(finish_map.values())
-            _logger.debug("recv result files")
+            _logger.debug("recv agg files")
             _logger.info(
                 f"task {self._task_id} recv result from {member_ids}",
                 extra={"task_id": self._task_id},
@@ -87,7 +86,7 @@ class FedAvg(Algorithm):
             _logger.debug(f"result arr {result_arr}")
 
             _logger.info(
-                f"task {self._task_id} result aggregation completed",
+                f"task {self._task_id} aggregation completed",
                 extra={"task_id": self._task_id},
             )
             return result_arr

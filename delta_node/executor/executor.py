@@ -1,19 +1,20 @@
-from dataclasses import dataclass
 import logging
 import multiprocessing as mp
-from concurrent import futures
-from functools import partial
-from io import BytesIO
 import os
 import queue
+import time
+from concurrent import futures
+from dataclasses import dataclass
+from functools import partial
+from io import BytesIO
 from typing import Dict
 
 from delta.serialize import load_task
 from delta.task import HorizontolTask
 
 from .. import config, contract, log, node
-from ..exceptions import TaskContinue
 from ..commu import CommuClient
+from ..exceptions import TaskContinue
 from ..model import TaskStatus
 from .node import HorizontolLocalNode
 from .task import add_task
@@ -64,6 +65,7 @@ def execute_task(
                     try:
                         task.run(local_node)
                     except TaskContinue:
+                        time.sleep(10)
                         task_queue.put(TaskEvent(task_id, url, creator_id))
                 else:
                     raise RuntimeError(f"unknown task type {task.type}")
@@ -95,27 +97,27 @@ class Executor(object):
             while True:
                 event = self._event_filter.wait_for_event("Task", timeout=0.1)
                 if event is not None:
-                    _logger.info(event)
                     self._task_queue.put(
                         TaskEvent(event.task_id, event.url, event.address)
                     )
-                try:
-                    task_event = self._task_queue.get(block=False)
-                    _logger.info(f"execute task {task_event.task_id}")
-                    fut = self._pool.submit(
-                        execute_task,
-                        log_queue=log.get_log_queue(),
-                        task_id=task_event.task_id,
-                        url=task_event.url,
-                        creator_id=task_event.creator_id,
-                        task_queue=self._task_queue,
-                    )
-                    self._task_status[task_event.task_id] = TaskStatus.RUNNING
-                    fut.add_done_callback(
-                        partial(self._task_done, task_id=task_event.task_id)
-                    )
-                except queue.Empty:
-                    pass
+                else:
+                    try:
+                        task_event = self._task_queue.get(block=False)
+                        _logger.info(f"execute task {task_event.task_id}")
+                        fut = self._pool.submit(
+                            execute_task,
+                            log_queue=log.get_log_queue(),
+                            task_id=task_event.task_id,
+                            url=task_event.url,
+                            creator_id=task_event.creator_id,
+                            task_queue=self._task_queue,
+                        )
+                        self._task_status[task_event.task_id] = TaskStatus.RUNNING
+                        fut.add_done_callback(
+                            partial(self._task_done, task_id=task_event.task_id)
+                        )
+                    except queue.Empty:
+                        continue
         finally:
             self._event_filter.terminate()
             self._event_filter.join()

@@ -1,4 +1,5 @@
 from typing import IO
+import shutil
 
 import delta.serialize
 from delta.task import HorizontolTask
@@ -23,7 +24,8 @@ def create_task(task_file: IO[bytes], *, session: Session = None):
     task_id = contract.create_task(node_id, task.name)
 
     with open(task_cfg_file(task_id), mode="wb") as f:
-        task.dump(f)
+        task_file.seek(0)
+        shutil.copyfileobj(task_file, f)
 
     if task.type == "horizontol":
         assert isinstance(task, HorizontolTask)

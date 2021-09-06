@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import shutil
+import time
 from typing import IO, Any, Callable, Dict, Iterable, Tuple
 
-import numpy as np
 from delta.algorithm.horizontal import HorizontalAlgorithm
 from delta.node import Node
 from delta.serialize import load_arr
@@ -14,7 +14,7 @@ from ..commu import CommuClient
 from ..exceptions import TaskContinue
 from ..model import RoundStatus, TaskMetadata
 from .location import task_state_file
-from .task import get_member_round, member_finish_round, member_start_round
+from .task import get_member_latest_round, member_finish_round, member_start_round
 
 _logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class HorizontolLocalNode(Node):
     ):
         self._task_id = task_id
         self._node_id = node.get_node_id()
-        r = get_member_round(self._task_id, self._node_id)
+        r = get_member_latest_round(self._task_id, self._node_id)
         self._round_id = r.round_id
         self._round_status = r.status
         self._client = client
@@ -102,7 +102,7 @@ class HorizontolLocalNode(Node):
                     f"task {self._task_id} round {last_round_id} get weight error {e}",
                     extra={"task_id": self._task_id},
                 )
-                raise TaskContinue(self._task_id, str(e))
+                raise
         else:
             raise TaskContinue(self._task_id, f"cannot join task {self._task_id}")
 
@@ -137,10 +137,10 @@ class HorizontolLocalNode(Node):
             )
         except Exception as e:
             _logger.error(
-                f"task {self._task_id} round {self._round_id} upload state error {e}",
+                f"task {self._task_id} round {self._round_id} upload result error {e}",
                 extra={"task_id": self._task_id},
             )
-            raise TaskContinue(self._task_id, str(e))
+            raise
 
     def upload_metrics(self, src: IO[bytes]):
         try:
@@ -161,7 +161,7 @@ class HorizontolLocalNode(Node):
                 f"task {self._task_id} round {self._round_id} upload metrics error {e}",
                 extra={"task_id": self._task_id},
             )
-            raise TaskContinue(self._task_id, str(e))
+            raise
 
     def finish(self):
         try:
@@ -179,4 +179,4 @@ class HorizontolLocalNode(Node):
                 f"task {self._task_id} round {self._round_id} finish error {e}",
                 extra={"task_id": self._task_id},
             )
-            raise TaskContinue(self._task_id, str(e))
+            raise

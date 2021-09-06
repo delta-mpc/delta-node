@@ -1,9 +1,9 @@
-from delta_node.data import dataset
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import desc
+
 from .. import db, model
 from ..exceptions import *
-from typing import Tuple
+
 
 @db.with_session
 def _task_existed(task_id: int, *, session: Session = None):
@@ -76,7 +76,7 @@ def member_finish_round(
 
 
 @db.with_session
-def get_member_round(
+def get_member_latest_round(
     task_id: int, member_id: str, *, session: Session = None
 ) -> model.Round:
     assert session is not None
@@ -84,7 +84,8 @@ def get_member_round(
         session.query(model.Round)
         .filter(model.Round.task_id == task_id)
         .filter(model.Round.node_id == member_id)
-        .one_or_none()
+        .order_by(desc(model.Round.round_id))
+        .first()
     )
     if round is None:
         return model.Round(

@@ -1,3 +1,4 @@
+import os
 from os import PathLike
 from typing import IO, Union
 
@@ -10,4 +11,13 @@ def load_arr(file: Union[str, PathLike, IO[bytes]]) -> np.ndarray:
 
 
 def dump_arr(file: Union[str, PathLike, IO[bytes]], arr: np.ndarray):
-    np.savez_compressed(file, arr)
+    if isinstance(file, str):
+        with open(file, mode="wb") as f:
+            np.savez_compressed(f, arr)
+    elif isinstance(file, PathLike):
+        filename = os.fspath(file)
+        with open(filename, mode="wb") as f:
+            np.savez_compressed(f, arr)
+    else:
+        np.savez_compressed(file, arr)
+    

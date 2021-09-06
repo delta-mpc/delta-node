@@ -13,7 +13,7 @@ __all__ = [
     "member_finish_round",
     "start_task",
     "finish_task",
-    "get_member_round",
+    "get_member_latest_round",
 ]
 
 
@@ -155,7 +155,7 @@ def finish_task(task_id: int, *, session: Session = None):
 
 
 @db.with_session
-def get_member_round(
+def get_member_latest_round(
     task_id: int, member_id: str, *, session: Session = None
 ) -> model.Round:
     assert session is not None
@@ -163,7 +163,8 @@ def get_member_round(
         session.query(model.Round)
         .filter(model.Round.task_id == task_id)
         .filter(model.Round.node_id == member_id)
-        .one_or_none()
+        .order_by(desc(model.Round.round_id))
+        .first()
     )
     if round is None:
         return model.Round(
