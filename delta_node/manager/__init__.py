@@ -4,14 +4,13 @@ from collections import defaultdict
 from typing import Dict
 
 from sqlalchemy.orm import Session
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_fixed)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from ..exceptions import TaskError, TaskNotReadyError
 from .create import create_task
 from .location import task_cfg_file, task_result_file, task_weight_file
 from .task import get_task
-from .horizontol import HorizontolTaskManager
+from .horizontal import HorizontalTaskManager
 from .base import TaskManager
 
 __all__ = [
@@ -21,7 +20,7 @@ __all__ = [
     "task_weight_file",
     "task_result_file",
     "TaskManager",
-    "HorizontolTaskManager",
+    "HorizontalTaskManager",
 ]
 
 _logger = logging.getLogger(__name__)
@@ -42,8 +41,8 @@ def _new_task_manager(task_id: int, *, session: Session = None):
         _logger.error(f"task {task_id} is not ready", extra={"task_id": task_id})
         raise TaskNotReadyError(task_id)
 
-    if task.type == "horizontol":
-        return HorizontolTaskManager(task)
+    if task.type == "horizontal":
+        return HorizontalTaskManager(task)
     else:
         raise ValueError(f"unknown task type {task.type}")
 
@@ -55,6 +54,7 @@ def get_task_manager(task_id: int, *, session: Session = None) -> TaskManager:
             if task_id not in _task_manager_registry:
                 manager = _new_task_manager(task_id, session=session)
                 _task_manager_registry[task_id] = manager
+                _logger.info(f"new task manager of task {task_id}")
         except TaskError as e:
             _logger.error(e)
             raise

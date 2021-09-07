@@ -74,8 +74,8 @@ class Servicer(commu_pb2_grpc.CommuServicer):
         member_id = request.member_id
         try:
             task_manager = manager.get_task_manager(task_id=task_id)
-            if task_manager.type == "horizontol":
-                assert isinstance(task_manager, manager.HorizontolTaskManager)
+            if task_manager.type == "horizontal":
+                assert isinstance(task_manager, manager.HorizontalTaskManager)
                 round_id = task_manager.get_round_id(member_id=member_id)
                 resp = commu_pb2.RoundResp(round_id=round_id)
                 return resp

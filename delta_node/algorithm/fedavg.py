@@ -2,6 +2,7 @@ import json
 import logging
 from io import BytesIO
 from tempfile import TemporaryFile
+from typing import List
 
 import numpy as np
 

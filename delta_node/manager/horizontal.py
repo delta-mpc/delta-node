@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from typing import Generator, List, Optional
 
 from delta.serialize import load_task
-from delta.task import HorizontolTask
+from delta.task import HorizontalTask
 from sqlalchemy.orm.session import Session
 
 from .. import algorithm, channel, contract, model, node, serialize
@@ -26,18 +26,17 @@ from .task import (
     get_latest_rounds,
     start_task,
     finish_task,
-    get_task,
 )
 
 _logger = logging.getLogger(__name__)
 
 
-class HorizontolTaskManager(TaskManager):
+class HorizontalTaskManager(TaskManager):
     def __init__(self, task: model.Task, *, session: Session = None) -> None:
         super().__init__(task, session=session)
 
-        assert self._task_item.type == "horizontol" and isinstance(
-            self._task_item, HorizontolTask
+        assert self._task_item.type == "horizontal" and isinstance(
+            self._task_item, HorizontalTask
         )
         self._alg = self._task_item.algorithm()
 
@@ -45,9 +44,6 @@ class HorizontolTaskManager(TaskManager):
         self._round_id = 0
         self._round_status = model.RoundStatus.FINISHED
         self._joined_members = []
-        # used for aggregate metrics, aggregate metrics should be called after aggregate result,
-        # and joined members will be cleared in aggregate result
-        self._last_joined_members = []
 
         if len(latest_rounds) > 0:
             self._round_id == latest_rounds[0].round_id
@@ -59,7 +55,7 @@ class HorizontolTaskManager(TaskManager):
                 self._round_status = model.RoundStatus.RUNNING
                 self._joined_members = [round.node_id for round in latest_rounds]
 
-        self._lock = threading.Lock()
+        self._join_lock = threading.Lock()
 
         self._join_event = threading.Event()
         self._in_join_phase = False
@@ -68,8 +64,10 @@ class HorizontolTaskManager(TaskManager):
 
         self._node_id = node.get_node_id(session=session)
 
-        self._agg_cond = threading.Condition(self._lock)
+        self._agg_result_cond = threading.Condition()
         self._agg_result_group: Optional[channel.ChannelGroup] = None
+
+        self._agg_metrics_cond = threading.Condition()
         self._agg_metrics_group: Optional[channel.ChannelGroup] = None
 
     def join(self, member_id: str, *, session: Session = None) -> bool:
@@ -90,26 +88,25 @@ class HorizontolTaskManager(TaskManager):
             return False
 
         def end_join_phase():
-            with self._lock:
+            with self._join_lock:
                 if len(self._joined_members) >= self._alg.min_clients:
                     self._round_id = contract.start_round(self._node_id, self._task_id)
                     self._round_status = model.RoundStatus.RUNNING
                     _logger.info(
                         f"round {self._round_id} of task {self._task_id} start"
                     )
+                    self._join_event.set()
                 self._in_join_phase = False
                 _logger.info(f"join phase of task {self._task_id} finish")
-                self._join_event.set()
 
         timer = None
         try:
-            with self._lock:
-                _logger.info(f"member {member_id} require lock in join")
+            with self._join_lock:
                 if len(self._joined_members) == 0:
                     # start the task
                     if self._task_status == model.TaskStatus.PENDING:
                         start_task(self._task_id, session=session)
-                        self._task_status == model.TaskStatus.RUNNING
+                        self._task_status = model.TaskStatus.RUNNING
                         _logger.info(
                             f"member {member_id} start the task {self._task_id}"
                         )
@@ -117,7 +114,7 @@ class HorizontolTaskManager(TaskManager):
                     # clear join event
                     if self._join_event.is_set():
                         self._join_event.clear()
-                        _logger.info(
+                        _logger.debug(
                             f"member {member_id} clear join event of task {self._task_id}"
                         )
 
@@ -128,12 +125,15 @@ class HorizontolTaskManager(TaskManager):
                     if self._alg.wait_timeout is not None:
                         timer = threading.Timer(self._alg.wait_timeout, end_join_phase)
                         timer.start()
-                        _logger.info(f"member {member_id} start the end join timer")
+                        _logger.debug(f"member {member_id} start the end join timer")
 
-                if member_id not in self._joined_members:
+                if (
+                    member_id not in self._joined_members
+                    and len(self._joined_members) < self._alg.max_clients
+                ):
                     self._joined_members.append(member_id)
-                    _logger.info(f"append member {member_id} to join members")
-                _logger.info(f"member {member_id} release lock in join")
+                    _logger.debug(f"append member {member_id} to join members")
+                _logger.debug(f"member {member_id} release lock in join")
 
             if (
                 self._alg.wait_timeout is None
@@ -154,7 +154,7 @@ class HorizontolTaskManager(TaskManager):
                 )
                 return True
             else:
-                _logger.info(
+                _logger.error(
                     f"member {member_id} wait join event of task {self._task_id} timeout"
                 )
                 return False
@@ -168,26 +168,35 @@ class HorizontolTaskManager(TaskManager):
                 timer.join()
 
     def finish_task(self, member_id: str, *, session: Session = None):
-        if member_id not in self._last_joined_members:
+        if member_id not in self._joined_members:
             raise MemberNotJoinedError(self._task_id, member_id)
-        if self._round_status != model.RoundStatus.FINISHED:
-            raise TaskRoundNotFinishedError(self._task_id, self._round_id)
+        if self._task_status == model.TaskStatus.FINISHED:
+            return 
+        if self._round_status != model.RoundStatus.RUNNING:
+            return
 
-        member_round = get_member_latest_round(self._task_id, member_id, session=session)
+        member_round = get_member_latest_round(
+            self._task_id, member_id, session=session
+        )
         if member_round.status == model.RoundStatus.RUNNING:
             member_finish_round(
                 self._task_id, member_id, member_round.round_id, session=session
             )
 
-        with self._lock:
+        with self._join_lock:
+            self._joined_members.remove(member_id)
+            if self._round_status != model.RoundStatus.FINISHED:
+                self._round_status = model.RoundStatus.FINISHED
+            
             if self._task_status != model.TaskStatus.FINISHED:
                 finish_task(self._task_id)
                 self._task_status = model.TaskStatus.FINISHED
-                last_weight_file = task_weight_file(self._task_id, self._round_id)
+                last_weight_file = task_weight_file(self._task_id, self._round_id - 1)
                 result_file = task_result_file(self._task_id)
                 shutil.copyfile(last_weight_file, result_file)
                 _logger.info(
-                    f"task {self._task_id} finished", extra={"task_id": self._task_id}
+                    f"task {self._task_id} finished",
+                    extra={"task_id": self._task_id},
                 )
 
     def get_round_id(self, member_id: str, *, session: Session = None) -> int:
@@ -240,7 +249,7 @@ class HorizontolTaskManager(TaskManager):
         try:
             in_ch, out_ch = channel.new_channel_pair()
             master = False
-            with self._lock:
+            with self._agg_result_cond:
                 if self._agg_result_group is None:
                     self._agg_result_group = channel.ChannelGroup()
                     _logger.info(
@@ -278,7 +287,7 @@ class HorizontolTaskManager(TaskManager):
             yield out_ch
 
             member_finish_round(self._task_id, member_id, self._round_id)
-            with self._agg_cond:
+            with self._agg_result_cond:
                 if self._agg_result_group is not None:
                     if fut is not None:
                         fut.result()
@@ -289,12 +298,11 @@ class HorizontolTaskManager(TaskManager):
                     )
 
                     self._round_status = model.RoundStatus.FINISHED
-                    self._last_joined_members = self._joined_members.copy()
                     self._joined_members = []
-                    self._agg_cond.notify_all()
+                    self._agg_result_cond.notify_all()
                     _logger.info(f"task {self._task_id} round {self._round_id} finsih")
                 else:
-                    self._agg_cond.wait_for(
+                    self._agg_result_cond.wait_for(
                         lambda: self._agg_result_group is None, self._alg.wait_timeout
                     )
         except Exception as e:
@@ -312,6 +320,8 @@ class HorizontolTaskManager(TaskManager):
             raise MemberNotJoinedError(self._task_id, member_id)
         if self._task_status == model.TaskStatus.FINISHED:
             raise TaskFinishedError(self._task_id)
+        if self._round_status != model.RoundStatus.RUNNING:
+            raise TaskRoundNotStartedError(self._task_id)
 
         pool: Optional[futures.ThreadPoolExecutor] = None
         fut: Optional[futures.Future] = None
@@ -319,7 +329,7 @@ class HorizontolTaskManager(TaskManager):
         try:
             in_ch, out_ch = channel.new_channel_pair()
             master = False
-            with self._lock:
+            with self._agg_metrics_cond:
                 if self._agg_metrics_group is None:
                     self._agg_metrics_group = channel.ChannelGroup()
                     _logger.info(
@@ -346,7 +356,7 @@ class HorizontolTaskManager(TaskManager):
 
                 pool = futures.ThreadPoolExecutor(1)
                 fut = pool.submit(
-                    agg_update, self._last_joined_members, self._agg_metrics_group
+                    agg_update, self._joined_members, self._agg_metrics_group
                 )
 
             self._agg_metrics_group.register(member_id, in_ch)
@@ -357,19 +367,19 @@ class HorizontolTaskManager(TaskManager):
             yield out_ch
 
             member_finish_round(self._task_id, member_id, self._round_id)
-            with self._agg_cond:
+            with self._agg_metrics_cond:
                 if self._agg_metrics_group is not None:
                     if fut is not None:
                         fut.result()
                         fut = None
                     self._agg_metrics_group = None
-                    self._agg_cond.notify_all()
+                    self._agg_metrics_cond.notify_all()
                     _logger.info(
                         f"member {member_id} close agg metric group for task {self._task_id} round {self._round_id}"
                     )
 
                 else:
-                    self._agg_cond.wait_for(
+                    self._agg_metrics_cond.wait_for(
                         lambda: self._agg_metrics_group is None, self._alg.wait_timeout
                     )
         except Exception as e:

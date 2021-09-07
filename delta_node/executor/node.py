@@ -19,7 +19,7 @@ from .task import get_member_latest_round, member_finish_round, member_start_rou
 _logger = logging.getLogger(__name__)
 
 
-class HorizontolLocalNode(Node):
+class HorizontalLocalNode(Node):
     def __init__(
         self,
         task_id: int,

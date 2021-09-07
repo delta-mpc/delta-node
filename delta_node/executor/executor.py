@@ -10,13 +10,13 @@ from io import BytesIO
 from typing import Dict
 
 from delta.serialize import load_task
-from delta.task import HorizontolTask
+from delta.task import HorizontalTask
 
 from .. import config, contract, log, node
 from ..commu import CommuClient
 from ..exceptions import TaskContinue
 from ..model import TaskStatus
-from .node import HorizontolLocalNode
+from .node import HorizontalLocalNode
 from .task import add_task
 
 _logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def _check_dataset(dataset: str) -> bool:
 
 
 def execute_task(
-    log_queue: mp.Queue, task_id: int, url: str, creator_id: str, task_queue: mp.Queue
+    log_queue: mp.Queue, task_id: int, url: str, creator_id: str
 ):
     log.init(log_queue)
     client = CommuClient(url)
@@ -57,18 +57,14 @@ def execute_task(
                     f"member {node_id} get task cfg of task {task_id}",
                     extra={"task_id": task_id},
                 )
-                if task.type == "horizontol":
-                    assert isinstance(task, HorizontolTask)
-                    local_node = HorizontolLocalNode(
+                if task.type == "horizontal":
+                    assert isinstance(task, HorizontalTask)
+                    local_node = HorizontalLocalNode(
                         task_id, client, config.data_dir, metadata, task.algorithm()
                     )
-                    try:
-                        task.run(local_node)
-                    except TaskContinue:
-                        time.sleep(10)
-                        task_queue.put(TaskEvent(task_id, url, creator_id))
+                    task.run(local_node)
                 else:
-                    raise RuntimeError(f"unknown task type {task.type}")
+                    raise TypeError(f"unknown task type {task.type}")
         else:
             _logger.info(f"member {node_id} cannot join the task {task_id}")
     except Exception as e:
@@ -80,16 +76,22 @@ class Executor(object):
     def __init__(self) -> None:
         self._event_filter = contract.new_event_filter()
         self._pool = futures.ProcessPoolExecutor()
-        self._task_queue = mp.Manager().Queue()
+        self._task_queue: queue.Queue[TaskEvent] = mp.Manager().Queue()
 
         self._task_status: Dict[int, TaskStatus] = {}
 
-    def _task_done(self, fut: futures.Future, task_id: int):
+    def _task_done(self, fut: futures.Future, task_event: TaskEvent):
         try:
             fut.result()
-            self._task_status[task_id] = TaskStatus.FINISHED
+            self._task_status[task_event.task_id] = TaskStatus.FINISHED
+            _logger.info(f"task {task_event.task_id} finish")
+        except TaskContinue:
+            _logger.info(f"task {task_event.task_id} should continue")
+            time.sleep(10)
+            self._task_queue.put(task_event)
         except:
-            self._task_status[task_id] = TaskStatus.ERROR
+            _logger.info(f"task {task_event.task_id} error")
+            self._task_status[task_event.task_id] = TaskStatus.ERROR
 
     def run(self):
         try:
@@ -110,11 +112,10 @@ class Executor(object):
                             task_id=task_event.task_id,
                             url=task_event.url,
                             creator_id=task_event.creator_id,
-                            task_queue=self._task_queue,
                         )
                         self._task_status[task_event.task_id] = TaskStatus.RUNNING
                         fut.add_done_callback(
-                            partial(self._task_done, task_id=task_event.task_id)
+                            partial(self._task_done, task_event=task_event)
                         )
                     except queue.Empty:
                         continue
