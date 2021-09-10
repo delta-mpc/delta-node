@@ -30,7 +30,7 @@ class PyTest(TestCommand):
 
 setup(
     name="delta_node",
-    version="0.1.1",
+    version="0.1.2",
     packages=find_packages(),
     include_package_data=True,
     exclude_package_data={"": [".gitignore"]},
@@ -50,7 +50,7 @@ setup(
         'PyYAML~=5.4.1',
         'python-multipart~=0.0.5',
         'tqdm~=4.60.0',
-        'delta-task==0.1.1'
+        'delta-task==0.1.2'
     ],
     tests_require=["pytest"],
     cmdclass={"test": PyTest},

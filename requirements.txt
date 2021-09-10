@@ -13,4 +13,4 @@ protobuf==3.17.3
 PyYAML==5.4.1
 python-multipart==0.0.5
 tqdm==4.46.0
-delta-task==0.0.3
+delta-task==0.1.2
