@@ -89,8 +89,9 @@ class Executor(object):
             _logger.info(f"task {task_event.task_id} should continue")
             time.sleep(10)
             self._task_queue.put(task_event)
-        except:
-            _logger.info(f"task {task_event.task_id} error")
+        except Exception as e:
+            _logger.error(f"task {task_event.task_id} error")
+            _logger.error(e)
             self._task_status[task_event.task_id] = TaskStatus.ERROR
 
     def run(self):

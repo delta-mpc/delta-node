@@ -50,7 +50,7 @@ setup(
         'PyYAML~=5.4.1',
         'python-multipart~=0.0.5',
         'tqdm~=4.60.0',
-        'delta-task==0.0.3'
+        'delta-task==0.1.0'
     ],
     tests_require=["pytest"],
     cmdclass={"test": PyTest},
