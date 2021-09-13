@@ -12,11 +12,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_HASH: ${GITHUB_SHA::7}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name:
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
@@ -30,4 +34,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: deltampc/delta-node:dev-${{env.GITHUB_HASH}}
+          tags: deltampc/delta-node:dev-${{ steps.vars.outputs.sha_short }}
