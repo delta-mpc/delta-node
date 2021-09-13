@@ -12,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_HASH: ${GITHUB_SHA::7}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -28,4 +30,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: deltampc/delta-node:dev-${{GITHUB_SHA::6}}
+          tags: deltampc/delta-node:dev-${{env.GITHUB_HASH}}
