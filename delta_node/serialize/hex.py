@@ -1,23 +1,31 @@
 __all__ = [
-    "int_to_hex_str",
-    "hex_str_to_bytes",
-    "hex_str_to_int",
     "int_to_bytes",
     "bytes_to_int",
+    "bytes_to_hex",
+    "hex_to_bytes"
 ]
 
 
-def int_to_hex_str(x: int) -> str:
-    bs = int_to_bytes(x)
-    return bs.hex()
+def bytes_to_hex(src: bytes, with0x: bool = True, max_length: int = None) -> str:
+    if max_length is not None:
+        assert len(src) <= max_length, f"input bytes length is too long ({len(src)} > {max_length})"
+    res = src.hex()
+    if max_length is not None:
+        res = res.zfill(max_length)
+    if with0x:
+        res = "0x" + res
+    return res
 
 
-def hex_str_to_bytes(hex_str: str) -> bytes:
-    return bytes.fromhex(hex_str)
-
-
-def hex_str_to_int(hex_str: str) -> int:
-    return int(hex_str, 16)
+def hex_to_bytes(src: str, length: int = None) -> bytes:
+    if src.startswith("0x"):
+        src = src[2:]
+    if length is not None:
+        src = src.lstrip("0")
+        assert len(src) <= length, f"input length is too long ({len(src)} > {length})"
+        if len(src) < length:
+            src = src.zfill(length)
+    return bytes.fromhex(src)
 
 
 def int_to_bytes(x: int) -> bytes:
