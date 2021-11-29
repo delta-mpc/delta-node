@@ -1,22 +1,19 @@
 import logging
-from typing import List
+from typing import AsyncIterable, List
 
 from delta_node import serialize
-from grpclib.client import Channel
-from numpy import add
 
-from . import chain_pb2
+
+from . import chain_pb2, model
 from .chain_grpc import ChainStub
-from .model import (NodeInfo, PublicKeyPair, RoundStatus, SecretShareData,
-                    TaskRound)
+from .channel import ChannelWrapper
 
 _logger = logging.getLogger(__name__)
 
 
 class ChainClient(object):
-    def __init__(self, host: str, port: int) -> None:
-        self.channel = Channel(host=host, port=port)
-        self.stub = ChainStub(self.channel)
+    def __init__(self, ch: ChannelWrapper) -> None:
+        self.stub = ChainStub(ch.channel)
 
     async def join(self, url: str, name: str) -> str:
         req = chain_pb2.JoinReq(url=url, name=name)
@@ -51,11 +48,11 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def get_node_info(self, address: str) -> NodeInfo:
+    async def get_node_info(self, address: str) -> model.NodeInfo:
         req = chain_pb2.NodeInfoReq(address=address)
         try:
             resp = await self.stub.GetNodeInfo(req)
-            return NodeInfo(url=resp.url, name=resp.name)
+            return model.NodeInfo(url=resp.url, name=resp.name)
         except Exception as e:
             _logger.error(e)
             raise
@@ -94,12 +91,14 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def get_task_round(self, task_id: str, round: int) -> TaskRound:
+    async def get_task_round(self, task_id: str, round: int) -> model.TaskRound:
         req = chain_pb2.TaskRoundReq(task_id=task_id, round=round)
         try:
             resp = await self.stub.GetTaskRound(req)
-            return TaskRound(
-                round=round, status=RoundStatus(resp.status), clients=list(resp.clients)
+            return model.TaskRound(
+                round=round,
+                status=model.RoundStatus(resp.status),
+                clients=list(resp.clients),
             )
         except Exception as e:
             _logger.error(e)
@@ -153,13 +152,13 @@ class ChainClient(object):
 
     async def get_client_public_keys(
         self, task_id: str, round: int, client: str
-    ) -> PublicKeyPair:
+    ) -> model.PublicKeyPair:
         req = chain_pb2.PublicKeyReq(task_id=task_id, round=round, client=client)
         try:
             resp = await self.stub.GetClientPublickKeys(req)
             pk1 = serialize.hex_to_bytes(resp.pk1)
             pk2 = serialize.hex_to_bytes(resp.pk2)
-            return PublicKeyPair(pk1, pk2)
+            return model.PublicKeyPair(pk1, pk2)
         except Exception as e:
             _logger.error(e)
             raise
@@ -248,13 +247,13 @@ class ChainClient(object):
 
     async def get_secret_share_data(
         self, task_id: str, round: int, sender: str, receiver: str
-    ) -> SecretShareData:
+    ) -> model.SecretShareData:
         req = chain_pb2.SecretShareReq(
             task_id=task_id, round=round, sender=sender, receiver=receiver
         )
         try:
             resp = await self.stub.GetSecretShareData(req)
-            res = SecretShareData(
+            res = model.SecretShareData(
                 seed=serialize.hex_to_bytes(resp.seed),
                 seed_commitment=serialize.hex_to_bytes(resp.seed_commitment),
                 secret_key=serialize.hex_to_bytes(resp.secret_key),
@@ -263,6 +262,63 @@ class ChainClient(object):
                 ),
             )
             return res
+        except Exception as e:
+            _logger.error(e)
+            raise
+
+    async def end_round(self, address: str, task_id: str, round: int):
+        req = chain_pb2.EndRoundReq(address=address, task_id=task_id, round=round)
+        try:
+            await self.stub.EndRound(req)
+        except Exception as e:
+            _logger.error(e)
+            raise
+
+    async def subscribe(self, address: str) -> AsyncIterable[model.Event]:
+        req = chain_pb2.EventReq(address=address)
+        try:
+            async with self.stub.Subscribe.open() as stream:
+                await stream.send_message(req, end=True)
+                async for event in stream:
+                    event_type = event.WhichOneof("event")
+                    if event_type == "task_create":
+                        yield model.TaskCreateEvent(
+                            address=event.task_create.address,
+                            task_id=event.task_create.task_id,
+                            dataset=event.task_create.dataset,
+                            url=event.task_create.url,
+                            commitment=serialize.hex_to_bytes(
+                                event.task_create.commitment
+                            ),
+                        )
+                    elif event_type == "round_started":
+                        yield model.RoundStartedEvent(
+                            task_id=event.round_started.task_id,
+                            round=event.round_started.round,
+                        )
+                    elif event_type == "partner_selected":
+                        yield model.PartnerSelectedEvent(
+                            task_id=event.partner_selected.task_id,
+                            round=event.partner_selected.round,
+                            addrs=list(event.partner_selected.addrs),
+                        )
+                    elif event_type == "calculation_started":
+                        yield model.CalculationStartedEvent(
+                            task_id=event.calculation_started.task_id,
+                            round=event.calculation_started.round,
+                            addrs=list(event.calculation_started.addrs),
+                        )
+                    elif event_type == "aggregation_started":
+                        yield model.AggregationStartedEvent(
+                            task_id=event.aggregation_started.task_id,
+                            round=event.aggregation_started.round,
+                            addrs=list(event.aggregation_started.addrs),
+                        )
+                    else:
+                        yield model.RoundEndedEvent(
+                            task_id=event.round_ended.task_id,
+                            round=event.round_ended.round,
+                        )
         except Exception as e:
             _logger.error(e)
             raise

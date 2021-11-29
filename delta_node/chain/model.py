@@ -36,3 +36,51 @@ class SecretShareData(object):
     seed_commitment: Optional[bytes]
     secret_key: Optional[bytes]
     secret_key_commitment: Optional[bytes]
+
+@dataclass
+class Event(object):
+    pass
+
+
+@dataclass
+class TaskCreateEvent(Event):
+    address: str
+    task_id: str
+    dataset: str
+    url: str
+    commitment: bytes
+
+
+@dataclass
+class _Round(object):
+    task_id: str
+    round: int
+
+
+@dataclass
+class _Addrs(object):
+    addrs: List[str]
+
+
+@dataclass
+class PartnerSelectedEvent(Event, _Addrs, _Round):
+    pass
+
+
+@dataclass
+class CalculationStartedEvent(Event, _Addrs, _Round):
+    pass
+
+
+@dataclass
+class AggregationStartedEvent(Event, _Addrs, _Round):
+    pass
+
+
+@dataclass
+class RoundStartedEvent(Event, _Round):
+    pass
+
+@dataclass
+class RoundEndedEvent(Event, _Round):
+    pass

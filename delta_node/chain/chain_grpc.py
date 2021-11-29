@@ -9,7 +9,7 @@ import grpclib.client
 if typing.TYPE_CHECKING:
     import grpclib.server
 
-import chain_pb2
+from . import chain_pb2
 
 
 class ChainBase(abc.ABC):
