@@ -6,6 +6,10 @@ from typing import List, Tuple
 
 from . import op
 
+__all__ = ["Share", "PRIME", "SecretShare"]
+
+Share = Tuple[int, int]
+
 PRIME = 0x01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
 
@@ -25,15 +29,17 @@ class SecretShare(object):
 
         self.random = random.Random()
 
-    def make_shares(self, value: int, shares: int) -> List[Tuple[int, int]]:
+    def make_shares(self, value: int, shares: int) -> List[Share]:
         if self.threshold > shares:
             raise ValueError("threshold should be little equal than shares")
 
-        coeffs = [value] + [self.random.randint(1, self.prime - 1) for _ in range(self.threshold - 1)]
+        coeffs = [value] + [
+            self.random.randint(1, self.prime - 1) for _ in range(self.threshold - 1)
+        ]
         res = [(x, _eval_at(coeffs, x, self.prime)) for x in range(1, shares + 1)]
         return res
 
-    def resolve_shares(self, shares: List[Tuple[int, int]]) -> int:
+    def resolve_shares(self, shares: List[Share]) -> int:
         xs, ys = zip(*shares)
         k = len(xs)
         if k < self.threshold:
@@ -45,8 +51,13 @@ class SecretShare(object):
         dens = []
         for i in range(k):
             nums.append(reduce(operator.mul, [-xs[j] for j in range(k) if i != j]))
-            dens.append(reduce(operator.mul, [xs[i] - xs[j] for j in range(k) if i != j]))
+            dens.append(
+                reduce(operator.mul, [xs[i] - xs[j] for j in range(k) if i != j])
+            )
 
         den: int = reduce(operator.mul, dens)
-        num = sum(op.div_mod(nums[i] * den * ys[i] % self.prime, dens[i], self.prime) for i in range(k))
+        num = sum(
+            op.div_mod(nums[i] * den * ys[i] % self.prime, dens[i], self.prime)
+            for i in range(k)
+        )
         return op.div_mod(num, den, self.prime)
