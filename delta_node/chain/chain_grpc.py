@@ -91,7 +91,7 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def GetSecretShareData(self, stream: 'grpclib.server.Stream[chain_pb2.SecretShareReq, chain_pb2.SecretShareResp]') -> None:
+    async def GetSecretShareDatas(self, stream: 'grpclib.server.Stream[chain_pb2.SecretShareReq, chain_pb2.SecretShareResp]') -> None:
         pass
 
     @abc.abstractmethod
@@ -218,8 +218,8 @@ class ChainBase(abc.ABC):
                 chain_pb2.Share,
                 chain_pb2.Empty,
             ),
-            '/chain.Chain/GetSecretShareData': grpclib.const.Handler(
-                self.GetSecretShareData,
+            '/chain.Chain/GetSecretShareDatas': grpclib.const.Handler(
+                self.GetSecretShareDatas,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.SecretShareReq,
                 chain_pb2.SecretShareResp,
@@ -356,9 +356,9 @@ class ChainStub:
             chain_pb2.Share,
             chain_pb2.Empty,
         )
-        self.GetSecretShareData = grpclib.client.UnaryUnaryMethod(
+        self.GetSecretShareDatas = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/chain.Chain/GetSecretShareData',
+            '/chain.Chain/GetSecretShareDatas',
             chain_pb2.SecretShareReq,
             chain_pb2.SecretShareResp,
         )

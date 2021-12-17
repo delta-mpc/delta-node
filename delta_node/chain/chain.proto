@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package chain;
 
-option py_generic_services = true;
-
 message Empty {}
 
 message JoinReq {
@@ -42,6 +40,7 @@ message CreateTaskReq {
     string address = 1;
     string dataset = 2;
     string commitment = 3;
+    string task_type = 4;
 }
 
 message CreateTaskResp {
@@ -92,19 +91,23 @@ message ShareCommitment {
     string address = 1;
     string task_id = 2;
     int32 round = 3;
-    string receiver = 4;
-    string commitment = 5;
+    repeated string receivers = 4;
+    repeated string commitments = 5;
 }
 
 message PublicKeyReq {
     string task_id = 1;
     int32 round = 2;
-    string client = 3;
+    repeated string clients = 3;
+}
+
+message PublicKeys {
+    string pk1 = 1;
+    string pk2 = 2;
 }
 
 message PublicKeyResp {
-    string pk1 = 1;
-    string pk2 = 2;
+    repeated PublicKeys keys = 1;
 }
 
 message CalculationReq {
@@ -142,22 +145,26 @@ message Share {
     string address = 1;
     string task_id = 2;
     int32 round = 3;
-    string sender = 4;
-    string share = 5;
+    repeated string senders = 4;
+    repeated string shares = 5;
 }
 
 message SecretShareReq {
     string task_id = 1;
     int32 round = 2;
-    string sender = 3;
+    repeated string senders = 3;
     string receiver = 4;
 }
 
-message SecretShareResp {
+message SecretShareData {
     optional string seed = 1;
     optional string seed_commitment = 2;
     optional string secret_key = 3;
     optional string secret_key_commitment = 4;
+}
+
+message SecretShareResp {
+    repeated SecretShareData shares = 1;
 }
 
 message EndRoundReq {
@@ -187,6 +194,7 @@ message TaskCreateEvent {
     string dataset = 3;
     string url = 4;
     string commitment = 5;
+    string task_type = 6;
 }
 
 message RoundStartedEvent {
@@ -237,7 +245,7 @@ service Chain {
     rpc StartAggregation(AggregationReq) returns (Empty) {}
     rpc UploadSeed(Share) returns (Empty) {}
     rpc UploadSecretKey(Share) returns (Empty) {}
-    rpc GetSecretShareData(SecretShareReq) returns (SecretShareResp) {}
+    rpc GetSecretShareDatas(SecretShareReq) returns (SecretShareResp) {}
     rpc EndRound(EndRoundReq) returns (Empty) {}
     rpc Subscribe(EventReq) returns (stream Event) {}
 }

@@ -56,10 +56,15 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def create_task(self, address: str, dataset: str, commitment: bytes) -> str:
+    async def create_task(
+        self, address: str, dataset: str, commitment: bytes, task_type: str
+    ) -> str:
         hex_commitment = serialize.bytes_to_hex(commitment, max_length=32)
         req = chain_pb2.CreateTaskReq(
-            address=address, dataset=dataset, commitment=hex_commitment
+            address=address,
+            dataset=dataset,
+            commitment=hex_commitment,
+            task_type=task_type,
         )
         try:
             resp = await self.stub.CreateTask(req)
@@ -117,15 +122,23 @@ class ChainClient(object):
             raise
 
     async def upload_seed_commitment(
-        self, address: str, task_id: str, round: int, receiver: str, commitment: bytes
+        self,
+        address: str,
+        task_id: str,
+        round: int,
+        receivers: List[str],
+        commitments: List[bytes],
     ):
-        hex_commitment = serialize.bytes_to_hex(commitment, max_length=32)
+        hex_commitments = [
+            serialize.bytes_to_hex(commitment, max_length=32)
+            for commitment in commitments
+        ]
         req = chain_pb2.ShareCommitment(
             address=address,
             task_id=task_id,
             round=round,
-            receiver=receiver,
-            commitment=hex_commitment,
+            receivers=receivers,
+            commitments=hex_commitments,
         )
         try:
             await self.stub.UploadSeedCommitment(req)
@@ -134,15 +147,23 @@ class ChainClient(object):
             raise
 
     async def upload_secret_key_commitment(
-        self, address: str, task_id: str, round: int, receiver: str, commitment: bytes
+        self,
+        address: str,
+        task_id: str,
+        round: int,
+        receivers: List[str],
+        commitments: List[bytes],
     ):
-        hex_commitment = serialize.bytes_to_hex(commitment, max_length=32)
+        hex_commitments = [
+            serialize.bytes_to_hex(commitment, max_length=32)
+            for commitment in commitments
+        ]
         req = chain_pb2.ShareCommitment(
             address=address,
             task_id=task_id,
             round=round,
-            receiver=receiver,
-            commitment=hex_commitment,
+            receivers=receivers,
+            commitments=hex_commitments,
         )
         try:
             await self.stub.UploadSecretKeyCommitment(req)
@@ -151,14 +172,16 @@ class ChainClient(object):
             raise
 
     async def get_client_public_keys(
-        self, task_id: str, round: int, client: str
-    ) -> Tuple[bytes, bytes]:
-        req = chain_pb2.PublicKeyReq(task_id=task_id, round=round, client=client)
+        self, task_id: str, round: int, clients: List[str]
+    ) -> List[Tuple[bytes, bytes]]:
+        req = chain_pb2.PublicKeyReq(task_id=task_id, round=round, clients=clients)
         try:
             resp = await self.stub.GetClientPublickKeys(req)
-            pk1 = serialize.hex_to_bytes(resp.pk1)
-            pk2 = serialize.hex_to_bytes(resp.pk2)
-            return pk1, pk2
+            res = [
+                (serialize.hex_to_bytes(keys.pk1), serialize.hex_to_bytes(keys.pk2))
+                for keys in resp.keys
+            ]
+            return res
         except Exception as e:
             _logger.error(e)
             raise
@@ -212,15 +235,20 @@ class ChainClient(object):
             raise
 
     async def upload_seed(
-        self, address: str, task_id: str, round: int, sender: str, share: bytes
+        self,
+        address: str,
+        task_id: str,
+        round: int,
+        senders: List[str],
+        shares: List[bytes],
     ):
-        hex_share = serialize.bytes_to_hex(share)
+        hex_shares = [serialize.bytes_to_hex(share) for share in shares]
         req = chain_pb2.Share(
             address=address,
             task_id=task_id,
             round=round,
-            sender=sender,
-            share=hex_share,
+            senders=senders,
+            shares=hex_shares,
         )
         try:
             await self.stub.UploadSeed(req)
@@ -229,15 +257,20 @@ class ChainClient(object):
             raise
 
     async def upload_secret_key(
-        self, address: str, task_id: str, round: int, sender: str, share: bytes
+        self,
+        address: str,
+        task_id: str,
+        round: int,
+        senders: List[str],
+        shares: List[bytes],
     ):
-        hex_share = serialize.bytes_to_hex(share)
+        hex_shares = [serialize.bytes_to_hex(share) for share in shares]
         req = chain_pb2.Share(
             address=address,
             task_id=task_id,
             round=round,
-            sender=sender,
-            share=hex_share,
+            senders=senders,
+            shares=hex_shares,
         )
         try:
             await self.stub.UploadSecretKey(req)
@@ -245,22 +278,25 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def get_secret_share_data(
-        self, task_id: str, round: int, sender: str, receiver: str
-    ) -> entity.SecretShareData:
+    async def get_secret_share_datas(
+        self, task_id: str, round: int, senders: List[str], receiver: str
+    ) -> List[entity.SecretShareData]:
         req = chain_pb2.SecretShareReq(
-            task_id=task_id, round=round, sender=sender, receiver=receiver
+            task_id=task_id, round=round, senders=senders, receiver=receiver
         )
         try:
-            resp = await self.stub.GetSecretShareData(req)
-            res = entity.SecretShareData(
-                seed=serialize.hex_to_bytes(resp.seed),
-                seed_commitment=serialize.hex_to_bytes(resp.seed_commitment),
-                secret_key=serialize.hex_to_bytes(resp.secret_key),
-                secret_key_commitment=serialize.hex_to_bytes(
-                    resp.secret_key_commitment
-                ),
-            )
+            resp = await self.stub.GetSecretShareDatas(req)
+            res = [
+                entity.SecretShareData(
+                    seed=serialize.hex_to_bytes(share.seed),
+                    seed_commitment=serialize.hex_to_bytes(share.seed_commitment),
+                    secret_key=serialize.hex_to_bytes(share.secret_key),
+                    secret_key_commitment=serialize.hex_to_bytes(
+                        share.secret_key_commitment
+                    ),
+                )
+                for share in resp.shares
+            ]
             return res
         except Exception as e:
             _logger.error(e)
@@ -290,6 +326,7 @@ class ChainClient(object):
                             commitment=serialize.hex_to_bytes(
                                 event.task_create.commitment
                             ),
+                            task_type=event.task_create.task_type,
                         )
                     elif event_type == "round_started":
                         yield entity.RoundStartedEvent(
