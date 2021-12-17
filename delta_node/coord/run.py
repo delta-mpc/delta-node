@@ -9,7 +9,6 @@ async def run_task(task_id: str):
         q = (
             sa.select(entity.Task)
             .where(entity.Task.task_id == task_id)
-            .where(entity.Task.url.is_(None))  # type: ignore
         )
         task: entity.Task = (await sess.execute(q)).scalar_one()
 

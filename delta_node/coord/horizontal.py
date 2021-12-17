@@ -1,6 +1,7 @@
 import asyncio
 import os
 import random
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 import delta
@@ -19,7 +20,7 @@ async def run_task(task_entity: entity.Task):
     loop = asyncio.get_running_loop()
 
     task_id = task_entity.task_id
-    
+
     task = await loop.run_in_executor(pool.IO_POOL, init_task, task_id)
     alg = task.algorithm()
     max_rounds = task.max_rounds
@@ -250,115 +251,6 @@ async def start_aggreation(
             node_address, task_id, round, valid_clients
         )
 
-
-async def get_seed_share(task_id: str, round: int, sender: str, receiver: str) -> bytes:
-    ss_data = await chain.get_client().get_secret_share_data(
-        task_id, round, sender, receiver
-    )
-    if len(ss_data.seed) > 0:
-        commitment = utils.calc_commitment(ss_data.seed)
-        assert commitment == ss_data.seed_commitment, ValueError(
-            "seed commitment is inconsistent"
-        )
-        return ss_data.seed
-    else:
-        raise ValueError(
-            """task {task_id} round {round} member {receiver} does not 
-                            upload seed secret share of member {sender}"""
-        )
-
-
-async def get_seed(
-    task_id: str,
-    round: int,
-    sender: str,
-    receivers: List[str],
-    secret_share: shamir.SecretShare,
-) -> Tuple[bytes, List[str]]:
-    loop = asyncio.get_running_loop()
-
-    futs: List[asyncio.Task[bytes]] = []
-    for receiver in receivers:
-        fut = asyncio.create_task(get_seed_share(task_id, round, sender, receiver))
-        futs.append(fut)
-    shares = await asyncio.gather(*futs, return_exceptions=True)
-    valid_receivers: List[str] = []
-    valid_shares: List[shamir.Share] = []
-    for receiver, share in zip(receivers, shares):
-        if isinstance(share, bytes):
-            valid_receivers.append(receiver)
-            valid_shares.append(shamir.bytes_to_share(share))
-    if len(valid_shares) < secret_share.threshold:
-        raise ValueError("not enough clients in end round get seed")
-    seed = await loop.run_in_executor(
-        pool.WORKER_POOL, secret_share.resolve_shares, valid_shares
-    )
-    return serialize.int_to_bytes(seed), valid_receivers
-
-
-async def get_secret_key_share(
-    task_id: str, round: int, sender: str, receiver: str
-) -> bytes:
-    ss_data = await chain.get_client().get_secret_share_data(
-        task_id, round, sender, receiver
-    )
-    if len(ss_data.secret_key) > 0:
-        commitment = utils.calc_commitment(ss_data.secret_key)
-        assert commitment == ss_data.secret_key_commitment, ValueError(
-            "secret key commitment is inconsistent"
-        )
-        return ss_data.secret_key
-    else:
-        raise ValueError(
-            """task {task_id} round {round} member {receiver} does not 
-                            upload secret key secret share of member {sender}"""
-        )
-
-
-async def get_secret_key(
-    task_id: str,
-    round: int,
-    sender: str,
-    receivers: List[str],
-    secret_share: shamir.SecretShare,
-) -> Tuple[bytes, List[str]]:
-    loop = asyncio.get_running_loop()
-
-    futs: List[asyncio.Task[bytes]] = []
-    for receiver in receivers:
-        fut = asyncio.create_task(
-            get_secret_key_share(task_id, round, sender, receiver)
-        )
-        futs.append(fut)
-    shares = await asyncio.gather(*futs, return_exceptions=True)
-    valid_receivers: List[str] = []
-    valid_shares: List[shamir.Share] = []
-    for receiver, share in zip(receivers, shares):
-        if isinstance(share, bytes):
-            valid_receivers.append(receiver)
-            valid_shares.append(shamir.bytes_to_share(share))
-    if len(valid_shares) < secret_share.threshold:
-        raise ValueError("not enough clients in end round get secret key")
-    secret_key = await loop.run_in_executor(
-        pool.WORKER_POOL, secret_share.resolve_shares, valid_shares
-    )
-    return serialize.int_to_bytes(secret_key), valid_receivers
-
-
-async def get_public_keys(
-    task_id: str, round: int, clients: List[str]
-) -> Dict[str, bytes]:
-    futs: List[asyncio.Task[Tuple[bytes, bytes]]] = []
-    for client in clients:
-        fut = asyncio.create_task(
-            chain.get_client().get_client_public_keys(task_id, round, client)
-        )
-        futs.append(fut)
-    bytes_tups = await asyncio.gather(*futs)
-    res = {client: tup[1] for client, tup in zip(clients, bytes_tups)}
-    return res
-
-
 def unmask_result(
     task_id: str,
     round: int,
@@ -429,24 +321,54 @@ async def end_round(
         final_addrs = set(alive_addrs)
 
         # get secret key of dead members
+        secret_key_shares: Dict[str, List[bytes]] = defaultdict(list)
         secret_keys: Dict[str, bytes] = {}
-        for sender in dead_addrs:
-            secret_key, valid_addrs = await get_secret_key(
-                task_id, round, sender, alive_addrs, secret_share
+        for receiver in alive_addrs:
+            ss_datas = await chain.get_client().get_secret_share_datas(
+                task_id, round, dead_addrs, receiver
             )
-            secret_keys[sender] = secret_key
-            final_addrs.intersection_update(valid_addrs)
-
+            if len(ss_datas) == len(dead_addrs) and all(
+                (
+                    len(ss.seed) == 0
+                    and len(ss.secret_key) > 0
+                    and len(ss.secret_key_commitment) > 0
+                    and utils.calc_commitment(ss.secret_key) == ss.secret_key_commitment
+                )
+                for ss in ss_datas
+            ):
+                for sender, ss in zip(dead_addrs, ss_datas):
+                    secret_key_shares[sender].append(ss.secret_key)
+            else:
+                final_addrs.remove(receiver)
+        for sender, shares in secret_key_shares.items():
+            secret_keys[sender] = secret_share.resolve_shares(shares)
+        
         # get secret key of alive members
+        seed_shares: Dict[str, List[bytes]] = defaultdict(list)
         seeds: Dict[str, bytes] = {}
-        for sender in alive_addrs:
-            seed, valid_addrs = await get_seed(
-                task_id, round, sender, alive_addrs, secret_share
+        for receiver in alive_addrs:
+            ss_datas = await chain.get_client().get_secret_share_datas(
+                task_id, round, alive_addrs, receiver
             )
-            seeds[sender] = seed
-            final_addrs.intersection_update(valid_addrs)
+            if len(ss_datas) == len(alive_addrs) and all(
+                (
+                    len(ss.secret_key) == 0
+                    and len(ss.seed) > 0
+                    and len(ss.seed_commitment) > 0
+                    and utils.calc_commitment(ss.seed) == ss.seed_commitment
+                )
+                for ss in ss_datas
+            ):
+                for sender, ss in zip(alive_addrs, ss_datas):
+                    seed_shares[sender].append(ss.seed)
+            else:
+                final_addrs.remove(receiver)
+        for sender, shares in seed_shares.items():
+            seeds[sender] = secret_share.resolve_shares(shares)
 
-        pub_keys = await get_public_keys(task_id, round, alive_addrs)
+        pks = await chain.get_client().get_client_public_keys(task_id, round, alive_addrs)
+
+        pk2_dict = {addr: pk[1] for addr, pk in zip(alive_addrs, pks)}
 
         # TODO: add curve and precision config in delta task
         curve = ecdhe.CURVES["secp256k1"]
@@ -456,7 +378,7 @@ async def end_round(
             unmask_result,
             task_id,
             round,
-            pub_keys,
+            pk2_dict,
             secret_keys,
             seeds,
             curve,
