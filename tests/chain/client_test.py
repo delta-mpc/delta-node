@@ -23,12 +23,12 @@ async def client():
 url = "127.0.0.1:6700"
 name = "node1"
 
+
 @pytest.fixture(scope="module")
 async def address(client: chain.ChainClient):
     address = await client.join(url, name)
     yield address
     await client.leave(address)
-    
 
 
 @pytest.mark.asyncio
@@ -57,7 +57,8 @@ async def test_client(client: chain.ChainClient, address: str):
     event_fut = asyncio.ensure_future(event_gen.asend(None))
     dataset = "mnist"
     task_commitment = bytes(random.getrandbits(8) for _ in range(32))
-    task_id = await client.create_task(address, dataset, task_commitment)
+    task_type = "horizontal"
+    task_id = await client.create_task(address, dataset, task_commitment, task_type)
     event = await event_fut
     assert isinstance(event, entity.TaskCreateEvent)
     assert event.address == address
@@ -65,6 +66,7 @@ async def test_client(client: chain.ChainClient, address: str):
     assert event.dataset == dataset
     assert event.commitment == task_commitment
     assert event.url == url
+    assert event.task_type == task_type
 
     # start round
     round = 1
@@ -96,22 +98,24 @@ async def test_client(client: chain.ChainClient, address: str):
     # upload seed commitment and secret key commitment
     seed_commitment = bytes(random.getrandbits(8) for _ in range(32))
     await client.upload_seed_commitment(
-        address, task_id, round, address, seed_commitment
+        address, task_id, round, [address], [seed_commitment]
     )
     secret_key_commitment = bytes(random.getrandbits(8) for _ in range(32))
     await client.upload_secret_key_commitment(
-        address, task_id, round, address, secret_key_commitment
+        address, task_id, round, [address], [secret_key_commitment]
     )
-    ss_data = await client.get_secret_share_data(task_id, round, address, address)
-    assert len(ss_data.seed) == 0
-    assert len(ss_data.secret_key) == 0
-    assert ss_data.seed_commitment == seed_commitment
-    assert ss_data.secret_key_commitment == secret_key_commitment
+    ss_datas = await client.get_secret_share_datas(task_id, round, [address], address)
+    assert len(ss_datas) == 1
+    assert len(ss_datas[0].seed) == 0
+    assert len(ss_datas[0].secret_key) == 0
+    assert ss_datas[0].seed_commitment == seed_commitment
+    assert ss_datas[0].secret_key_commitment == secret_key_commitment
 
     # get client public keys
-    pk1_, pk2_ = await client.get_client_public_keys(task_id, round, address)
-    assert pk1_ == pk1
-    assert pk2_ == pk2
+    pks = await client.get_client_public_keys(task_id, round, [address])
+    assert len(pks) == 1
+    assert pks[0][0] == pk1
+    assert pks[0][1] == pk2
 
     # start calculation
     await client.start_calculation(address, task_id, round, [address])
@@ -139,10 +143,11 @@ async def test_client(client: chain.ChainClient, address: str):
 
     # upload seed and secret key share
     seed_share = bytes(random.getrandbits(8) for _ in range(32))
-    await client.upload_seed(address, task_id, round, address, seed_share)
-    ss_data = await client.get_secret_share_data(task_id, round, address, address)
-    assert ss_data.seed == seed_share
-    assert len(ss_data.secret_key) == 0
+    await client.upload_seed(address, task_id, round, [address], [seed_share])
+    ss_datas = await client.get_secret_share_datas(task_id, round, [address], address)
+    assert len(ss_datas) == 1
+    assert ss_datas[0].seed == seed_share
+    assert len(ss_datas[0].secret_key) == 0
 
     # end round
     await client.end_round(address, task_id, round)
