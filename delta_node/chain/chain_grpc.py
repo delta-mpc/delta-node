@@ -39,6 +39,14 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
+    async def FinishTask(self, stream: 'grpclib.server.Stream[chain_pb2.FinishTaskReq, chain_pb2.Empty]') -> None:
+        pass
+
+    @abc.abstractmethod
+    async def GetTask(self, stream: 'grpclib.server.Stream[chain_pb2.TaskReq, chain_pb2.TaskResp]') -> None:
+        pass
+
+    @abc.abstractmethod
     async def StartRound(self, stream: 'grpclib.server.Stream[chain_pb2.StartRoundReq, chain_pb2.Empty]') -> None:
         pass
 
@@ -139,6 +147,18 @@ class ChainBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.CreateTaskReq,
                 chain_pb2.CreateTaskResp,
+            ),
+            '/chain.Chain/FinishTask': grpclib.const.Handler(
+                self.FinishTask,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                chain_pb2.FinishTaskReq,
+                chain_pb2.Empty,
+            ),
+            '/chain.Chain/GetTask': grpclib.const.Handler(
+                self.GetTask,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                chain_pb2.TaskReq,
+                chain_pb2.TaskResp,
             ),
             '/chain.Chain/StartRound': grpclib.const.Handler(
                 self.StartRound,
@@ -277,6 +297,18 @@ class ChainStub:
             '/chain.Chain/CreateTask',
             chain_pb2.CreateTaskReq,
             chain_pb2.CreateTaskResp,
+        )
+        self.FinishTask = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/chain.Chain/FinishTask',
+            chain_pb2.FinishTaskReq,
+            chain_pb2.Empty,
+        )
+        self.GetTask = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/chain.Chain/GetTask',
+            chain_pb2.TaskReq,
+            chain_pb2.TaskResp,
         )
         self.StartRound = grpclib.client.UnaryUnaryMethod(
             channel,

@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0b\x63hain.proto\x12\x05\x63hain\"\x07\n\x05\x45mpty\"$\n\x07JoinReq\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"\x1b\n\x08JoinResp\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\",\n\x0cUpdateUrlReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0b\n\x03url\x18\x02 \x01(\t\".\n\rUpdateNameReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"\x1b\n\x08LeaveReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"\x1e\n\x0bNodeInfoReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\")\n\x0cNodeInfoResp\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"X\n\rCreateTaskReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x02 \x01(\t\x12\x12\n\ncommitment\x18\x03 \x01(\t\x12\x11\n\ttask_type\x18\x04 \x01(\t\"!\n\x0e\x43reateTaskResp\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"@\n\rStartRoundReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\"Y\n\x0cJoinRoundReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0b\n\x03pk1\x18\x04 \x01(\t\x12\x0b\n\x03pk2\x18\x05 \x01(\t\".\n\x0cTaskRoundReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"S\n\rTaskRoundResp\x12\r\n\x05round\x18\x01 \x01(\x05\x12\"\n\x06status\x18\x02 \x01(\x0e\x32\x12.chain.RoundStatus\x12\x0f\n\x07\x63lients\x18\x03 \x03(\t\"Q\n\rCandidatesReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x04 \x03(\t\"j\n\x0fShareCommitment\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x11\n\treceivers\x18\x04 \x03(\t\x12\x13\n\x0b\x63ommitments\x18\x05 \x03(\t\"?\n\x0cPublicKeyReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x03 \x03(\t\"&\n\nPublicKeys\x12\x0b\n\x03pk1\x18\x01 \x01(\t\x12\x0b\n\x03pk2\x18\x02 \x01(\t\"0\n\rPublicKeyResp\x12\x1f\n\x04keys\x18\x01 \x03(\x0b\x32\x11.chain.PublicKeys\"R\n\x0e\x43\x61lculationReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x04 \x03(\t\"W\n\x10ResultCommitment\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x12\n\ncommitment\x18\x04 \x01(\t\"E\n\x13ResultCommitmentReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\x0e\n\x06\x63lient\x18\x03 \x01(\t\"*\n\x14ResultCommitmentResp\x12\x12\n\ncommitment\x18\x01 \x01(\t\"R\n\x0e\x41ggregationReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x04 \x03(\t\"Y\n\x05Share\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07senders\x18\x04 \x03(\t\x12\x0e\n\x06shares\x18\x05 \x03(\t\"S\n\x0eSecretShareReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\x0f\n\x07senders\x18\x03 \x03(\t\x12\x10\n\x08receiver\x18\x04 \x01(\t\"\xc5\x01\n\x0fSecretShareData\x12\x11\n\x04seed\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1c\n\x0fseed_commitment\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x17\n\nsecret_key\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\"\n\x15secret_key_commitment\x18\x04 \x01(\tH\x03\x88\x01\x01\x42\x07\n\x05_seedB\x12\n\x10_seed_commitmentB\r\n\x0b_secret_keyB\x18\n\x16_secret_key_commitment\"9\n\x0fSecretShareResp\x12&\n\x06shares\x18\x01 \x03(\x0b\x32\x16.chain.SecretShareData\">\n\x0b\x45ndRoundReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\"\x1b\n\x08\x45ventReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"\xd8\x02\n\x05\x45vent\x12-\n\x0btask_create\x18\x01 \x01(\x0b\x32\x16.chain.TaskCreateEventH\x00\x12\x31\n\rround_started\x18\x02 \x01(\x0b\x32\x18.chain.RoundStartedEventH\x00\x12\x37\n\x10partner_selected\x18\x03 \x01(\x0b\x32\x1b.chain.PartnerSelectedEventH\x00\x12=\n\x13\x63\x61lculation_started\x18\x04 \x01(\x0b\x32\x1e.chain.CalculationStartedEventH\x00\x12=\n\x13\x61ggregation_started\x18\x05 \x01(\x0b\x32\x1e.chain.AggregationStartedEventH\x00\x12-\n\x0bround_ended\x18\x06 \x01(\x0b\x32\x16.chain.RoundEndedEventH\x00\x42\x07\n\x05\x65vent\"x\n\x0fTaskCreateEvent\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x12\n\ncommitment\x18\x05 \x01(\t\x12\x11\n\ttask_type\x18\x06 \x01(\t\"3\n\x11RoundStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"E\n\x14PartnerSelectedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x43\x61lculationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x41ggregationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"1\n\x0fRoundEndedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05*W\n\x0bRoundStatus\x12\x0b\n\x07STARTED\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x0f\n\x0b\x43\x41LCULATING\x10\x02\x12\x0f\n\x0b\x41GGREGATING\x10\x03\x12\x0c\n\x08\x46INISHED\x10\x04\x32\xf0\t\n\x05\x43hain\x12)\n\x04Join\x12\x0e.chain.JoinReq\x1a\x0f.chain.JoinResp\"\x00\x12\x30\n\tUpdateUrl\x12\x13.chain.UpdateUrlReq\x1a\x0c.chain.Empty\"\x00\x12\x32\n\nUpdateName\x12\x14.chain.UpdateNameReq\x1a\x0c.chain.Empty\"\x00\x12(\n\x05Leave\x12\x0f.chain.LeaveReq\x1a\x0c.chain.Empty\"\x00\x12\x38\n\x0bGetNodeInfo\x12\x12.chain.NodeInfoReq\x1a\x13.chain.NodeInfoResp\"\x00\x12;\n\nCreateTask\x12\x14.chain.CreateTaskReq\x1a\x15.chain.CreateTaskResp\"\x00\x12\x32\n\nStartRound\x12\x14.chain.StartRoundReq\x1a\x0c.chain.Empty\"\x00\x12\x30\n\tJoinRound\x12\x13.chain.JoinRoundReq\x1a\x0c.chain.Empty\"\x00\x12;\n\x0cGetTaskRound\x12\x13.chain.TaskRoundReq\x1a\x14.chain.TaskRoundResp\"\x00\x12\x38\n\x10SelectCandidates\x12\x14.chain.CandidatesReq\x1a\x0c.chain.Empty\"\x00\x12>\n\x14UploadSeedCommitment\x12\x16.chain.ShareCommitment\x1a\x0c.chain.Empty\"\x00\x12\x43\n\x19UploadSecretKeyCommitment\x12\x16.chain.ShareCommitment\x1a\x0c.chain.Empty\"\x00\x12\x43\n\x14GetClientPublickKeys\x12\x13.chain.PublicKeyReq\x1a\x14.chain.PublicKeyResp\"\x00\x12\x39\n\x10StartCalculation\x12\x15.chain.CalculationReq\x1a\x0c.chain.Empty\"\x00\x12\x41\n\x16UploadResultCommitment\x12\x17.chain.ResultCommitment\x1a\x0c.chain.Empty\"\x00\x12P\n\x13GetResultCommitment\x12\x1a.chain.ResultCommitmentReq\x1a\x1b.chain.ResultCommitmentResp\"\x00\x12\x39\n\x10StartAggregation\x12\x15.chain.AggregationReq\x1a\x0c.chain.Empty\"\x00\x12*\n\nUploadSeed\x12\x0c.chain.Share\x1a\x0c.chain.Empty\"\x00\x12/\n\x0fUploadSecretKey\x12\x0c.chain.Share\x1a\x0c.chain.Empty\"\x00\x12\x46\n\x13GetSecretShareDatas\x12\x15.chain.SecretShareReq\x1a\x16.chain.SecretShareResp\"\x00\x12.\n\x08\x45ndRound\x12\x12.chain.EndRoundReq\x1a\x0c.chain.Empty\"\x00\x12.\n\tSubscribe\x12\x0f.chain.EventReq\x1a\x0c.chain.Event\"\x00\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0b\x63hain.proto\x12\x05\x63hain\"\x07\n\x05\x45mpty\"$\n\x07JoinReq\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"\x1b\n\x08JoinResp\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\",\n\x0cUpdateUrlReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0b\n\x03url\x18\x02 \x01(\t\".\n\rUpdateNameReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"\x1b\n\x08LeaveReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"\x1e\n\x0bNodeInfoReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\")\n\x0cNodeInfoResp\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"X\n\rCreateTaskReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x02 \x01(\t\x12\x12\n\ncommitment\x18\x03 \x01(\t\x12\x11\n\ttask_type\x18\x04 \x01(\t\"!\n\x0e\x43reateTaskResp\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"1\n\rFinishTaskReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\"\x1a\n\x07TaskReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"\x83\x01\n\x08TaskResp\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0b\n\x03url\x18\x02 \x01(\t\x12\x0f\n\x07task_id\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x04 \x01(\t\x12\x12\n\ncommitment\x18\x05 \x01(\t\x12\x11\n\ttask_type\x18\x06 \x01(\t\x12\x10\n\x08\x66inished\x18\x07 \x01(\x08\"@\n\rStartRoundReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\"Y\n\x0cJoinRoundReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0b\n\x03pk1\x18\x04 \x01(\t\x12\x0b\n\x03pk2\x18\x05 \x01(\t\".\n\x0cTaskRoundReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"S\n\rTaskRoundResp\x12\r\n\x05round\x18\x01 \x01(\x05\x12\"\n\x06status\x18\x02 \x01(\x0e\x32\x12.chain.RoundStatus\x12\x0f\n\x07\x63lients\x18\x03 \x03(\t\"Q\n\rCandidatesReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x04 \x03(\t\"j\n\x0fShareCommitment\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x11\n\treceivers\x18\x04 \x03(\t\x12\x13\n\x0b\x63ommitments\x18\x05 \x03(\t\"?\n\x0cPublicKeyReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x03 \x03(\t\"&\n\nPublicKeys\x12\x0b\n\x03pk1\x18\x01 \x01(\t\x12\x0b\n\x03pk2\x18\x02 \x01(\t\"0\n\rPublicKeyResp\x12\x1f\n\x04keys\x18\x01 \x03(\x0b\x32\x11.chain.PublicKeys\"R\n\x0e\x43\x61lculationReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x04 \x03(\t\"W\n\x10ResultCommitment\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x12\n\ncommitment\x18\x04 \x01(\t\"E\n\x13ResultCommitmentReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\x0e\n\x06\x63lient\x18\x03 \x01(\t\"*\n\x14ResultCommitmentResp\x12\x12\n\ncommitment\x18\x01 \x01(\t\"R\n\x0e\x41ggregationReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07\x63lients\x18\x04 \x03(\t\"Y\n\x05Share\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\x12\x0f\n\x07senders\x18\x04 \x03(\t\x12\x0e\n\x06shares\x18\x05 \x03(\t\"S\n\x0eSecretShareReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\x0f\n\x07senders\x18\x03 \x03(\t\x12\x10\n\x08receiver\x18\x04 \x01(\t\"\xc5\x01\n\x0fSecretShareData\x12\x11\n\x04seed\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1c\n\x0fseed_commitment\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x17\n\nsecret_key\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\"\n\x15secret_key_commitment\x18\x04 \x01(\tH\x03\x88\x01\x01\x42\x07\n\x05_seedB\x12\n\x10_seed_commitmentB\r\n\x0b_secret_keyB\x18\n\x16_secret_key_commitment\"9\n\x0fSecretShareResp\x12&\n\x06shares\x18\x01 \x03(\x0b\x32\x16.chain.SecretShareData\">\n\x0b\x45ndRoundReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\r\n\x05round\x18\x03 \x01(\x05\"\x1b\n\x08\x45ventReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"\x8a\x03\n\x05\x45vent\x12.\n\x0ctask_created\x18\x01 \x01(\x0b\x32\x16.chain.TaskCreateEventH\x00\x12\x31\n\rround_started\x18\x02 \x01(\x0b\x32\x18.chain.RoundStartedEventH\x00\x12\x37\n\x10partner_selected\x18\x03 \x01(\x0b\x32\x1b.chain.PartnerSelectedEventH\x00\x12=\n\x13\x63\x61lculation_started\x18\x04 \x01(\x0b\x32\x1e.chain.CalculationStartedEventH\x00\x12=\n\x13\x61ggregation_started\x18\x05 \x01(\x0b\x32\x1e.chain.AggregationStartedEventH\x00\x12-\n\x0bround_ended\x18\x06 \x01(\x0b\x32\x16.chain.RoundEndedEventH\x00\x12/\n\rtask_finished\x18\x07 \x01(\x0b\x32\x16.chain.TaskFinishEventH\x00\x42\x07\n\x05\x65vent\"x\n\x0fTaskCreateEvent\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x12\n\ncommitment\x18\x05 \x01(\t\x12\x11\n\ttask_type\x18\x06 \x01(\t\"3\n\x11RoundStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"E\n\x14PartnerSelectedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x43\x61lculationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x41ggregationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"1\n\x0fRoundEndedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"\"\n\x0fTaskFinishEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t*W\n\x0bRoundStatus\x12\x0b\n\x07STARTED\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x0f\n\x0b\x43\x41LCULATING\x10\x02\x12\x0f\n\x0b\x41GGREGATING\x10\x03\x12\x0c\n\x08\x46INISHED\x10\x04\x32\xd2\n\n\x05\x43hain\x12)\n\x04Join\x12\x0e.chain.JoinReq\x1a\x0f.chain.JoinResp\"\x00\x12\x30\n\tUpdateUrl\x12\x13.chain.UpdateUrlReq\x1a\x0c.chain.Empty\"\x00\x12\x32\n\nUpdateName\x12\x14.chain.UpdateNameReq\x1a\x0c.chain.Empty\"\x00\x12(\n\x05Leave\x12\x0f.chain.LeaveReq\x1a\x0c.chain.Empty\"\x00\x12\x38\n\x0bGetNodeInfo\x12\x12.chain.NodeInfoReq\x1a\x13.chain.NodeInfoResp\"\x00\x12;\n\nCreateTask\x12\x14.chain.CreateTaskReq\x1a\x15.chain.CreateTaskResp\"\x00\x12\x32\n\nFinishTask\x12\x14.chain.FinishTaskReq\x1a\x0c.chain.Empty\"\x00\x12,\n\x07GetTask\x12\x0e.chain.TaskReq\x1a\x0f.chain.TaskResp\"\x00\x12\x32\n\nStartRound\x12\x14.chain.StartRoundReq\x1a\x0c.chain.Empty\"\x00\x12\x30\n\tJoinRound\x12\x13.chain.JoinRoundReq\x1a\x0c.chain.Empty\"\x00\x12;\n\x0cGetTaskRound\x12\x13.chain.TaskRoundReq\x1a\x14.chain.TaskRoundResp\"\x00\x12\x38\n\x10SelectCandidates\x12\x14.chain.CandidatesReq\x1a\x0c.chain.Empty\"\x00\x12>\n\x14UploadSeedCommitment\x12\x16.chain.ShareCommitment\x1a\x0c.chain.Empty\"\x00\x12\x43\n\x19UploadSecretKeyCommitment\x12\x16.chain.ShareCommitment\x1a\x0c.chain.Empty\"\x00\x12\x43\n\x14GetClientPublickKeys\x12\x13.chain.PublicKeyReq\x1a\x14.chain.PublicKeyResp\"\x00\x12\x39\n\x10StartCalculation\x12\x15.chain.CalculationReq\x1a\x0c.chain.Empty\"\x00\x12\x41\n\x16UploadResultCommitment\x12\x17.chain.ResultCommitment\x1a\x0c.chain.Empty\"\x00\x12P\n\x13GetResultCommitment\x12\x1a.chain.ResultCommitmentReq\x1a\x1b.chain.ResultCommitmentResp\"\x00\x12\x39\n\x10StartAggregation\x12\x15.chain.AggregationReq\x1a\x0c.chain.Empty\"\x00\x12*\n\nUploadSeed\x12\x0c.chain.Share\x1a\x0c.chain.Empty\"\x00\x12/\n\x0fUploadSecretKey\x12\x0c.chain.Share\x1a\x0c.chain.Empty\"\x00\x12\x46\n\x13GetSecretShareDatas\x12\x15.chain.SecretShareReq\x1a\x16.chain.SecretShareResp\"\x00\x12.\n\x08\x45ndRound\x12\x12.chain.EndRoundReq\x1a\x0c.chain.Empty\"\x00\x12.\n\tSubscribe\x12\x0f.chain.EventReq\x1a\x0c.chain.Event\"\x00\x30\x01\x62\x06proto3'
 )
 
 _ROUNDSTATUS = _descriptor.EnumDescriptor(
@@ -58,8 +58,8 @@ _ROUNDSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2749,
-  serialized_end=2836,
+  serialized_start=3048,
+  serialized_end=3135,
 )
 _sym_db.RegisterEnumDescriptor(_ROUNDSTATUS)
 
@@ -434,6 +434,151 @@ _CREATETASKRESP = _descriptor.Descriptor(
 )
 
 
+_FINISHTASKREQ = _descriptor.Descriptor(
+  name='FinishTaskReq',
+  full_name='chain.FinishTaskReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='chain.FinishTaskReq.address', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='chain.FinishTaskReq.task_id', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=421,
+  serialized_end=470,
+)
+
+
+_TASKREQ = _descriptor.Descriptor(
+  name='TaskReq',
+  full_name='chain.TaskReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='chain.TaskReq.task_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=472,
+  serialized_end=498,
+)
+
+
+_TASKRESP = _descriptor.Descriptor(
+  name='TaskResp',
+  full_name='chain.TaskResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='chain.TaskResp.address', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='url', full_name='chain.TaskResp.url', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='chain.TaskResp.task_id', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='dataset', full_name='chain.TaskResp.dataset', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='commitment', full_name='chain.TaskResp.commitment', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='task_type', full_name='chain.TaskResp.task_type', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='finished', full_name='chain.TaskResp.finished', index=6,
+      number=7, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=501,
+  serialized_end=632,
+)
+
+
 _STARTROUNDREQ = _descriptor.Descriptor(
   name='StartRoundReq',
   full_name='chain.StartRoundReq',
@@ -475,8 +620,8 @@ _STARTROUNDREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=421,
-  serialized_end=485,
+  serialized_start=634,
+  serialized_end=698,
 )
 
 
@@ -535,8 +680,8 @@ _JOINROUNDREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=487,
-  serialized_end=576,
+  serialized_start=700,
+  serialized_end=789,
 )
 
 
@@ -574,8 +719,8 @@ _TASKROUNDREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=578,
-  serialized_end=624,
+  serialized_start=791,
+  serialized_end=837,
 )
 
 
@@ -620,8 +765,8 @@ _TASKROUNDRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=626,
-  serialized_end=709,
+  serialized_start=839,
+  serialized_end=922,
 )
 
 
@@ -673,8 +818,8 @@ _CANDIDATESREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=711,
-  serialized_end=792,
+  serialized_start=924,
+  serialized_end=1005,
 )
 
 
@@ -733,8 +878,8 @@ _SHARECOMMITMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=794,
-  serialized_end=900,
+  serialized_start=1007,
+  serialized_end=1113,
 )
 
 
@@ -779,8 +924,8 @@ _PUBLICKEYREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=902,
-  serialized_end=965,
+  serialized_start=1115,
+  serialized_end=1178,
 )
 
 
@@ -818,8 +963,8 @@ _PUBLICKEYS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=967,
-  serialized_end=1005,
+  serialized_start=1180,
+  serialized_end=1218,
 )
 
 
@@ -850,8 +995,8 @@ _PUBLICKEYRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1007,
-  serialized_end=1055,
+  serialized_start=1220,
+  serialized_end=1268,
 )
 
 
@@ -903,8 +1048,8 @@ _CALCULATIONREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1057,
-  serialized_end=1139,
+  serialized_start=1270,
+  serialized_end=1352,
 )
 
 
@@ -956,8 +1101,8 @@ _RESULTCOMMITMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1141,
-  serialized_end=1228,
+  serialized_start=1354,
+  serialized_end=1441,
 )
 
 
@@ -1002,8 +1147,8 @@ _RESULTCOMMITMENTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1230,
-  serialized_end=1299,
+  serialized_start=1443,
+  serialized_end=1512,
 )
 
 
@@ -1034,8 +1179,8 @@ _RESULTCOMMITMENTRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1301,
-  serialized_end=1343,
+  serialized_start=1514,
+  serialized_end=1556,
 )
 
 
@@ -1087,8 +1232,8 @@ _AGGREGATIONREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1345,
-  serialized_end=1427,
+  serialized_start=1558,
+  serialized_end=1640,
 )
 
 
@@ -1147,8 +1292,8 @@ _SHARE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1429,
-  serialized_end=1518,
+  serialized_start=1642,
+  serialized_end=1731,
 )
 
 
@@ -1200,8 +1345,8 @@ _SECRETSHAREREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1520,
-  serialized_end=1603,
+  serialized_start=1733,
+  serialized_end=1816,
 )
 
 
@@ -1273,8 +1418,8 @@ _SECRETSHAREDATA = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1606,
-  serialized_end=1803,
+  serialized_start=1819,
+  serialized_end=2016,
 )
 
 
@@ -1305,8 +1450,8 @@ _SECRETSHARERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1805,
-  serialized_end=1862,
+  serialized_start=2018,
+  serialized_end=2075,
 )
 
 
@@ -1351,8 +1496,8 @@ _ENDROUNDREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1864,
-  serialized_end=1926,
+  serialized_start=2077,
+  serialized_end=2139,
 )
 
 
@@ -1383,8 +1528,8 @@ _EVENTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1928,
-  serialized_end=1955,
+  serialized_start=2141,
+  serialized_end=2168,
 )
 
 
@@ -1397,7 +1542,7 @@ _EVENT = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='task_create', full_name='chain.Event.task_create', index=0,
+      name='task_created', full_name='chain.Event.task_created', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -1438,6 +1583,13 @@ _EVENT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='task_finished', full_name='chain.Event.task_finished', index=6,
+      number=7, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -1455,8 +1607,8 @@ _EVENT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1958,
-  serialized_end=2302,
+  serialized_start=2171,
+  serialized_end=2565,
 )
 
 
@@ -1522,8 +1674,8 @@ _TASKCREATEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2304,
-  serialized_end=2424,
+  serialized_start=2567,
+  serialized_end=2687,
 )
 
 
@@ -1561,8 +1713,8 @@ _ROUNDSTARTEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2426,
-  serialized_end=2477,
+  serialized_start=2689,
+  serialized_end=2740,
 )
 
 
@@ -1607,8 +1759,8 @@ _PARTNERSELECTEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2479,
-  serialized_end=2548,
+  serialized_start=2742,
+  serialized_end=2811,
 )
 
 
@@ -1653,8 +1805,8 @@ _CALCULATIONSTARTEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2550,
-  serialized_end=2622,
+  serialized_start=2813,
+  serialized_end=2885,
 )
 
 
@@ -1699,8 +1851,8 @@ _AGGREGATIONSTARTEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2624,
-  serialized_end=2696,
+  serialized_start=2887,
+  serialized_end=2959,
 )
 
 
@@ -1738,8 +1890,40 @@ _ROUNDENDEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2698,
-  serialized_end=2747,
+  serialized_start=2961,
+  serialized_end=3010,
+)
+
+
+_TASKFINISHEVENT = _descriptor.Descriptor(
+  name='TaskFinishEvent',
+  full_name='chain.TaskFinishEvent',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='chain.TaskFinishEvent.task_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3012,
+  serialized_end=3046,
 )
 
 _TASKROUNDRESP.fields_by_name['status'].enum_type = _ROUNDSTATUS
@@ -1757,15 +1941,16 @@ _SECRETSHAREDATA.oneofs_by_name['_secret_key_commitment'].fields.append(
   _SECRETSHAREDATA.fields_by_name['secret_key_commitment'])
 _SECRETSHAREDATA.fields_by_name['secret_key_commitment'].containing_oneof = _SECRETSHAREDATA.oneofs_by_name['_secret_key_commitment']
 _SECRETSHARERESP.fields_by_name['shares'].message_type = _SECRETSHAREDATA
-_EVENT.fields_by_name['task_create'].message_type = _TASKCREATEEVENT
+_EVENT.fields_by_name['task_created'].message_type = _TASKCREATEEVENT
 _EVENT.fields_by_name['round_started'].message_type = _ROUNDSTARTEDEVENT
 _EVENT.fields_by_name['partner_selected'].message_type = _PARTNERSELECTEDEVENT
 _EVENT.fields_by_name['calculation_started'].message_type = _CALCULATIONSTARTEDEVENT
 _EVENT.fields_by_name['aggregation_started'].message_type = _AGGREGATIONSTARTEDEVENT
 _EVENT.fields_by_name['round_ended'].message_type = _ROUNDENDEDEVENT
+_EVENT.fields_by_name['task_finished'].message_type = _TASKFINISHEVENT
 _EVENT.oneofs_by_name['event'].fields.append(
-  _EVENT.fields_by_name['task_create'])
-_EVENT.fields_by_name['task_create'].containing_oneof = _EVENT.oneofs_by_name['event']
+  _EVENT.fields_by_name['task_created'])
+_EVENT.fields_by_name['task_created'].containing_oneof = _EVENT.oneofs_by_name['event']
 _EVENT.oneofs_by_name['event'].fields.append(
   _EVENT.fields_by_name['round_started'])
 _EVENT.fields_by_name['round_started'].containing_oneof = _EVENT.oneofs_by_name['event']
@@ -1781,6 +1966,9 @@ _EVENT.fields_by_name['aggregation_started'].containing_oneof = _EVENT.oneofs_by
 _EVENT.oneofs_by_name['event'].fields.append(
   _EVENT.fields_by_name['round_ended'])
 _EVENT.fields_by_name['round_ended'].containing_oneof = _EVENT.oneofs_by_name['event']
+_EVENT.oneofs_by_name['event'].fields.append(
+  _EVENT.fields_by_name['task_finished'])
+_EVENT.fields_by_name['task_finished'].containing_oneof = _EVENT.oneofs_by_name['event']
 DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
 DESCRIPTOR.message_types_by_name['JoinReq'] = _JOINREQ
 DESCRIPTOR.message_types_by_name['JoinResp'] = _JOINRESP
@@ -1791,6 +1979,9 @@ DESCRIPTOR.message_types_by_name['NodeInfoReq'] = _NODEINFOREQ
 DESCRIPTOR.message_types_by_name['NodeInfoResp'] = _NODEINFORESP
 DESCRIPTOR.message_types_by_name['CreateTaskReq'] = _CREATETASKREQ
 DESCRIPTOR.message_types_by_name['CreateTaskResp'] = _CREATETASKRESP
+DESCRIPTOR.message_types_by_name['FinishTaskReq'] = _FINISHTASKREQ
+DESCRIPTOR.message_types_by_name['TaskReq'] = _TASKREQ
+DESCRIPTOR.message_types_by_name['TaskResp'] = _TASKRESP
 DESCRIPTOR.message_types_by_name['StartRoundReq'] = _STARTROUNDREQ
 DESCRIPTOR.message_types_by_name['JoinRoundReq'] = _JOINROUNDREQ
 DESCRIPTOR.message_types_by_name['TaskRoundReq'] = _TASKROUNDREQ
@@ -1818,6 +2009,7 @@ DESCRIPTOR.message_types_by_name['PartnerSelectedEvent'] = _PARTNERSELECTEDEVENT
 DESCRIPTOR.message_types_by_name['CalculationStartedEvent'] = _CALCULATIONSTARTEDEVENT
 DESCRIPTOR.message_types_by_name['AggregationStartedEvent'] = _AGGREGATIONSTARTEDEVENT
 DESCRIPTOR.message_types_by_name['RoundEndedEvent'] = _ROUNDENDEDEVENT
+DESCRIPTOR.message_types_by_name['TaskFinishEvent'] = _TASKFINISHEVENT
 DESCRIPTOR.enum_types_by_name['RoundStatus'] = _ROUNDSTATUS
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -1890,6 +2082,27 @@ CreateTaskResp = _reflection.GeneratedProtocolMessageType('CreateTaskResp', (_me
   # @@protoc_insertion_point(class_scope:chain.CreateTaskResp)
   })
 _sym_db.RegisterMessage(CreateTaskResp)
+
+FinishTaskReq = _reflection.GeneratedProtocolMessageType('FinishTaskReq', (_message.Message,), {
+  'DESCRIPTOR' : _FINISHTASKREQ,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.FinishTaskReq)
+  })
+_sym_db.RegisterMessage(FinishTaskReq)
+
+TaskReq = _reflection.GeneratedProtocolMessageType('TaskReq', (_message.Message,), {
+  'DESCRIPTOR' : _TASKREQ,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.TaskReq)
+  })
+_sym_db.RegisterMessage(TaskReq)
+
+TaskResp = _reflection.GeneratedProtocolMessageType('TaskResp', (_message.Message,), {
+  'DESCRIPTOR' : _TASKRESP,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.TaskResp)
+  })
+_sym_db.RegisterMessage(TaskResp)
 
 StartRoundReq = _reflection.GeneratedProtocolMessageType('StartRoundReq', (_message.Message,), {
   'DESCRIPTOR' : _STARTROUNDREQ,
@@ -2080,6 +2293,13 @@ RoundEndedEvent = _reflection.GeneratedProtocolMessageType('RoundEndedEvent', (_
   })
 _sym_db.RegisterMessage(RoundEndedEvent)
 
+TaskFinishEvent = _reflection.GeneratedProtocolMessageType('TaskFinishEvent', (_message.Message,), {
+  'DESCRIPTOR' : _TASKFINISHEVENT,
+  '__module__' : 'chain_pb2'
+  # @@protoc_insertion_point(class_scope:chain.TaskFinishEvent)
+  })
+_sym_db.RegisterMessage(TaskFinishEvent)
+
 
 
 _CHAIN = _descriptor.ServiceDescriptor(
@@ -2089,8 +2309,8 @@ _CHAIN = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2839,
-  serialized_end=4103,
+  serialized_start=3138,
+  serialized_end=4500,
   methods=[
   _descriptor.MethodDescriptor(
     name='Join',
@@ -2153,9 +2373,29 @@ _CHAIN = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='FinishTask',
+    full_name='chain.Chain.FinishTask',
+    index=6,
+    containing_service=None,
+    input_type=_FINISHTASKREQ,
+    output_type=_EMPTY,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetTask',
+    full_name='chain.Chain.GetTask',
+    index=7,
+    containing_service=None,
+    input_type=_TASKREQ,
+    output_type=_TASKRESP,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='StartRound',
     full_name='chain.Chain.StartRound',
-    index=6,
+    index=8,
     containing_service=None,
     input_type=_STARTROUNDREQ,
     output_type=_EMPTY,
@@ -2165,7 +2405,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='JoinRound',
     full_name='chain.Chain.JoinRound',
-    index=7,
+    index=9,
     containing_service=None,
     input_type=_JOINROUNDREQ,
     output_type=_EMPTY,
@@ -2175,7 +2415,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetTaskRound',
     full_name='chain.Chain.GetTaskRound',
-    index=8,
+    index=10,
     containing_service=None,
     input_type=_TASKROUNDREQ,
     output_type=_TASKROUNDRESP,
@@ -2185,7 +2425,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='SelectCandidates',
     full_name='chain.Chain.SelectCandidates',
-    index=9,
+    index=11,
     containing_service=None,
     input_type=_CANDIDATESREQ,
     output_type=_EMPTY,
@@ -2195,7 +2435,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UploadSeedCommitment',
     full_name='chain.Chain.UploadSeedCommitment',
-    index=10,
+    index=12,
     containing_service=None,
     input_type=_SHARECOMMITMENT,
     output_type=_EMPTY,
@@ -2205,7 +2445,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UploadSecretKeyCommitment',
     full_name='chain.Chain.UploadSecretKeyCommitment',
-    index=11,
+    index=13,
     containing_service=None,
     input_type=_SHARECOMMITMENT,
     output_type=_EMPTY,
@@ -2215,7 +2455,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetClientPublickKeys',
     full_name='chain.Chain.GetClientPublickKeys',
-    index=12,
+    index=14,
     containing_service=None,
     input_type=_PUBLICKEYREQ,
     output_type=_PUBLICKEYRESP,
@@ -2225,7 +2465,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='StartCalculation',
     full_name='chain.Chain.StartCalculation',
-    index=13,
+    index=15,
     containing_service=None,
     input_type=_CALCULATIONREQ,
     output_type=_EMPTY,
@@ -2235,7 +2475,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UploadResultCommitment',
     full_name='chain.Chain.UploadResultCommitment',
-    index=14,
+    index=16,
     containing_service=None,
     input_type=_RESULTCOMMITMENT,
     output_type=_EMPTY,
@@ -2245,7 +2485,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetResultCommitment',
     full_name='chain.Chain.GetResultCommitment',
-    index=15,
+    index=17,
     containing_service=None,
     input_type=_RESULTCOMMITMENTREQ,
     output_type=_RESULTCOMMITMENTRESP,
@@ -2255,7 +2495,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='StartAggregation',
     full_name='chain.Chain.StartAggregation',
-    index=16,
+    index=18,
     containing_service=None,
     input_type=_AGGREGATIONREQ,
     output_type=_EMPTY,
@@ -2265,7 +2505,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UploadSeed',
     full_name='chain.Chain.UploadSeed',
-    index=17,
+    index=19,
     containing_service=None,
     input_type=_SHARE,
     output_type=_EMPTY,
@@ -2275,7 +2515,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UploadSecretKey',
     full_name='chain.Chain.UploadSecretKey',
-    index=18,
+    index=20,
     containing_service=None,
     input_type=_SHARE,
     output_type=_EMPTY,
@@ -2285,7 +2525,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetSecretShareDatas',
     full_name='chain.Chain.GetSecretShareDatas',
-    index=19,
+    index=21,
     containing_service=None,
     input_type=_SECRETSHAREREQ,
     output_type=_SECRETSHARERESP,
@@ -2295,7 +2535,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='EndRound',
     full_name='chain.Chain.EndRound',
-    index=20,
+    index=22,
     containing_service=None,
     input_type=_ENDROUNDREQ,
     output_type=_EMPTY,
@@ -2305,7 +2545,7 @@ _CHAIN = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='Subscribe',
     full_name='chain.Chain.Subscribe',
-    index=21,
+    index=23,
     containing_service=None,
     input_type=_EVENTREQ,
     output_type=_EVENT,

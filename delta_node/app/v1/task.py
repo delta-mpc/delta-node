@@ -1,11 +1,14 @@
+import json
 import asyncio
 import logging
 import math
 import os
 import shutil
-from typing import IO, List, Optional
+from typing import IO, Dict, List, Optional
 
 import sqlalchemy as sa
+import delta
+import delta.serialize
 from delta_node import chain, coord, db, entity, pool, registry
 from delta_node.serialize import bytes_to_hex, hex_to_bytes
 from fastapi import (
@@ -36,10 +39,11 @@ class CreateTaskResp(BaseModel):
     task_id: str
 
 
-async def dump_task(task_id: str, task_file: IO[bytes]):
+def dump_task(task_id: str, task_file: IO[bytes]):
     task_file.seek(0)
     with open(coord.task_config_file(task_id), mode="wb") as f:
         shutil.copyfileobj(task_file, f)
+        _logger.info(f"save task config file of {task_id}")
 
 
 @router.post("/task", response_model=CreateTaskResp)
@@ -53,7 +57,7 @@ async def create_task(
     task_item = await loop.run_in_executor(pool.IO_POOL, coord.create_task, file.file)
     node_address = await registry.get_node_address()
     task_id = await chain.get_client().create_task(
-        node_address, task_item.dataset, task_item.commitment
+        node_address, task_item.dataset, task_item.commitment, task_item.type
     )
     task_item.creator = node_address
     task_item.task_id = task_id
@@ -65,6 +69,28 @@ async def create_task(
 
     background.add_task(coord.run_task, task_id)
     return CreateTaskResp(task_id=task_id)
+
+
+@router.get("/task")
+def get_task_file(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
+    config_filename = coord.task_config_file(task_id)
+    if not os.path.exists(config_filename):
+        raise HTTPException(400, f"task {task_id} does not exist")
+
+    def file_iter():
+        chunk_size = 1024 * 1024
+        with open(config_filename, mode="rb") as f:
+            while True:
+                content = f.read(chunk_size)
+                if len(content) == 0:
+                    break
+                yield content
+
+    return StreamingResponse(
+        file_iter(),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename={task_id}.config"},
+    )
 
 
 class TaskRound(BaseModel):
@@ -117,25 +143,6 @@ async def upload_secret_share(
 
     if not all(share.sender == shares.address for share in shares.shares):
         raise HTTPException(400, "all share senders should be equal to member address")
-    # check if all shares has upload commitment to chain
-    futs: List[asyncio.Task[entity.SecretShareData]] = []
-    for addr in member_addrs:
-        fut = asyncio.create_task(
-            chain.get_client().get_secret_share_data(
-                shares.task_id, shares.round, shares.address, addr
-            )
-        )
-        futs.append(fut)
-    try:
-        ss_datas = await asyncio.gather(*futs)
-        for ss_data in ss_datas:
-            if (
-                len(ss_data.seed_commitment) == 0
-                or len(ss_data.secret_key_commitment) == 0
-            ):
-                raise HTTPException(400, "should upload secret share commitment first")
-    except Exception:
-        raise HTTPException(400, "should upload secret share commitment first")
 
     member_dict = {member.address: member for member in members}
     sender = member_dict[shares.address]
@@ -147,6 +154,8 @@ async def upload_secret_share(
             receiver.id,
             hex_to_bytes(share.seed_share),
             hex_to_bytes(share.sk_share),
+            sender=sender,
+            receiver=receiver
         )
         session.add(ss)
     await session.commit()
@@ -156,34 +165,37 @@ async def upload_secret_share(
 
 @router.get("/secret_shares", response_model=SecretShares)
 async def get_secret_shares(
-    task_round: TaskRound, session: AsyncSession = Depends(db.get_session)
+    address: str,
+    task_id: str,
+    round: int,
+    session: AsyncSession = Depends(db.get_session),
 ):
     q = (
         sa.select(entity.TaskRound)
-        .where(entity.TaskRound.task_id == task_round.task_id)
-        .where(entity.TaskRound.round == task_round.round)
+        .where(entity.TaskRound.task_id == task_id)
+        .where(entity.TaskRound.round == round)
     )
-    round: Optional[entity.TaskRound] = (
+    round_entity: Optional[entity.TaskRound] = (
         (await session.execute(q)).scalars().one_or_none()
     )
-    if not round:
+    if not round_entity:
         raise HTTPException(400, "task round does not exist")
-    if round.status != entity.RoundStatus.CALCULATING:
+    if round_entity.status != entity.RoundStatus.CALCULATING:
         raise HTTPException(400, "round is not in calculating phase")
 
     q = (
         sa.select(entity.RoundMember)
-        .where(entity.RoundMember.round_id == round.id)
-        .where(entity.RoundMember.address == task_round.address)
+        .where(entity.RoundMember.round_id == round_entity.id)
+        .where(entity.RoundMember.address == address)
         .options(selectinload(entity.RoundMember.received_shares))
     )
     member: Optional[entity.RoundMember] = (
         (await session.execute(q)).scalars().one_or_none()
     )
     if not member:
-        raise HTTPException(400, f"member ${task_round.address} does not exists")
+        raise HTTPException(400, f"member ${address} does not exists")
     if member.status != entity.RoundStatus.CALCULATING:
-        raise HTTPException(400, f"member ${task_round.address} is not allowed")
+        raise HTTPException(400, f"member ${address} is not allowed")
 
     sender_ids = [share.sender_id for share in member.received_shares]
     q = sa.select(entity.RoundMember).where(entity.RoundMember.id.in_(sender_ids))  # type: ignore
@@ -196,27 +208,31 @@ async def get_secret_shares(
         shares.append(
             SecretShare(
                 sender=sender.address,
-                receiver=task_round.address,
+                receiver=address,
                 seed_share=bytes_to_hex(share.seed_share),
                 sk_share=bytes_to_hex(share.sk_share),
             )
         )
     resp = SecretShares(
-        address=task_round.address,
-        task_id=task_round.task_id,
-        round=task_round.round,
+        address=address,
+        task_id=task_id,
+        round=round,
         shares=shares,
     )
     return resp
 
 
 @router.post("/result", response_model=CommonResp)
-def upload_result(task_round: TaskRound = Form(...), file: UploadFile = File(...)):
-    dst = coord.task_member_result_file(
-        task_round.task_id, task_round.round, task_round.address
-    )
+def upload_result(
+    address: str = Form(...),
+    task_id: str = Form(..., regex=r"0x[0-9a-fA-F]+"),
+    round: int = Form(...),
+    file: UploadFile = File(...),
+):
+    dst = coord.task_member_result_file(task_id, round, address)
     with open(dst, mode="wb") as f:
         shutil.copyfileobj(file.file, f)
+    return CommonResp()
 
 
 class Task(BaseModel):
@@ -291,16 +307,12 @@ async def get_task_list(
     return task_items
 
 
-@router.get("/task/metadata", response_model=Task)
+@router.get("/metadata", response_model=Task)
 async def get_task_metadata(
     task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"),
     session: AsyncSession = Depends(db.get_session),
 ):
-    q = (
-        sa.select(entity.Task)
-        .where(entity.Task.task_id == task_id)
-        .where(entity.Task.url.is_(None))  # type: ignore
-    )
+    q = sa.select(entity.Task).where(entity.Task.task_id == task_id)
     task: Optional[entity.Task] = (await session.execute(q)).scalar_one_or_none()
     if task is None:
         raise HTTPException(400, f"task {task_id} does not exist")
@@ -315,18 +327,42 @@ async def get_task_metadata(
     )
 
 
-@router.get("/task/result")
+@router.get("/weight")
+def get_task_weight(
+    task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"), round: int = Query(...)
+):
+    weight_filename = coord.task_weight_file(task_id, round)
+    if not os.path.exists(weight_filename):
+        raise HTTPException(400, f"task {task_id} does not exist")
+
+    def file_iter():
+        chunk_size = 1024 * 1024
+        with open(weight_filename, mode="rb") as f:
+            while True:
+                content = f.read(chunk_size)
+                if len(content) == 0:
+                    break
+                yield content
+
+    return StreamingResponse(
+        file_iter(),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename={task_id}.weight"},
+    )
+
+
+@router.get("/result")
 def get_task_result(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
     result_filename = coord.task_result_file(task_id)
     if not os.path.exists(result_filename):
         raise HTTPException(400, f"task {task_id} does not exist")
 
     def file_iter():
-        chunk_size = 4096
+        chunk_size = 1024 * 1024
         with open(result_filename, mode="rb") as f:
             while True:
                 content = f.read(chunk_size)
-                if len(content) < chunk_size:
+                if len(content) == 0:
                     break
                 yield content
 
@@ -335,6 +371,21 @@ def get_task_result(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
         media_type="application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename={task_id}.result"},
     )
+
+
+class Metrics(TaskRound):
+    metrics: Dict[str, int]
+
+
+@router.post("/metrics", response_model=CommonResp)
+def upload_metrics(metrics: Metrics):
+    with open(
+        coord.task_member_metrics_file(metrics.task_id, metrics.round, metrics.address),
+        mode="w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(metrics.metrics, f, ensure_ascii=False)
+    return CommonResp()
 
 
 # @router.get("/task/logs", response_model=List[utils.TaskLog])

@@ -18,12 +18,9 @@ _chain: Dict = _c.get("chain_connector")
 chain_host: str = _chain.get("host", "")
 chain_port: int = _chain.get("port", 4500)
 
-
 _node: Dict = _c.get("node")
-node_host: str = _node.get("host", None)
-node_port: int = _node.get("port", 6800)
 node_name: str = _node.get("name", "")
-node_url = f"{node_host}:{node_port}"
+node_url: str = _node.get("url", "")
 
 api_port: int = _c.get("api_port", 6700)
 

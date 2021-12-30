@@ -1,19 +1,23 @@
+import json
 import asyncio
+import logging
 import os
 import random
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import delta
 import delta.serialize
-from delta.algorithm.horizontal import HorizontalAlgorithm
 import numpy as np
 import sqlalchemy as sa
-from delta_node import chain, db, entity, pool, registry, serialize, utils
+from delta.algorithm.horizontal import HorizontalAlgorithm
+from delta_node import chain, db, entity, pool, registry, utils, serialize
 from delta_node.crypto import ecdhe, shamir
 from sqlalchemy import func
 
 from . import loc
+
+_logger = logging.getLogger(__name__)
 
 
 async def run_task(task_entity: entity.Task):
@@ -27,16 +31,30 @@ async def run_task(task_entity: entity.Task):
     del task
 
     node_address = await registry.get_node_address()
+    async with db.session_scope() as sess:
+        q = (
+            sa.select(entity.TaskRound)
+            .where(entity.TaskRound.task_id == task_id)
+            .order_by(sa.desc(entity.TaskRound.round))
+            .limit(1)
+            .offset(0)
+        )
+        round_entity: Optional[entity.TaskRound] = (
+            (await sess.execute(q)).scalars().first()
+        )
+    start_round = 1 if round_entity is None else round_entity.round
+
     try:
-        for round in range(1, max_rounds + 1):
+        for round in range(start_round, max_rounds + 1):
             await run_task_round(alg, node_address, task_id, round)
-        async with db.get_session() as sess:
+        async with db.session_scope() as sess:
             task_entity.status = entity.TaskStatus.FINISHED
             sess.add(task_entity)
             await sess.commit()
+        await finish_task(node_address, task_id)
 
     except Exception:
-        async with db.get_session() as sess:
+        async with db.session_scope() as sess:
             task_entity.status = entity.TaskStatus.ERROR
             sess.add(task_entity)
             await sess.commit()
@@ -44,12 +62,25 @@ async def run_task(task_entity: entity.Task):
 
 
 def init_task(task_id: str):
-    task = delta.serialize.load_task(loc.task_config_file(task_id))
-
+    config_file = loc.task_config_file(task_id)
+    task = delta.serialize.load_task(config_file)
     assert isinstance(task, delta.task.HorizontalTask)
-    weight = task.get_weight()
-    delta.serialize.dump_arr(loc.task_weight_file(task_id, 0), weight)
+
+    init_weight_file = loc.task_weight_file(task_id, 0)
+    if not os.path.exists(init_weight_file):
+        weight = task.get_weight()
+        delta.serialize.dump_arr(init_weight_file, weight)
     return task
+
+
+async def finish_task(node_address: str, task_id: str):
+    await chain.get_client().finish_task(node_address, task_id)
+    async with db.session_scope() as sess:
+        q = sa.select(entity.Task).where(entity.Task.task_id == task_id)
+        task: entity.Task = (await sess.execute(q)).scalar_one()
+        task.status = entity.TaskStatus.FINISHED
+        sess.add(task)
+        await sess.commit()
 
 
 async def run_task_round(
@@ -77,7 +108,7 @@ async def run_task_round(
     await start_aggreation(alg, node_address, task_id, round)
 
     # wait for clients to upload seed of secret key secret share to coordinator to unmask result
-    await asyncio.sleep(wait_timeout)
+    await asyncio.sleep(connection_timeout)
     # end round
     await end_round(alg, node_address, task_id, round)
 
@@ -85,7 +116,7 @@ async def run_task_round(
 async def select_candidates(
     alg: HorizontalAlgorithm, node_address: str, task_id: str, round: int
 ):
-    async with db.get_session() as sess:
+    async with db.session_scope() as sess:
         # wait for clients to join in the round
 
         task_round = await chain.get_client().get_task_round(task_id, round)
@@ -118,7 +149,7 @@ async def select_candidates(
 async def start_calculation(
     alg: HorizontalAlgorithm, node_address: str, task_id: str, round: int
 ):
-    async with db.get_session() as sess:
+    async with db.session_scope() as sess:
         # get clients which has uploaded secret shares
         q = (
             sa.select(entity.TaskRound)
@@ -128,7 +159,7 @@ async def start_calculation(
         round_entity: entity.TaskRound = (await sess.execute(q)).scalar_one()
 
         q = (
-            sa.select(func.count(entity.RoundMember))
+            sa.select(func.count(entity.RoundMember.id))
             .where(entity.RoundMember.round_id == round_entity.id)
             .where(entity.RoundMember.status == entity.RoundStatus.RUNNING)
         )
@@ -192,7 +223,21 @@ def make_masked_result(task_id: str, round: int, clients: List[str]):
         else:
             total_result += result_arr
     assert total_result is not None
+    _logger.info(f"masked arr {total_result} {total_result.dtype}")
     delta.serialize.dump_arr(loc.task_masked_result_file(task_id, round), total_result)
+
+    if os.path.exists(loc.task_round_metrics_dir(task_id, round)):
+        total_metrics = defaultdict(int)
+        for client in clients:
+            metrics_filename = loc.task_member_metrics_file(task_id, round, client)
+            with open(metrics_filename, mode="r", encoding="utf-8") as f:
+                metrics = json.load(f)
+            for key, val in metrics.items():
+                total_metrics[key] += val
+        _logger.info(f"masked metrics {total_metrics}")
+        masked_metrics_filename = loc.task_masked_metrics_file(task_id, round)
+        with open(masked_metrics_filename, mode="w", encoding="utf-8") as f:
+            json.dump(total_metrics, f)
 
 
 async def start_aggreation(
@@ -203,7 +248,7 @@ async def start_aggreation(
 ):
     loop = asyncio.get_running_loop()
 
-    async with db.get_session() as sess:
+    async with db.session_scope() as sess:
         result_commitments = await loop.run_in_executor(
             pool.IO_POOL, get_local_result_commitments, task_id, round
         )
@@ -251,6 +296,7 @@ async def start_aggreation(
             node_address, task_id, round, valid_clients
         )
 
+
 def unmask_result(
     task_id: str,
     round: int,
@@ -260,27 +306,74 @@ def unmask_result(
     curve: ecdhe.EllipticCurve,
     precision: int,
 ):
-    mask_arr = delta.serialize.load_arr(loc.task_masked_result_file(task_id, round))
 
-    seed_mask = np.zeros_like(mask_arr)
-    sk_mask = np.zeros_like(mask_arr)
-
-    for seed in seeds.values():
-        mask = utils.make_mask(seed, mask_arr.shape)
-        seed_mask += mask
-
+    share_keys = {}
     for u, sk in secret_keys.items():
         for v, pk in pub_keys.items():
             key = ecdhe.generate_shared_key(sk, pk, curve)
-            mask = utils.make_mask(key, mask_arr.shape)
+            share_keys[(u, v)] = key
+
+    mask_arr = delta.serialize.load_arr(loc.task_masked_result_file(task_id, round))
+    metrics_filename = loc.task_masked_metrics_file(task_id, round)
+
+    seed_mask = np.zeros_like(mask_arr, dtype=np.int64)
+    sk_mask = np.zeros_like(mask_arr, dtype=np.int64)
+
+    for addr, seed in seeds.items():
+        mask = utils.make_mask(seed, mask_arr.shape)
+        _logger.info(f"{addr} seed mask {mask}")
+        seed_mask += mask
+
+    for (u, v), key in share_keys.items():
+        mask = utils.make_mask(key, mask_arr.shape)
+        if u < v:
+            sk_mask -= mask
+        else:
+            sk_mask += mask
+
+    _logger.info(f"seed mask {seed_mask} {seed_mask.dtype}")
+    _logger.info(f"sk mask {sk_mask} {sk_mask.dtype}")  # type: ignore
+    unmask_arr: np.ndarray = mask_arr - seed_mask + sk_mask  # type: ignore
+    unmask_arr = utils.unfix_precision(unmask_arr, precision)
+    unmask_arr /= len(seeds)
+    _logger.info(f"weight arr: {unmask_arr}")
+    delta.serialize.dump_arr(loc.task_weight_file(task_id, round), unmask_arr)
+
+    if os.path.exists(metrics_filename):
+        with open(metrics_filename, mode="r", encoding="utf-8") as f:
+            metrics = json.load(f)
+            _logger.info(f"metrics: {metrics}")
+        metrics_keys, metrics_vals = zip(*metrics.items())
+        _logger.info(f"metrics vals {metrics_vals}")
+        mask_metrics_arr = np.array(metrics_vals, dtype=np.int64)
+
+        seed_mask = np.zeros_like(mask_metrics_arr)
+        sk_mask = np.zeros_like(mask_metrics_arr)
+
+        for addr, seed in seeds.items():
+            mask = utils.make_mask(seed, mask_metrics_arr.shape)
+            _logger.info(f"{addr} seed mask {mask}")
+            seed_mask += mask
+
+        for (u, v), key in share_keys.items():
+            mask = utils.make_mask(key, mask_metrics_arr.shape)
             if u < v:
                 sk_mask -= mask
             else:
                 sk_mask += mask
 
-    unmask_arr: np.ndarray = mask_arr - seed_mask + sk_mask  # type: ignore
-    unmask_arr = utils.unfix_precision(unmask_arr, precision)
-    delta.serialize.dump_arr(loc.task_weight_file(task_id, round), unmask_arr)
+        unmask_metrics_arr: np.ndarray = mask_metrics_arr - seed_mask + sk_mask  # type: ignore
+        _logger.info(f"unmask_metrics_arr: {unmask_metrics_arr}")
+        unmask_metrics_arr = utils.unfix_precision(unmask_metrics_arr, precision)
+        unmask_metrics_arr /= len(seeds)
+        unmask_metrics = {
+            key: val for key, val in zip(metrics_keys, unmask_metrics_arr.tolist())
+        }
+        _logger.info(f"metrics: {unmask_metrics}")
+        with open(
+            loc.task_metrics_file(task_id, round), mode="w", encoding="utf-8"
+        ) as f:
+            json.dump(unmask_metrics, f)
 
 
 async def end_round(
@@ -288,7 +381,7 @@ async def end_round(
 ):
     loop = asyncio.get_running_loop()
 
-    async with db.get_session() as sess:
+    async with db.session_scope() as sess:
         q = (
             sa.select(entity.TaskRound)
             .where(entity.TaskRound.task_id == task_id)
@@ -308,7 +401,6 @@ async def end_round(
 
         q = (
             sa.select(entity.RoundMember)
-            .where(entity.RoundMember)
             .where(entity.RoundMember.round_id == round_entity.id)
             .where(entity.RoundMember.status == entity.RoundStatus.CALCULATING)
         )
@@ -323,26 +415,34 @@ async def end_round(
         # get secret key of dead members
         secret_key_shares: Dict[str, List[bytes]] = defaultdict(list)
         secret_keys: Dict[str, bytes] = {}
-        for receiver in alive_addrs:
-            ss_datas = await chain.get_client().get_secret_share_datas(
-                task_id, round, dead_addrs, receiver
-            )
-            if len(ss_datas) == len(dead_addrs) and all(
-                (
-                    len(ss.seed) == 0
-                    and len(ss.secret_key) > 0
-                    and len(ss.secret_key_commitment) > 0
-                    and utils.calc_commitment(ss.secret_key) == ss.secret_key_commitment
+        if len(dead_addrs) > 0:
+            for receiver in alive_addrs:
+                ss_datas = await chain.get_client().get_secret_share_datas(
+                    task_id, round, dead_addrs, receiver
                 )
-                for ss in ss_datas
-            ):
-                for sender, ss in zip(dead_addrs, ss_datas):
-                    secret_key_shares[sender].append(ss.secret_key)
-            else:
-                final_addrs.remove(receiver)
-        for sender, shares in secret_key_shares.items():
-            secret_keys[sender] = secret_share.resolve_shares(shares)
-        
+                if len(ss_datas) == len(dead_addrs) and all(
+                    (
+                        len(ss.seed) == 0
+                        and len(ss.secret_key) > 0
+                        and len(ss.secret_key_commitment) > 0
+                        and utils.calc_commitment(ss.secret_key)
+                        == ss.secret_key_commitment
+                    )
+                    for ss in ss_datas
+                ):
+                    for sender, ss in zip(dead_addrs, ss_datas):
+                        secret_key_shares[sender].append(ss.secret_key)
+                        _logger.info(
+                            f"{sender[:8]} -> {receiver[:8]} sk share {serialize.bytes_to_hex(ss.secret_key)[:8]}"
+                        )
+                else:
+                    final_addrs.remove(receiver)
+            for sender, shares in secret_key_shares.items():
+                secret_keys[sender] = secret_share.resolve_shares(shares)
+                _logger.info(
+                    f"{sender[:8]} sk2 {serialize.bytes_to_hex(secret_keys[sender])[:8]}"
+                )
+
         # get secret key of alive members
         seed_shares: Dict[str, List[bytes]] = defaultdict(list)
         seeds: Dict[str, bytes] = {}
@@ -361,18 +461,28 @@ async def end_round(
             ):
                 for sender, ss in zip(alive_addrs, ss_datas):
                     seed_shares[sender].append(ss.seed)
+                    _logger.info(
+                        f"{sender[:8]} -> {receiver[:8]} seed share {serialize.bytes_to_hex(ss.seed)[:8]}"
+                    )
             else:
                 final_addrs.remove(receiver)
         for sender, shares in seed_shares.items():
+            _logger.info(
+                f"{sender} seed shares {[serialize.bytes_to_hex(share) for share in shares]}"
+            )
             seeds[sender] = secret_share.resolve_shares(shares)
+            _logger.info(
+                f"{sender[:8]} seed {serialize.bytes_to_hex(seeds[sender])[:8]}"
+            )
 
-        pks = await chain.get_client().get_client_public_keys(task_id, round, alive_addrs)
+        pks = await chain.get_client().get_client_public_keys(
+            task_id, round, alive_addrs
+        )
 
         pk2_dict = {addr: pk[1] for addr, pk in zip(alive_addrs, pks)}
 
-        # TODO: add curve and precision config in delta task
-        curve = ecdhe.CURVES["secp256k1"]
-        precision = 8
+        curve = ecdhe.CURVES[alg.curve]
+        precision = alg.precision
         await loop.run_in_executor(
             pool.WORKER_POOL,
             unmask_result,

@@ -17,13 +17,12 @@ def dump_arr(f: IO[bytes], arr: np.ndarray):
     np.savez_compressed(f, arr)
 
 
-def make_mask(seed: Union[int, bytes, str], shape: Sequence[int]) -> np.ndarray:
-    state = random.Random(seed)
-    size = reduce(mul, shape)
+def make_mask(seed: Union[int, bytes], shape: Sequence[int]) -> np.ndarray:
+    if isinstance(seed, int):
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng(list(seed))
 
-    mask = np.array(
-        [state.randint(0, 2 ** 63 - 1) for _ in range(size)], dtype=np.int64
-    )
-    mask.resize(shape)
+    mask = rng.integers(0, 2 ** 47 - 1, size=shape, dtype=np.int64)
 
     return mask

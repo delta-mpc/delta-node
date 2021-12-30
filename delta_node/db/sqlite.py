@@ -8,12 +8,11 @@ from delta_node import config
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import registry, sessionmaker
 
-__all__ = ["get_session", "init", "close", "mapper_registry"]
+__all__ = ["session_scope", "init", "close", "mapper_registry", "get_session"]
 
 _local = threading.local()
 
 
-@asynccontextmanager
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     if (not hasattr(_local, "session")) or (not hasattr(_local, "engine")):
         raise ValueError("db has not been initialized")
@@ -25,6 +24,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             await sess.rollback()
             raise
 
+
+session_scope = asynccontextmanager(get_session)
 
 mapper_registry: registry = registry()
 

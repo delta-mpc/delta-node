@@ -8,7 +8,6 @@ from delta_node import entity, utils
 
 
 def create_task(task_file: IO[bytes]) -> entity.Task:
-    task_file.seek(0)
     with tempfile.TemporaryFile(mode="w+b") as f:
         shutil.copyfileobj(task_file, f)
         f.seek(0)

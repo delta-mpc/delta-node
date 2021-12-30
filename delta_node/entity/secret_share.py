@@ -16,10 +16,12 @@ __all__ = ["SecretShareData", "SecretShare"]
 
 @dataclass
 class SecretShareData:
-    seed: bytes
-    seed_commitment: bytes
-    secret_key: bytes
-    secret_key_commitment: bytes
+    sender: str
+    receiver: str
+    seed: bytes = b""
+    seed_commitment: bytes = b""
+    secret_key: bytes = b""
+    secret_key_commitment: bytes = b""
 
 
 @mapper_registry.mapped

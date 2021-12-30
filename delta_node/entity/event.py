@@ -10,23 +10,35 @@ __all__ = [
     "AggregationStartedEvent",
     "RoundStartedEvent",
     "RoundEndedEvent",
+    "TaskFinishEvent"
 ]
 
-EventType = Literal["task_create", "round_started", "partner_selected", "calculation_started", "aggregation_started", "round_ended"]
+EventType = Literal[
+    "task_created",
+    "round_started",
+    "partner_selected",
+    "calculation_started",
+    "aggregation_started",
+    "round_ended",
+    "task_finish"
+]
+
 
 @dataclass
 class Event:
     type: EventType = field(init=False)
+    task_id: str
 
 
 @dataclass
 class TaskCreateEvent(Event):
-    type = field(init=False, default="task_create")
+    type: EventType = field(init=False, default="task_created")
     address: str
     task_id: str
     dataset: str
     url: str
     commitment: bytes
+    task_type: str
 
 
 @dataclass
@@ -42,24 +54,29 @@ class _Addrs(object):
 
 @dataclass
 class PartnerSelectedEvent(Event, _Addrs, _Round):
-    type = field(init=False, default="partner_selected")
+    type: EventType = field(init=False, default="partner_selected")
 
 
 @dataclass
 class CalculationStartedEvent(Event, _Addrs, _Round):
-    type = field(init=False, default="calculation_started")
+    type: EventType = field(init=False, default="calculation_started")
 
 
 @dataclass
 class AggregationStartedEvent(Event, _Addrs, _Round):
-    type = field(init=False, default="aggregation_started")
+    type: EventType = field(init=False, default="aggregation_started")
 
 
 @dataclass
 class RoundStartedEvent(Event, _Round):
-    type = field(init=False, default="round_started")
+    type: EventType = field(init=False, default="round_started")
 
 
 @dataclass
 class RoundEndedEvent(Event, _Round):
-    type = field(init=False, default="round_ended")
+    type: EventType = field(init=False, default="round_ended")
+
+
+@dataclass
+class TaskFinishEvent(Event):
+    type: EventType = field(init=False, default="task_finish")

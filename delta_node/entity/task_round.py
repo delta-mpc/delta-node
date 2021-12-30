@@ -46,7 +46,7 @@ class TaskRound(BaseTable):
             "sa": relationship(
                 "RoundMember",
                 primaryjoin="foreign(RoundMember.round_id) == TaskRound.id",
-                back_populates="round"
+                back_populates="round",
             )
         },
     )

@@ -9,7 +9,7 @@ def random_bytes(length: int) -> bytes:
 def test_shamir():
     value = random_bytes(32)
 
-    ss = shamir.SecretShare(3)
+    ss = shamir.SecretShare(2)
 
     shares = ss.make_shares(value, 5)
     assert len(shares) == 5

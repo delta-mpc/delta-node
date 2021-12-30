@@ -11,7 +11,7 @@ _local = threading.local()
 
 
 def init(
-    host: str = config.node_host, port: int = config.node_port, *, ssl: bool = False
+    host: str = config.chain_host, port: int = config.chain_port, *, ssl: bool = False
 ):
     if hasattr(_local, "ch") or hasattr(_local, "client"):
         raise ValueError("chain has been initialized")

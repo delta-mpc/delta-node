@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 
 @alru_cache
 async def get_node_address() -> str:
-    async with db.get_session() as sess:
+    async with db.session_scope() as sess:
         q = sa.select(entity.Node).where(entity.Node.id == 1)
         try:
             node: entity.Node = (await sess.execute(q)).scalars().one()
@@ -30,7 +30,7 @@ async def register(
     url: str = config.node_url,
     name: str = config.node_name,
 ):
-    async with db.get_session() as sess:
+    async with db.session_scope() as sess:
         q = sa.select(entity.Node).where(entity.Node.id == 1)
         node: Optional[entity.Node] = (await sess.execute(q)).scalars().one_or_none()
 
@@ -49,4 +49,12 @@ async def register(
 async def unregister():
     address = await get_node_address()
     await chain.get_client().leave(address)
-    _logger.info(f"node ${address} leave")
+
+    async with db.session_scope() as sess:
+        q = sa.select(entity.Node).where(entity.Node.id == 1)
+        node = (await sess.execute(q)).scalar_one()
+
+        await sess.delete(node)
+        await sess.commit()
+
+    _logger.info(f"node {address} leave")

@@ -8,19 +8,21 @@ log:
   dir: "logs"
 
 # 本地数据库地址，这里使用sqlite数据库，数据库文件保存在文件delta_node/db/delta.db中
-db: "sqlite:///db/delta.db"
+db: "sqlite+aiosqlite:///db/delta.db"
 
 # 区块链节点连接配置
 chain_connector:
-  # 区块链节点地址，必填
-  address: ""
+  # 区块链连接器的地址
+  host: ""
+  # 区块链连接器的端口
+  port: 4500
 
 # 本节点对外的公开地址，将会公开到区块链上，供其他Delta Node节点连接
-node_address:
-  # 节点的公网地址，必填
-  host: ""
-  # 节点公开地址的端口
-  port: 6800
+node:
+  # 本节点的名称
+  name: "node1"
+  # 本节点的对外公开地址
+  url: "127.0.0.1:6700"
 
 # 本节点的http服务监听地址，用于Deltaboard的连接以及Delta Task的注册等
 api_port: 6700

@@ -73,6 +73,37 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
+    async def finish_task(self, address: str, task_id: str):
+        req = chain_pb2.FinishTaskReq(address=address, task_id=task_id)
+        try:
+            await self.stub.FinishTask(req)
+        except Exception as e:
+            _logger.error(e)
+            raise
+
+    async def get_task(self, task_id: str) -> entity.RunnerTask:
+        req = chain_pb2.TaskReq(task_id=task_id)
+        try:
+            resp = await self.stub.GetTask(req)
+            status = (
+                entity.TaskStatus.FINISHED
+                if resp.finished
+                else entity.TaskStatus.RUNNING
+            )
+            res = entity.RunnerTask(
+                creator=resp.address,
+                task_id=resp.task_id,
+                dataset=resp.dataset,
+                commitment=serialize.hex_to_bytes(resp.commitment),
+                url=resp.url,
+                type=resp.task_type,
+                status=status,
+            )
+            return res
+        except Exception as e:
+            _logger.error(e)
+            raise
+
     async def start_round(self, address: str, task_id: str, round: int):
         req = chain_pb2.StartRoundReq(address=address, task_id=task_id, round=round)
         try:
@@ -288,6 +319,8 @@ class ChainClient(object):
             resp = await self.stub.GetSecretShareDatas(req)
             res = [
                 entity.SecretShareData(
+                    sender=sender,
+                    receiver=receiver,
                     seed=serialize.hex_to_bytes(share.seed),
                     seed_commitment=serialize.hex_to_bytes(share.seed_commitment),
                     secret_key=serialize.hex_to_bytes(share.secret_key),
@@ -295,7 +328,7 @@ class ChainClient(object):
                         share.secret_key_commitment
                     ),
                 )
-                for share in resp.shares
+                for sender, share in zip(senders, resp.shares)
             ]
             return res
         except Exception as e:
@@ -317,16 +350,16 @@ class ChainClient(object):
                 await stream.send_message(req, end=True)
                 async for event in stream:
                     event_type = event.WhichOneof("event")
-                    if event_type == "task_create":
+                    if event_type == "task_created":
                         yield entity.TaskCreateEvent(
-                            address=event.task_create.address,
-                            task_id=event.task_create.task_id,
-                            dataset=event.task_create.dataset,
-                            url=event.task_create.url,
+                            address=event.task_created.address,
+                            task_id=event.task_created.task_id,
+                            dataset=event.task_created.dataset,
+                            url=event.task_created.url,
                             commitment=serialize.hex_to_bytes(
-                                event.task_create.commitment
+                                event.task_created.commitment
                             ),
-                            task_type=event.task_create.task_type,
+                            task_type=event.task_created.task_type,
                         )
                     elif event_type == "round_started":
                         yield entity.RoundStartedEvent(
@@ -351,10 +384,14 @@ class ChainClient(object):
                             round=event.aggregation_started.round,
                             addrs=list(event.aggregation_started.addrs),
                         )
-                    else:
+                    elif event_type == "round_ended":
                         yield entity.RoundEndedEvent(
                             task_id=event.round_ended.task_id,
                             round=event.round_ended.round,
+                        )
+                    elif event_type == "task_finished":
+                        yield entity.TaskFinishEvent(
+                            task_id=event.task_finished.task_id
                         )
         except Exception as e:
             _logger.error(e)
