@@ -1,72 +1,52 @@
 import argparse
-import multiprocessing as mp
+import asyncio
 import os
+from typing import Optional, Sequence
 
 
-def app_run(q):
-    from . import app, config, log
+async def _run():
+    from . import app, chain, config, coord, db, log, registry, runner, pool
 
-    log.init(q)
-    log.set_log_queue(q)
-    app.run("0.0.0.0", config.api_port)
+    if len(config.chain_host) == 0:
+        raise RuntimeError("chain connector host is required")
+    if len(config.node_url) == 0:
+        raise RuntimeError("node host is required")
+    if len(config.node_name) == 0:
+        raise RuntimeError("node name is required")
 
+    listener = log.create_log_listener()
+    listener.start()
+    log.init()
 
-def commu_run(q):
-    from . import commu, config, log
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(pool.IO_POOL)
+    await db.init(config.db)
+    chain.init(config.chain_host, config.chain_port, ssl=False)
+    await registry.register(config.node_url, config.node_name)
 
-    log.init(q)
-    log.set_log_queue(q)
-    server = commu.CommuServer(f"0.0.0.0:{config.node_port}")
+    fut = asyncio.gather(
+        app.run("0.0.0.0", config.api_port), runner.run(), coord.run_unfinished_tasks()
+    )
     try:
-        server.start()
-        server.wait_for_termination()
+        await fut
     finally:
-        server.stop()
-
-
-def executor_run(q):
-    from . import executor, log
-
-    log.init(q)
-    log.set_log_queue(q)
-    executor.run()
+        await registry.unregister()
+        chain.close()
+        await db.close()
+        listener.stop()
+        # pool.close()
 
 
 def run():
-    from . import config, db, log, node
-
-    if config.chain_address is None or len(config.chain_address) == 0:
-        raise RuntimeError("chain connector address is required")
-    if config.node_host is None or len(config.node_host) == 0:
-        raise RuntimeError("node address host is required")
-
-    ctx = mp.get_context("spawn")
-    with ctx.Manager() as manager:
-        queue = manager.Queue()
-        listener = log.create_log_listener(queue)
-        log.init(queue)
-        db.init_db()
-        node.register_node()
-
-        app_process = ctx.Process(target=app_run, args=(queue,))
-        app_process.start()
-
-        commu_process = ctx.Process(target=commu_run, args=(queue,))
-        commu_process.start()
-
-        contract_process = ctx.Process(target=executor_run, args=(queue,))
-        contract_process.start()
-
-        contract_process.join()
-        commu_process.join()
-        app_process.join()
-        listener.stop()
+    try:
+        asyncio.run(_run())
+    except KeyboardInterrupt:
+        pass
 
 
 def init():
     config_file = os.getenv("DELTA_NODE_CONFIG", "config/config.yaml")
     config_dir, _ = os.path.split(config_file)
-    print(config_dir)
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, exist_ok=True)
 
@@ -94,7 +74,7 @@ def mnist():
     mnist.mnist_train()
 
 
-def main():
+def main(input_args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
         "action",
@@ -102,7 +82,7 @@ def main():
         help="delta node start action: 'init' to init delta node config, 'run' to start the node",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0")
-    args = parser.parse_args()
+    args = parser.parse_args(input_args)
     if args.action == "init":
         init()
     elif args.action == "run":

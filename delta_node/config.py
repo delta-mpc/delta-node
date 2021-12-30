@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict
 
 import yaml
 
@@ -15,12 +15,12 @@ log_dir: str = _log.get("dir", "logs")
 db: str = _c.get("db")
 
 _chain: Dict = _c.get("chain_connector")
-chain_address: str = _chain.get("address", None)
+chain_host: str = _chain.get("host", "")
+chain_port: int = _chain.get("port", 4500)
 
-_node_address: Dict = _c.get("node_address")
-node_host: str = _node_address.get("host", None)
-node_port: int = _node_address.get("port", 6800)
-node_address = f"{node_host}:{node_port}"
+_node: Dict = _c.get("node")
+node_name: str = _node.get("name", "")
+node_url: str = _node.get("url", "")
 
 api_port: int = _c.get("api_port", 6700)
 

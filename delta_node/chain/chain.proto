@@ -1,0 +1,278 @@
+syntax = "proto3";
+
+package chain;
+
+message Empty {}
+
+message JoinReq {
+    string url = 1;
+    string name = 2;
+}
+
+message JoinResp {
+    string address = 1;
+}
+
+message UpdateUrlReq {
+    string address = 1;
+    string url = 2;
+}
+
+message UpdateNameReq {
+    string address = 1;
+    string name = 2;
+}
+
+message LeaveReq {
+    string address = 1;
+}
+
+message NodeInfoReq {
+    string address = 1;
+}
+
+message NodeInfoResp {
+    string url = 1;
+    string name = 2;
+}
+
+message CreateTaskReq {
+    string address = 1;
+    string dataset = 2;
+    string commitment = 3;
+    string task_type = 4;
+}
+
+message CreateTaskResp {
+    string task_id = 1;
+}
+
+message FinishTaskReq {
+    string address = 1;
+    string task_id = 2;
+}
+
+message TaskReq {
+    string task_id = 1;
+}
+
+message TaskResp {
+    string address = 1;
+    string url = 2;
+    string task_id = 3;
+    string dataset = 4;
+    string commitment = 5;
+    string task_type = 6;
+    bool finished = 7;
+}
+
+message StartRoundReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+}
+
+message JoinRoundReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    string pk1 = 4;
+    string pk2 = 5;
+}
+
+message TaskRoundReq {
+    string task_id = 1;
+    int32 round = 2;
+}
+
+enum RoundStatus {
+    STARTED = 0;
+    RUNNING = 1;
+    CALCULATING = 2;
+    AGGREGATING = 3;
+    FINISHED = 4;
+}
+
+message TaskRoundResp {
+    int32 round = 1;
+    RoundStatus status = 2;
+    repeated string clients = 3;
+}
+
+message CandidatesReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string clients = 4;
+}
+
+message ShareCommitment {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string receivers = 4;
+    repeated string commitments = 5;
+}
+
+message PublicKeyReq {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string clients = 3;
+}
+
+message PublicKeys {
+    string pk1 = 1;
+    string pk2 = 2;
+}
+
+message PublicKeyResp {
+    repeated PublicKeys keys = 1;
+}
+
+message CalculationReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string clients = 4;
+}
+
+message ResultCommitment {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    string commitment = 4;
+}
+
+message ResultCommitmentReq {
+    string task_id = 1;
+    int32 round = 2;
+    string client = 3;
+}
+
+message ResultCommitmentResp {
+    string commitment = 1;
+}
+
+message AggregationReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string clients = 4;
+}
+
+message Share {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string senders = 4;
+    repeated string shares = 5;
+}
+
+message SecretShareReq {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string senders = 3;
+    string receiver = 4;
+}
+
+message SecretShareData {
+    optional string seed = 1;
+    optional string seed_commitment = 2;
+    optional string secret_key = 3;
+    optional string secret_key_commitment = 4;
+}
+
+message SecretShareResp {
+    repeated SecretShareData shares = 1;
+}
+
+message EndRoundReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+}
+
+message EventReq {
+    string address = 1;
+}
+
+message Event {
+    oneof event {
+        TaskCreateEvent task_created = 1;
+        RoundStartedEvent round_started = 2;
+        PartnerSelectedEvent partner_selected = 3;
+        CalculationStartedEvent calculation_started = 4;
+        AggregationStartedEvent aggregation_started = 5;
+        RoundEndedEvent round_ended = 6;
+        TaskFinishEvent task_finished = 7;
+    }
+}
+
+message TaskCreateEvent {
+    string address = 1;
+    string task_id = 2;
+    string dataset = 3;
+    string url = 4;
+    string commitment = 5;
+    string task_type = 6;
+}
+
+message RoundStartedEvent {
+    string task_id = 1;
+    int32 round = 2;  
+}
+
+message PartnerSelectedEvent {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string addrs = 3;
+}
+
+message CalculationStartedEvent {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string addrs = 3;
+}
+
+message AggregationStartedEvent {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string addrs = 3;
+}
+
+message RoundEndedEvent {
+    string task_id = 1;
+    int32 round = 2;
+}
+
+message TaskFinishEvent {
+    string task_id = 1;
+}
+
+service Chain {
+    rpc Join(JoinReq) returns (JoinResp) {}
+    rpc UpdateUrl(UpdateUrlReq) returns (Empty) {}
+    rpc UpdateName(UpdateNameReq) returns (Empty) {}
+    rpc Leave(LeaveReq) returns (Empty) {}
+    rpc GetNodeInfo(NodeInfoReq) returns (NodeInfoResp) {}
+    rpc CreateTask(CreateTaskReq) returns (CreateTaskResp) {}
+    rpc FinishTask(FinishTaskReq) returns (Empty) {}
+    rpc GetTask(TaskReq) returns (TaskResp) {}
+    rpc StartRound(StartRoundReq) returns (Empty) {}
+    rpc JoinRound(JoinRoundReq) returns (Empty) {}
+    rpc GetTaskRound(TaskRoundReq) returns (TaskRoundResp) {}
+    rpc SelectCandidates(CandidatesReq) returns (Empty) {}
+    rpc UploadSeedCommitment(ShareCommitment) returns (Empty) {}
+    rpc UploadSecretKeyCommitment(ShareCommitment) returns (Empty) {}
+    rpc GetClientPublickKeys(PublicKeyReq) returns (PublicKeyResp) {}
+    rpc StartCalculation(CalculationReq) returns (Empty) {}
+    rpc UploadResultCommitment(ResultCommitment) returns (Empty) {}
+    rpc GetResultCommitment(ResultCommitmentReq) returns (ResultCommitmentResp) {}
+    rpc StartAggregation(AggregationReq) returns (Empty) {}
+    rpc UploadSeed(Share) returns (Empty) {}
+    rpc UploadSecretKey(Share) returns (Empty) {}
+    rpc GetSecretShareDatas(SecretShareReq) returns (SecretShareResp) {}
+    rpc EndRound(EndRoundReq) returns (Empty) {}
+    rpc Subscribe(EventReq) returns (stream Event) {}
+}
+

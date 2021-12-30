@@ -1,1 +1,1 @@
-from .shamir import SecretShare, PRIME
+from .shamir import *

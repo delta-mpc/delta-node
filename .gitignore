@@ -32,16 +32,15 @@ MANIFEST
 # vscode
 .vscode
 
-storage*/
+# mypy
+.mypy_cache
+
+# pytest
+.pytest_cache
+
 config/
 data*/*.npz
 *whls/
 db/*.db
-logs*/
-task1/
-task2/
-task3/
-task4/
-data1/
-data2/
-data3/
+*.db
+nodes/

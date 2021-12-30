@@ -1,11 +1,13 @@
-from logging import LogRecord, Handler
-import logging
-from logging.handlers import QueueHandler, QueueListener
-from queue import Queue
-from typing import Tuple
+import asyncio
+from logging import Handler, LogRecord
 
-from .. import db
-from ..model import Log
+from delta_node import db, entity
+
+
+async def write_log_record(record: entity.Record):
+    async with db.session_scope() as sess:
+        sess.add(record)
+        await sess.commit()
 
 
 class DBWriteHandler(Handler):
@@ -13,20 +15,13 @@ class DBWriteHandler(Handler):
         super(DBWriteHandler, self).__init__()
 
     def emit(self, record: LogRecord) -> None:
-        with db.session_scope() as session:
-            if hasattr(record, "task_id"):
-                task_id = getattr(record, "task_id")
-                created_at = int(record.created * 1000)
-                level = record.levelname
+        if hasattr(record, "task_id"):
+            task_id = getattr(record, "task_id")
+            level = record.levelname
 
-                log = Log(
-                    created_at=created_at,
-                    level=level,
-                    task_id=task_id,
-                    message=record.message,
-                )
+            log = entity.Record(level=level, message=record.message, task_id=task_id)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(write_log_record(log))
 
-                session.add(log)
-                session.commit()
 
 handler = DBWriteHandler()
