@@ -5,38 +5,21 @@ import os
 import shutil
 from asyncio.futures import Future
 from tempfile import TemporaryFile
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import (IO, TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
+                    Optional, Tuple, Union)
 
 import delta.serialize
 import numpy as np
 from delta.algorithm.horizontal import HorizontalAlgorithm
 from delta.node import Node
 from delta.task import HorizontalTask
-from delta_node import chain, config, entity, pool, registry, serialize, utils
+from delta_node import (chain, commu, config, entity, pool, registry,
+                        serialize, utils)
 from delta_node.crypto import aes, ecdhe, shamir
 
-from .client import Client
 from .dataset import new_train_val_dataloader
-from .loc import (
-    task_config_file,
-    task_dir,
-    task_metrics_file,
-    task_result_file,
-    task_state_file,
-    task_weight_file,
-)
+from .loc import (task_config_file, task_dir, task_metrics_file,
+                  task_result_file, task_state_file, task_weight_file)
 from .runner import TaskRunner
 
 if TYPE_CHECKING:
@@ -130,7 +113,7 @@ class HFLTaskRunner(TaskRunner):
         self.commitment = task.commitment
         self.url = task.url
 
-        self.client = Client(self.url)
+        self.client = commu.get_client(self.url)
 
         self.algorithm: Optional[HorizontalAlgorithm] = None
 
@@ -228,21 +211,15 @@ class HFLTaskRunner(TaskRunner):
                 self.current_task = None
 
     async def end_round(self, event: entity.RoundEndedEvent):
-        if (
-            self.round_runner
-            and self.round_runner.round == event.round
-            and self.current_task is None
-        ):
-            self.round_runner.finish()
-            self.round_runner = None
+        if self.round_runner and self.round_runner.round == event.round:
+            await self.finish_round()
 
     async def finish_round(self):
         if self.current_task:
             self.current_task.cancel()
             self.current_task = None
         if self.round_runner:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(pool.IO_POOL, self.round_runner.finish)
+            await self.round_runner.finish()
             self.round_runner = None
 
     async def finish(self):
@@ -255,9 +232,6 @@ class HFLTaskRunner(TaskRunner):
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(pool.IO_POOL, rm_dir)
-
-        self.client.close()
-        await self.client.aclose()
 
 
 class HFLRoundRunner(object):
@@ -323,7 +297,7 @@ class HFLRoundRunner(object):
             self.task_id, self.round, event.addrs
         )
         pk1s, pk2s = zip(*pks)
-        _logger.info("get client pks")
+        _logger.debug("get client pks")
 
         share_key1s = []
         for addr, pk1, pk2 in zip(event.addrs, pk1s, pk2s):
@@ -332,51 +306,53 @@ class HFLRoundRunner(object):
             share_key1 = ecdhe.generate_shared_key(self.sk1, pk1, curve=self.curve)
             share_key1s.append(share_key1)
             self.share_key1s[addr] = share_key1
-            _logger.info(
+            _logger.debug(
                 f"{node_address[:8]} -> {addr[:8]} share key {serialize.bytes_to_hex(share_key1)[:8]}"
             )
-        _logger.info("generate shared keys for communication")
+        _logger.debug("generate shared keys for communication")
 
         self.seed = os.urandom(32)
-        _logger.info(f"{node_address} seed {serialize.bytes_to_hex(self.seed)}")
+        _logger.debug(f"{node_address} seed {serialize.bytes_to_hex(self.seed)}")
 
         ss = shamir.SecretShare(self.algorithm.min_clients)
 
         seed_shares = ss.make_shares(self.seed, len(event.addrs))
-        _logger.info(f"{node_address} seed shares {[serialize.bytes_to_hex(share) for share in seed_shares]}")
+        _logger.debug(
+            f"{node_address} seed shares {[serialize.bytes_to_hex(share) for share in seed_shares]}"
+        )
         for receiver, share in zip(event.addrs, seed_shares):
-            _logger.info(
+            _logger.debug(
                 f"{node_address[:8]} -> {receiver[:8]} seed share {serialize.bytes_to_hex(share)[:8]}"
             )
-        _logger.info("make seed shares")
+        _logger.debug("make seed shares")
         sk_shares = ss.make_shares(self.sk2, len(event.addrs))
         for receiver, share in zip(event.addrs, sk_shares):
-            _logger.info(
+            _logger.debug(
                 f"{node_address[:8]} -> {receiver[:8]} sk share {serialize.bytes_to_hex(share)[:8]}"
             )
-        _logger.info("make sk shares")
+        _logger.debug("make sk shares")
 
         seed_commitments = [utils.calc_commitment(share) for share in seed_shares]
-        _logger.info("generate seed share commitments")
+        _logger.debug("generate seed share commitments")
         sk_commitments = [utils.calc_commitment(share) for share in sk_shares]
-        _logger.info("generate sk share commitments")
+        _logger.debug("generate sk share commitments")
 
         enc_seed_shares = [
             aes.encrypt(key, share) for key, share in zip(share_key1s, seed_shares)
         ]
         for addr, share in zip(event.addrs, enc_seed_shares):
-            _logger.info(
+            _logger.debug(
                 f"{node_address[:8]} -> {addr[:8]} enc seed share {serialize.bytes_to_hex(share)[:8]}"
             )
-        _logger.info("encrypt seed shares")
+        _logger.debug("encrypt seed shares")
         enc_sk_shares = [
             aes.encrypt(key, share) for key, share in zip(share_key1s, sk_shares)
         ]
         for addr, share in zip(event.addrs, enc_sk_shares):
-            _logger.info(
+            _logger.debug(
                 f"{node_address[:8]} -> {addr[:8]} enc sk share {serialize.bytes_to_hex(share)[:8]}"
             )
-        _logger.info("encrypt sk shares")
+        _logger.debug("encrypt sk shares")
 
         await chain.get_client().upload_seed_commitment(
             node_address,
@@ -385,7 +361,7 @@ class HFLRoundRunner(object):
             event.addrs,
             seed_commitments,
         )
-        _logger.info("upload seed share commitments")
+        _logger.debug("upload seed share commitments")
         await chain.get_client().upload_secret_key_commitment(
             node_address,
             self.task_id,
@@ -393,7 +369,7 @@ class HFLRoundRunner(object):
             event.addrs,
             sk_commitments,
         )
-        _logger.info("upload sk share commitments")
+        _logger.debug("upload sk share commitments")
 
         ss_datas = [
             entity.SecretShareData(
@@ -408,17 +384,17 @@ class HFLRoundRunner(object):
         ]
 
         for data in ss_datas:
-            _logger.info(
+            _logger.debug(
                 f"{data.sender[:8]} -> {data.receiver[:8]} seed share {serialize.bytes_to_hex(data.seed)[:8]}"
             )
-            _logger.info(
+            _logger.debug(
                 f"{data.sender[:8]} -> {data.receiver[:8]} secret key share {serialize.bytes_to_hex(data.secret_key)[:8]}"
             )
 
         await self.client.upload_secret_shares(
             node_address, self.task_id, self.round, ss_datas
         )
-        _logger.info("upload secret shares to coordinator")
+        _logger.debug("upload secret shares to coordinator")
         self.status = entity.RoundStatus.RUNNING
 
     async def start_calculating(self, event: entity.CalculationStartedEvent):
@@ -438,16 +414,16 @@ class HFLRoundRunner(object):
         ss_commitments = await chain.get_client().get_secret_share_datas(
             self.task_id, self.round, event.addrs, node_address
         )
-        _logger.info("get secret shares")
+        _logger.debug("get secret shares")
         ss_datas = await self.client.get_secret_shares(
             node_address, self.task_id, self.round
         )
-        _logger.info("get secret share commitments")
+        _logger.debug("get secret share commitments")
         for data in ss_datas:
-            _logger.info(
+            _logger.debug(
                 f"{data.sender[:8]} -> {data.receiver[:8]} enc seed share {serialize.bytes_to_hex(data.seed)[:8]}"
             )
-            _logger.info(
+            _logger.debug(
                 f"{data.sender[:8]} -> {data.receiver[:8]} enc secret key share {serialize.bytes_to_hex(data.secret_key)[:8]}"
             )
 
@@ -457,7 +433,7 @@ class HFLRoundRunner(object):
                 for ss in ss_datas
             }
             for sender, share in seed_shares.items():
-                _logger.info(
+                _logger.debug(
                     f"{sender[:8]} -> {node_address[:8]} seed share {serialize.bytes_to_hex(share)[:8]}"
                 )
             sk_shares = {
@@ -465,10 +441,10 @@ class HFLRoundRunner(object):
                 for ss in ss_datas
             }
             for sender, share in sk_shares.items():
-                _logger.info(
+                _logger.debug(
                     f"{sender[:8]} -> {node_address[:8]} secret key share {serialize.bytes_to_hex(share)[:8]}"
                 )
-            _logger.info("decrypt secret share commitments")
+            _logger.debug("decrypt secret share commitments")
         except Exception as e:
             _logger.exception(e)
             raise
@@ -485,7 +461,7 @@ class HFLRoundRunner(object):
             commitment = sk_commitments.get(sender, None)
             if commitment and utils.calc_commitment(share) == commitment:
                 self.sk_shares[sender] = share
-        _logger.info("check secret share commitments")
+        _logger.debug("check secret share commitments")
 
         loop = asyncio.get_running_loop()
 
@@ -493,25 +469,25 @@ class HFLRoundRunner(object):
             filename = task_weight_file(self.task_id, self.round - 1)
             with open(filename, mode="wb") as dst:
                 self.client.download_task_weight(self.task_id, self.round - 1, dst)
-                _logger.info(f"download task round {self.round - 1} weight")
+                _logger.debug(f"download task round {self.round - 1} weight")
 
         def upload_result():
             filename = task_result_file(self.task_id, self.round)
 
             weight_arr = delta.serialize.load_arr(filename)
-            _logger.info(f"weight arr {weight_arr}")
+            _logger.debug(f"weight arr {weight_arr}")
             masked_weight_arr = self.mask_arr(weight_arr, node_address, event.addrs)
-            _logger.info(f"mask arr {masked_weight_arr}")
+            _logger.debug(f"mask arr {masked_weight_arr}")
             with TemporaryFile(mode="w+b") as file:
                 delta.serialize.dump_arr(file, masked_weight_arr)
                 file.seek(0)
                 self.client.upload_task_round_result(
                     node_address, self.task_id, self.round, file
                 )
-                _logger.info(f"upload result of task round {self.round}")
+                _logger.debug(f"upload result of task round {self.round}")
                 file.seek(0)
                 commitment = utils.calc_commitment(file)
-                _logger.info(f"calculate commitment of task round {self.round} result")
+                _logger.debug(f"calculate commitment of task round {self.round} result")
                 return commitment
 
         def upload_metrics():
@@ -534,11 +510,11 @@ class HFLRoundRunner(object):
                     self.round,
                     masked_metrics,
                 )
-                _logger.info(f"upload metrics of task round {self.round}")
+                _logger.debug(f"upload metrics of task round {self.round}")
 
         await loop.run_in_executor(pool.IO_POOL, download_weight)
         await loop.run_in_executor(pool.RUNNER_POOL, run_task, self.task_id, self.round)
-        _logger.info("calculation finished")
+        _logger.debug("calculation finished")
 
         commitment = await loop.run_in_executor(pool.IO_POOL, upload_result)
         await loop.run_in_executor(pool.IO_POOL, upload_metrics)
@@ -546,7 +522,7 @@ class HFLRoundRunner(object):
         await chain.get_client().upload_result_commitment(
             node_address, self.task_id, self.round, commitment
         )
-        _logger.info(f"upload result commitment")
+        _logger.debug(f"upload result commitment")
         self.status = entity.RoundStatus.CALCULATING
 
     def mask_arr(
@@ -569,8 +545,8 @@ class HFLRoundRunner(object):
                 else:
                     sk_mask += mask
 
-        _logger.info(f"seed mask {seed_mask}")
-        _logger.info(f"sk mask {sk_mask}")
+        _logger.debug(f"seed mask {seed_mask}")
+        _logger.debug(f"sk mask {sk_mask}")
         res = utils.fix_precision(arr, self.precision) + seed_mask + sk_mask  # type: ignore
         return res
 
@@ -590,8 +566,8 @@ class HFLRoundRunner(object):
 
         dead_members = list(set(self.u2) - set(self.u3))
         alive_members = self.u3
-        _logger.info(f"dead members {dead_members}")
-        _logger.info(f"alive members {alive_members}")
+        _logger.debug(f"dead members {dead_members}")
+        _logger.debug(f"alive members {alive_members}")
 
         sk_shares: List[bytes] = []
         for addr in dead_members:
@@ -617,11 +593,15 @@ class HFLRoundRunner(object):
         )
         self.status = entity.RoundStatus.AGGREGATING
 
-    def finish(self):
-        weight_file = task_weight_file(self.task_id, self.round)
-        result_file = task_result_file(self.task_id, self.round)
-        metrics_file = task_metrics_file(self.task_id, self.round)
+    async def finish(self):
+        def _finish():
+            weight_file = task_weight_file(self.task_id, self.round)
+            result_file = task_result_file(self.task_id, self.round)
+            metrics_file = task_metrics_file(self.task_id, self.round)
 
-        for file in [weight_file, result_file, metrics_file]:
-            if os.path.exists(file):
-                os.remove(file)
+            for file in [weight_file, result_file, metrics_file]:
+                if os.path.exists(file):
+                    os.remove(file)
+
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(pool.IO_POOL, _finish)
