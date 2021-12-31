@@ -1,11 +1,9 @@
-import atexit
 import concurrent.futures
 import os
 import multiprocessing as mp
-import gc
 
 
-__all__ = ["IO_POOL", "WORKER_POOL", "RUNNER_POOL", "MANAGER", "close"]
+__all__ = ["IO_POOL", "WORKER_POOL", "RUNNER_POOL", "MANAGER"]
 
 cpu_count = os.cpu_count()
 
@@ -20,11 +18,3 @@ RUNNER_POOL = concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count)
 MANAGER = mp.Manager()
 
 LOG_QUEUE = MANAGER.Queue()
-
-
-def close():
-    gc.collect()
-    RUNNER_POOL.shutdown(True)
-    WORKER_POOL.shutdown(True)
-    IO_POOL.shutdown(True)
-    MANAGER.shutdown()
