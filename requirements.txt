@@ -1,19 +1,20 @@
+async_lru==1.0.2
 cryptography==3.4.7
-pandas==1.2.3
-SQLAlchemy==1.4.21
-tenacity==8.0.1
-uvicorn==0.14.0
-requests==2.25.1
+delta==0.4.2
+delta_task==0.3.0
+fastapi==0.70.1
+grpclib==0.4.2
+httpx==0.21.1
+hypercorn==0.13.2
 numpy==1.21.4
+pandas==1.2.3
+Pillow==8.4.0
+protobuf==3.19.1
 pydantic==1.8.2
-fastapi==0.68.0
-grpcio==1.42.0
-Pillow==8.3.1
-protobuf==3.17.3
-PyYAML==5.4.1
-python-multipart==0.0.5
+pytest==6.2.5
+PyYAML==6.0
+SQLAlchemy==1.4.21
 tqdm==4.46.0
-delta-task==0.3.0
 
 -f https://download.pytorch.org/whl/torch_stable.html
 torch==1.8.1+cpu
