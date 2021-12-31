@@ -1,5 +1,5 @@
-import json
 import asyncio
+import json
 import logging
 import math
 import os
@@ -7,20 +7,10 @@ import shutil
 from typing import IO, Dict, List, Optional
 
 import sqlalchemy as sa
-import delta
-import delta.serialize
 from delta_node import chain, coord, db, entity, pool, registry
 from delta_node.serialize import bytes_to_hex, hex_to_bytes
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    Query,
-    UploadFile,
-    BackgroundTasks,
-)
+from fastapi import (APIRouter, BackgroundTasks, Depends, File, Form,
+                     HTTPException, Query, UploadFile)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +33,7 @@ def dump_task(task_id: str, task_file: IO[bytes]):
     task_file.seek(0)
     with open(coord.task_config_file(task_id), mode="wb") as f:
         shutil.copyfileobj(task_file, f)
-        _logger.info(f"save task config file of {task_id}")
+        _logger.debug(f"save task config file of {task_id}")
 
 
 @router.post("/task", response_model=CreateTaskResp)
@@ -155,7 +145,7 @@ async def upload_secret_share(
             hex_to_bytes(share.seed_share),
             hex_to_bytes(share.sk_share),
             sender=sender,
-            receiver=receiver
+            receiver=receiver,
         )
         session.add(ss)
     await session.commit()
