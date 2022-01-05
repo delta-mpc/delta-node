@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package chain;
 
-message Empty {}
+message Transaction {
+    string tx_hash = 1;
+}
 
 message JoinReq {
     string url = 1;
@@ -10,7 +12,8 @@ message JoinReq {
 }
 
 message JoinResp {
-    string address = 1;
+    string tx_hash = 1;
+    string address = 2;
 }
 
 message UpdateUrlReq {
@@ -31,9 +34,20 @@ message NodeInfoReq {
     string address = 1;
 }
 
-message NodeInfoResp {
+message NodeInfo {
     string url = 1;
     string name = 2;
+    string address = 3;
+}
+
+message NodeInfosReq {
+    int32 page = 1;
+    int32 page_size = 2;
+}
+
+message NodeInfos {
+    repeated NodeInfo nodes = 1;
+    int32 total_count = 2;
 }
 
 message CreateTaskReq {
@@ -44,7 +58,8 @@ message CreateTaskReq {
 }
 
 message CreateTaskResp {
-    string task_id = 1;
+    string tx_hash = 1;
+    string task_id = 2;
 }
 
 message FinishTaskReq {
@@ -251,28 +266,29 @@ message TaskFinishEvent {
 
 service Chain {
     rpc Join(JoinReq) returns (JoinResp) {}
-    rpc UpdateUrl(UpdateUrlReq) returns (Empty) {}
-    rpc UpdateName(UpdateNameReq) returns (Empty) {}
-    rpc Leave(LeaveReq) returns (Empty) {}
-    rpc GetNodeInfo(NodeInfoReq) returns (NodeInfoResp) {}
+    rpc UpdateUrl(UpdateUrlReq) returns (Transaction) {}
+    rpc UpdateName(UpdateNameReq) returns (Transaction) {}
+    rpc Leave(LeaveReq) returns (Transaction) {}
+    rpc GetNodeInfo(NodeInfoReq) returns (NodeInfo) {}
+    rpc GetNodes(NodeInfosReq) returns (NodeInfos) {}
     rpc CreateTask(CreateTaskReq) returns (CreateTaskResp) {}
-    rpc FinishTask(FinishTaskReq) returns (Empty) {}
+    rpc FinishTask(FinishTaskReq) returns (Transaction) {}
     rpc GetTask(TaskReq) returns (TaskResp) {}
-    rpc StartRound(StartRoundReq) returns (Empty) {}
-    rpc JoinRound(JoinRoundReq) returns (Empty) {}
+    rpc StartRound(StartRoundReq) returns (Transaction) {}
+    rpc JoinRound(JoinRoundReq) returns (Transaction) {}
     rpc GetTaskRound(TaskRoundReq) returns (TaskRoundResp) {}
-    rpc SelectCandidates(CandidatesReq) returns (Empty) {}
-    rpc UploadSeedCommitment(ShareCommitment) returns (Empty) {}
-    rpc UploadSecretKeyCommitment(ShareCommitment) returns (Empty) {}
+    rpc SelectCandidates(CandidatesReq) returns (Transaction) {}
+    rpc UploadSeedCommitment(ShareCommitment) returns (Transaction) {}
+    rpc UploadSecretKeyCommitment(ShareCommitment) returns (Transaction) {}
     rpc GetClientPublickKeys(PublicKeyReq) returns (PublicKeyResp) {}
-    rpc StartCalculation(CalculationReq) returns (Empty) {}
-    rpc UploadResultCommitment(ResultCommitment) returns (Empty) {}
+    rpc StartCalculation(CalculationReq) returns (Transaction) {}
+    rpc UploadResultCommitment(ResultCommitment) returns (Transaction) {}
     rpc GetResultCommitment(ResultCommitmentReq) returns (ResultCommitmentResp) {}
-    rpc StartAggregation(AggregationReq) returns (Empty) {}
-    rpc UploadSeed(Share) returns (Empty) {}
-    rpc UploadSecretKey(Share) returns (Empty) {}
+    rpc StartAggregation(AggregationReq) returns (Transaction) {}
+    rpc UploadSeed(Share) returns (Transaction) {}
+    rpc UploadSecretKey(Share) returns (Transaction) {}
     rpc GetSecretShareDatas(SecretShareReq) returns (SecretShareResp) {}
-    rpc EndRound(EndRoundReq) returns (Empty) {}
+    rpc EndRound(EndRoundReq) returns (Transaction) {}
     rpc Subscribe(EventReq) returns (stream Event) {}
 }
 

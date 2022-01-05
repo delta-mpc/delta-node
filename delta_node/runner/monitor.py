@@ -77,6 +77,7 @@ async def monitor_task_create(event: entity.Event):
         _logger.debug(f"reject task {event.task_id}")
         return
 
+    _logger.info(f"start run task {event.task_id}", extra={"task_id": event.task_id})
     async with db.session_scope() as sess:
         task = entity.RunnerTask(
             creator=event.address,

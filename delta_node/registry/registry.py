@@ -38,7 +38,7 @@ async def register(
             _logger.info(f"registered node, node address: {node.address}")
 
         else:
-            address = await chain.get_client().join(url, name)
+            _, address = await chain.get_client().join(url, name)
             node = entity.Node(url=url, name=name, address=address)
             sess.add(node)
             await sess.commit()

@@ -19,19 +19,23 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def UpdateUrl(self, stream: 'grpclib.server.Stream[chain_pb2.UpdateUrlReq, chain_pb2.Empty]') -> None:
+    async def UpdateUrl(self, stream: 'grpclib.server.Stream[chain_pb2.UpdateUrlReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def UpdateName(self, stream: 'grpclib.server.Stream[chain_pb2.UpdateNameReq, chain_pb2.Empty]') -> None:
+    async def UpdateName(self, stream: 'grpclib.server.Stream[chain_pb2.UpdateNameReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def Leave(self, stream: 'grpclib.server.Stream[chain_pb2.LeaveReq, chain_pb2.Empty]') -> None:
+    async def Leave(self, stream: 'grpclib.server.Stream[chain_pb2.LeaveReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def GetNodeInfo(self, stream: 'grpclib.server.Stream[chain_pb2.NodeInfoReq, chain_pb2.NodeInfoResp]') -> None:
+    async def GetNodeInfo(self, stream: 'grpclib.server.Stream[chain_pb2.NodeInfoReq, chain_pb2.NodeInfo]') -> None:
+        pass
+
+    @abc.abstractmethod
+    async def GetNodes(self, stream: 'grpclib.server.Stream[chain_pb2.NodeInfosReq, chain_pb2.NodeInfos]') -> None:
         pass
 
     @abc.abstractmethod
@@ -39,7 +43,7 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def FinishTask(self, stream: 'grpclib.server.Stream[chain_pb2.FinishTaskReq, chain_pb2.Empty]') -> None:
+    async def FinishTask(self, stream: 'grpclib.server.Stream[chain_pb2.FinishTaskReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
@@ -47,11 +51,11 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def StartRound(self, stream: 'grpclib.server.Stream[chain_pb2.StartRoundReq, chain_pb2.Empty]') -> None:
+    async def StartRound(self, stream: 'grpclib.server.Stream[chain_pb2.StartRoundReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def JoinRound(self, stream: 'grpclib.server.Stream[chain_pb2.JoinRoundReq, chain_pb2.Empty]') -> None:
+    async def JoinRound(self, stream: 'grpclib.server.Stream[chain_pb2.JoinRoundReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
@@ -59,15 +63,15 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def SelectCandidates(self, stream: 'grpclib.server.Stream[chain_pb2.CandidatesReq, chain_pb2.Empty]') -> None:
+    async def SelectCandidates(self, stream: 'grpclib.server.Stream[chain_pb2.CandidatesReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def UploadSeedCommitment(self, stream: 'grpclib.server.Stream[chain_pb2.ShareCommitment, chain_pb2.Empty]') -> None:
+    async def UploadSeedCommitment(self, stream: 'grpclib.server.Stream[chain_pb2.ShareCommitment, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def UploadSecretKeyCommitment(self, stream: 'grpclib.server.Stream[chain_pb2.ShareCommitment, chain_pb2.Empty]') -> None:
+    async def UploadSecretKeyCommitment(self, stream: 'grpclib.server.Stream[chain_pb2.ShareCommitment, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
@@ -75,11 +79,11 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def StartCalculation(self, stream: 'grpclib.server.Stream[chain_pb2.CalculationReq, chain_pb2.Empty]') -> None:
+    async def StartCalculation(self, stream: 'grpclib.server.Stream[chain_pb2.CalculationReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def UploadResultCommitment(self, stream: 'grpclib.server.Stream[chain_pb2.ResultCommitment, chain_pb2.Empty]') -> None:
+    async def UploadResultCommitment(self, stream: 'grpclib.server.Stream[chain_pb2.ResultCommitment, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
@@ -87,15 +91,15 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def StartAggregation(self, stream: 'grpclib.server.Stream[chain_pb2.AggregationReq, chain_pb2.Empty]') -> None:
+    async def StartAggregation(self, stream: 'grpclib.server.Stream[chain_pb2.AggregationReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def UploadSeed(self, stream: 'grpclib.server.Stream[chain_pb2.Share, chain_pb2.Empty]') -> None:
+    async def UploadSeed(self, stream: 'grpclib.server.Stream[chain_pb2.Share, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
-    async def UploadSecretKey(self, stream: 'grpclib.server.Stream[chain_pb2.Share, chain_pb2.Empty]') -> None:
+    async def UploadSecretKey(self, stream: 'grpclib.server.Stream[chain_pb2.Share, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
@@ -103,7 +107,7 @@ class ChainBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def EndRound(self, stream: 'grpclib.server.Stream[chain_pb2.EndRoundReq, chain_pb2.Empty]') -> None:
+    async def EndRound(self, stream: 'grpclib.server.Stream[chain_pb2.EndRoundReq, chain_pb2.Transaction]') -> None:
         pass
 
     @abc.abstractmethod
@@ -122,25 +126,31 @@ class ChainBase(abc.ABC):
                 self.UpdateUrl,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.UpdateUrlReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/UpdateName': grpclib.const.Handler(
                 self.UpdateName,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.UpdateNameReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/Leave': grpclib.const.Handler(
                 self.Leave,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.LeaveReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/GetNodeInfo': grpclib.const.Handler(
                 self.GetNodeInfo,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.NodeInfoReq,
-                chain_pb2.NodeInfoResp,
+                chain_pb2.NodeInfo,
+            ),
+            '/chain.Chain/GetNodes': grpclib.const.Handler(
+                self.GetNodes,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                chain_pb2.NodeInfosReq,
+                chain_pb2.NodeInfos,
             ),
             '/chain.Chain/CreateTask': grpclib.const.Handler(
                 self.CreateTask,
@@ -152,7 +162,7 @@ class ChainBase(abc.ABC):
                 self.FinishTask,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.FinishTaskReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/GetTask': grpclib.const.Handler(
                 self.GetTask,
@@ -164,13 +174,13 @@ class ChainBase(abc.ABC):
                 self.StartRound,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.StartRoundReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/JoinRound': grpclib.const.Handler(
                 self.JoinRound,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.JoinRoundReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/GetTaskRound': grpclib.const.Handler(
                 self.GetTaskRound,
@@ -182,19 +192,19 @@ class ChainBase(abc.ABC):
                 self.SelectCandidates,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.CandidatesReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/UploadSeedCommitment': grpclib.const.Handler(
                 self.UploadSeedCommitment,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.ShareCommitment,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/UploadSecretKeyCommitment': grpclib.const.Handler(
                 self.UploadSecretKeyCommitment,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.ShareCommitment,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/GetClientPublickKeys': grpclib.const.Handler(
                 self.GetClientPublickKeys,
@@ -206,13 +216,13 @@ class ChainBase(abc.ABC):
                 self.StartCalculation,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.CalculationReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/UploadResultCommitment': grpclib.const.Handler(
                 self.UploadResultCommitment,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.ResultCommitment,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/GetResultCommitment': grpclib.const.Handler(
                 self.GetResultCommitment,
@@ -224,19 +234,19 @@ class ChainBase(abc.ABC):
                 self.StartAggregation,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.AggregationReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/UploadSeed': grpclib.const.Handler(
                 self.UploadSeed,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.Share,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/UploadSecretKey': grpclib.const.Handler(
                 self.UploadSecretKey,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.Share,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/GetSecretShareDatas': grpclib.const.Handler(
                 self.GetSecretShareDatas,
@@ -248,7 +258,7 @@ class ChainBase(abc.ABC):
                 self.EndRound,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 chain_pb2.EndRoundReq,
-                chain_pb2.Empty,
+                chain_pb2.Transaction,
             ),
             '/chain.Chain/Subscribe': grpclib.const.Handler(
                 self.Subscribe,
@@ -272,25 +282,31 @@ class ChainStub:
             channel,
             '/chain.Chain/UpdateUrl',
             chain_pb2.UpdateUrlReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.UpdateName = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/UpdateName',
             chain_pb2.UpdateNameReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.Leave = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/Leave',
             chain_pb2.LeaveReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.GetNodeInfo = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/GetNodeInfo',
             chain_pb2.NodeInfoReq,
-            chain_pb2.NodeInfoResp,
+            chain_pb2.NodeInfo,
+        )
+        self.GetNodes = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/chain.Chain/GetNodes',
+            chain_pb2.NodeInfosReq,
+            chain_pb2.NodeInfos,
         )
         self.CreateTask = grpclib.client.UnaryUnaryMethod(
             channel,
@@ -302,7 +318,7 @@ class ChainStub:
             channel,
             '/chain.Chain/FinishTask',
             chain_pb2.FinishTaskReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.GetTask = grpclib.client.UnaryUnaryMethod(
             channel,
@@ -314,13 +330,13 @@ class ChainStub:
             channel,
             '/chain.Chain/StartRound',
             chain_pb2.StartRoundReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.JoinRound = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/JoinRound',
             chain_pb2.JoinRoundReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.GetTaskRound = grpclib.client.UnaryUnaryMethod(
             channel,
@@ -332,19 +348,19 @@ class ChainStub:
             channel,
             '/chain.Chain/SelectCandidates',
             chain_pb2.CandidatesReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.UploadSeedCommitment = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/UploadSeedCommitment',
             chain_pb2.ShareCommitment,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.UploadSecretKeyCommitment = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/UploadSecretKeyCommitment',
             chain_pb2.ShareCommitment,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.GetClientPublickKeys = grpclib.client.UnaryUnaryMethod(
             channel,
@@ -356,13 +372,13 @@ class ChainStub:
             channel,
             '/chain.Chain/StartCalculation',
             chain_pb2.CalculationReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.UploadResultCommitment = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/UploadResultCommitment',
             chain_pb2.ResultCommitment,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.GetResultCommitment = grpclib.client.UnaryUnaryMethod(
             channel,
@@ -374,19 +390,19 @@ class ChainStub:
             channel,
             '/chain.Chain/StartAggregation',
             chain_pb2.AggregationReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.UploadSeed = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/UploadSeed',
             chain_pb2.Share,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.UploadSecretKey = grpclib.client.UnaryUnaryMethod(
             channel,
             '/chain.Chain/UploadSecretKey',
             chain_pb2.Share,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.GetSecretShareDatas = grpclib.client.UnaryUnaryMethod(
             channel,
@@ -398,7 +414,7 @@ class ChainStub:
             channel,
             '/chain.Chain/EndRound',
             chain_pb2.EndRoundReq,
-            chain_pb2.Empty,
+            chain_pb2.Transaction,
         )
         self.Subscribe = grpclib.client.UnaryStreamMethod(
             channel,

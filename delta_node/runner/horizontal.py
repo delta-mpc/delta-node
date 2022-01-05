@@ -5,21 +5,36 @@ import os
 import shutil
 from asyncio.futures import Future
 from tempfile import TemporaryFile
-from typing import (IO, TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
-                    Optional, Tuple, Union)
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import delta.serialize
 import numpy as np
 from delta.algorithm.horizontal import HorizontalAlgorithm
 from delta.node import Node
 from delta.task import HorizontalTask
-from delta_node import (chain, commu, config, entity, pool, registry,
-                        serialize, utils)
+from delta_node import chain, commu, config, entity, pool, registry, serialize, utils
 from delta_node.crypto import aes, ecdhe, shamir
 
 from .dataset import new_train_val_dataloader
-from .loc import (task_config_file, task_dir, task_metrics_file,
-                  task_result_file, task_state_file, task_weight_file)
+from .loc import (
+    task_config_file,
+    task_dir,
+    task_metrics_file,
+    task_result_file,
+    task_state_file,
+    task_weight_file,
+)
 from .runner import TaskRunner
 
 if TYPE_CHECKING:
@@ -104,6 +119,9 @@ def run_task(task_id: str, round: int):
         task = delta.serialize.load_task(file)
         node = HFLNode(task_id, round)
         task.run(node)
+    _logger.info(
+        f"task {task_id} round {round} calculation finished", extra={"task_id": task_id}
+    )
 
 
 class HFLTaskRunner(TaskRunner):
@@ -142,7 +160,7 @@ class HFLTaskRunner(TaskRunner):
     async def start(self):
         def download_task():
             with open(task_config_file(self.task_id), mode="w+b") as file:
-                self.client.download_task_file(self.task_id, file)
+                self.client.download_task_config(self.task_id, file)
                 file.seek(0)
                 task = delta.serialize.load_task(file)
                 return task
@@ -151,6 +169,9 @@ class HFLTaskRunner(TaskRunner):
         task = await loop.run_in_executor(pool.IO_POOL, download_task)
         assert isinstance(task, HorizontalTask)
         self.algorithm = task.algorithm()
+        _logger.info(
+            f"task {self.task_id} download task config", extra={"task_id": self.task_id}
+        )
 
     async def start_round(self, event: entity.RoundStartedEvent):
         if self.round_runner is None:
@@ -232,6 +253,7 @@ class HFLTaskRunner(TaskRunner):
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(pool.IO_POOL, rm_dir)
+        _logger.info(f"task {self.task_id} finish", extra={"task_id": self.task_id})
 
 
 class HFLRoundRunner(object):
@@ -274,8 +296,12 @@ class HFLRoundRunner(object):
 
         node_adderss = await registry.get_node_address()
 
-        await chain.get_client().join_round(
+        tx_hash = await chain.get_client().join_round(
             node_adderss, self.task_id, self.round, pk1, pk2
+        )
+        _logger.info(
+            f"try to join in task {self.task_id} round {self.round}",
+            extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
 
         self.sk1 = sk1
@@ -292,6 +318,10 @@ class HFLRoundRunner(object):
             self.status = entity.RoundStatus.FINISHED
             return
         self.u1 = event.addrs
+        _logger.info(
+            f"join in task {self.task_id} round {self.round}",
+            extra={"task_id": self.task_id},
+        )
 
         pks = await chain.get_client().get_client_public_keys(
             self.task_id, self.round, event.addrs
@@ -354,7 +384,7 @@ class HFLRoundRunner(object):
             )
         _logger.debug("encrypt sk shares")
 
-        await chain.get_client().upload_seed_commitment(
+        tx_hash = await chain.get_client().upload_seed_commitment(
             node_address,
             self.task_id,
             self.round,
@@ -362,7 +392,11 @@ class HFLRoundRunner(object):
             seed_commitments,
         )
         _logger.debug("upload seed share commitments")
-        await chain.get_client().upload_secret_key_commitment(
+        _logger.info(
+            f"task {self.task_id} round {self.round} upload seed secret share commitments",
+            extra={"task_id": self.task_id, "tx_hash": tx_hash},
+        )
+        tx_hash = await chain.get_client().upload_secret_key_commitment(
             node_address,
             self.task_id,
             self.round,
@@ -370,6 +404,10 @@ class HFLRoundRunner(object):
             sk_commitments,
         )
         _logger.debug("upload sk share commitments")
+        _logger.info(
+            f"task {self.task_id} round {self.round} upload secret key secret share commitments",
+            extra={"task_id": self.task_id, "tx_hash": tx_hash},
+        )
 
         ss_datas = [
             entity.SecretShareData(
@@ -395,6 +433,10 @@ class HFLRoundRunner(object):
             node_address, self.task_id, self.round, ss_datas
         )
         _logger.debug("upload secret shares to coordinator")
+        _logger.info(
+            f"task {self.task_id} round {self.round} upload secret shares",
+            extra={"task_id": self.task_id},
+        )
         self.status = entity.RoundStatus.RUNNING
 
     async def start_calculating(self, event: entity.CalculationStartedEvent):
@@ -462,6 +504,10 @@ class HFLRoundRunner(object):
             if commitment and utils.calc_commitment(share) == commitment:
                 self.sk_shares[sender] = share
         _logger.debug("check secret share commitments")
+        _logger.info(
+            f"task {self.task_id} round {self.round} get and validate other members' secret shares",
+            extra={"task_id": self.task_id},
+        )
 
         loop = asyncio.get_running_loop()
 
@@ -469,7 +515,10 @@ class HFLRoundRunner(object):
             filename = task_weight_file(self.task_id, self.round - 1)
             with open(filename, mode="wb") as dst:
                 self.client.download_task_weight(self.task_id, self.round - 1, dst)
-                _logger.debug(f"download task round {self.round - 1} weight")
+            _logger.info(
+                f"task {self.task_id} round {self.round} download task weight",
+                extra={"task_id": self.task_id},
+            )
 
         def upload_result():
             filename = task_result_file(self.task_id, self.round)
@@ -484,7 +533,10 @@ class HFLRoundRunner(object):
                 self.client.upload_task_round_result(
                     node_address, self.task_id, self.round, file
                 )
-                _logger.debug(f"upload result of task round {self.round}")
+                _logger.info(
+                    f"task {self.task_id} round {self.round} upload masked result",
+                    extra={"task_id": self.task_id},
+                )
                 file.seek(0)
                 commitment = utils.calc_commitment(file)
                 _logger.debug(f"calculate commitment of task round {self.round} result")
@@ -510,19 +562,24 @@ class HFLRoundRunner(object):
                     self.round,
                     masked_metrics,
                 )
-                _logger.debug(f"upload metrics of task round {self.round}")
+                _logger.info(
+                    f"task {self.task_id} round {self.round} upload masked metrics",
+                    extra={"task_id": self.task_id},
+                )
 
         await loop.run_in_executor(pool.IO_POOL, download_weight)
         await loop.run_in_executor(pool.RUNNER_POOL, run_task, self.task_id, self.round)
-        _logger.debug("calculation finished")
 
         commitment = await loop.run_in_executor(pool.IO_POOL, upload_result)
-        await loop.run_in_executor(pool.IO_POOL, upload_metrics)
-
-        await chain.get_client().upload_result_commitment(
+        tx_hash = await chain.get_client().upload_result_commitment(
             node_address, self.task_id, self.round, commitment
         )
-        _logger.debug(f"upload result commitment")
+        _logger.info(
+            f"task {self.task_id} round {self.round} upload result commitment",
+            extra={"task_id": self.task_id, "tx_hash": tx_hash},
+        )
+
+        await loop.run_in_executor(pool.IO_POOL, upload_metrics)
         self.status = entity.RoundStatus.CALCULATING
 
     def mask_arr(
@@ -566,8 +623,15 @@ class HFLRoundRunner(object):
 
         dead_members = list(set(self.u2) - set(self.u3))
         alive_members = self.u3
-        _logger.debug(f"dead members {dead_members}")
-        _logger.debug(f"alive members {alive_members}")
+        if len(dead_members) > 0:
+            _logger.info(
+                f"task {self.task_id} round {self.round} dead members {dead_members}",
+                extra={"task_id": self.task_id},
+            )
+        _logger.info(
+            f"task {self.task_id} round {self.round} alive members {alive_members}",
+            extra={"task_id": self.task_id},
+        )
 
         sk_shares: List[bytes] = []
         for addr in dead_members:
@@ -577,19 +641,27 @@ class HFLRoundRunner(object):
             seed_shares.append(self.seed_shares[addr])
 
         if len(sk_shares) > 0:
-            await chain.get_client().upload_secret_key(
+            tx_hash = await chain.get_client().upload_secret_key(
                 node_address,
                 self.task_id,
                 self.round,
                 dead_members,
                 sk_shares,
             )
-        await chain.get_client().upload_seed(
+            _logger.info(
+                f"task {self.task_id} round {self.round} upload dead members' secret key secret shares",
+                extra={"task_id": self.task_id, "tx_hash": tx_hash},
+            )
+        tx_hash = await chain.get_client().upload_seed(
             node_address,
             self.task_id,
             self.round,
             alive_members,
             seed_shares,
+        )
+        _logger.info(
+            f"task {self.task_id} round {self.round} upload alive members' seed secret shares",
+            extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
         self.status = entity.RoundStatus.AGGREGATING
 
@@ -605,3 +677,7 @@ class HFLRoundRunner(object):
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(pool.IO_POOL, _finish)
+        _logger.info(
+            f"task {self.task_id} round {self.round} finish",
+            extra={"task_id": self.task_id},
+        )

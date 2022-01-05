@@ -15,12 +15,13 @@ async def _run():
     if len(config.node_name) == 0:
         raise RuntimeError("node name is required")
 
-    listener = log.create_log_listener()
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(pool.IO_POOL)
+
+    listener = log.create_log_listener(loop)
     listener.start()
     log.init()
 
-    loop = asyncio.get_event_loop()
-    loop.set_default_executor(pool.IO_POOL)
     await db.init(config.db)
     chain.init(config.chain_host, config.chain_port, ssl=False)
     await registry.register(config.node_url, config.node_name)
