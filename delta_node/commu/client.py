@@ -11,13 +11,13 @@ class Client(object):
     def __init__(
         self, url: str, client: httpx.Client, aclient: httpx.AsyncClient
     ) -> None:
-        self.base_url = url + "/v1"
+        self.base_url = url + "/v1/coord"
         self.client = client
         self.aclient = aclient
 
-    def download_task_file(self, task_id: str, dst: IO[bytes]):
+    def download_task_config(self, task_id: str, dst: IO[bytes]):
         params = {"task_id": task_id}
-        with self.client.stream("GET", self.base_url + "/task", params=params) as resp:
+        with self.client.stream("GET", self.base_url + "/config", params=params) as resp:
             size = 0
             for chunk in resp.iter_bytes():
                 dst.write(chunk)
