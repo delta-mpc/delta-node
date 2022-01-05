@@ -11,17 +11,15 @@ async def write_log_record(record: entity.Record):
 
 
 class DBWriteHandler(Handler):
-    def __init__(self):
+    def __init__(self, loop: asyncio.AbstractEventLoop):
         super(DBWriteHandler, self).__init__()
+        self.loop = loop
 
     def emit(self, record: LogRecord) -> None:
         if hasattr(record, "task_id"):
             task_id = getattr(record, "task_id")
             level = record.levelname
-
-            log = entity.Record(level=level, message=record.message, task_id=task_id)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(write_log_record(log))
-
-
-handler = DBWriteHandler()
+        
+            tx_hash = getattr(record, "tx_hash", None)
+            log = entity.Record(level=level, message=record.message, task_id=task_id, tx_hash=tx_hash)
+            asyncio.run_coroutine_threadsafe(write_log_record(log), self.loop)

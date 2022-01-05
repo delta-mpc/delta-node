@@ -6,7 +6,7 @@ from tempfile import TemporaryFile
 from typing import IO
 
 import numpy as np
-import requests
+import httpx
 from tqdm import tqdm
 
 from . import config
@@ -67,30 +67,29 @@ def read_mnist(image_fileobj: IO[bytes], label_fileobj: IO[bytes]):
 
 
 def download_mnist(image_url: str, label_url: str, ratio: float = 1):
-    with TemporaryFile(mode="w+b") as img_file, TemporaryFile(mode="w+b") as label_file:
-        img_resp = requests.get(image_url, stream=True)
-        img_resp.raise_for_status()
-        img_size = int(img_resp.headers.get("content-length", 0))
+    with TemporaryFile(mode="w+b") as img_file, TemporaryFile(mode="w+b") as label_file, httpx.Client() as client:
+        with client.stream("GET", image_url) as img_resp, client.stream("GET", label_url) as label_resp:
+            img_resp.raise_for_status()
+            img_size = int(img_resp.headers.get("content-length", 0))
 
-        label_resp = requests.get(label_url, stream=True)
-        label_resp.raise_for_status()
-        label_size = int(label_resp.headers.get("content-length", 0))
+            label_resp.raise_for_status()
+            label_size = int(label_resp.headers.get("content-length", 0))
 
-        total_size = img_size + label_size
-        print("downloading mnist dataset")
-        process_bar = tqdm(total=total_size, unit="iB", unit_scale=True)
+            total_size = img_size + label_size
+            print("downloading mnist dataset")
+            process_bar = tqdm(total=total_size, unit="iB", unit_scale=True)
 
-        chunk_size = 1024
-        for data in img_resp.iter_content(chunk_size):
-            img_file.write(data)
-            process_bar.update(len(data))
-        img_file.seek(0)
-        for data in label_resp.iter_content(chunk_size):
-            label_file.write(data)
-            process_bar.update(len(data))
-        label_file.seek(0)
+            chunk_size = 1024
+            for data in img_resp.iter_bytes(chunk_size):
+                img_file.write(data)
+                process_bar.update(len(data))
+            img_file.seek(0)
+            for data in label_resp.iter_bytes(chunk_size):
+                label_file.write(data)
+                process_bar.update(len(data))
+            label_file.seek(0)
 
-        process_bar.close()
+            process_bar.close()
 
         reader = read_mnist(img_file, label_file)
         img_count = next(reader)

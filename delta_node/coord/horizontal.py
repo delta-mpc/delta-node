@@ -1,5 +1,5 @@
-import json
 import asyncio
+import json
 import logging
 import os
 import random
@@ -11,7 +11,7 @@ import delta.serialize
 import numpy as np
 import sqlalchemy as sa
 from delta.algorithm.horizontal import HorizontalAlgorithm
-from delta_node import chain, db, entity, pool, registry, utils, serialize
+from delta_node import chain, db, entity, pool, registry, serialize, utils
 from delta_node.crypto import ecdhe, shamir
 from sqlalchemy import func
 
@@ -52,12 +52,12 @@ async def run_task(task_entity: entity.Task):
             sess.add(task_entity)
             await sess.commit()
         await finish_task(node_address, task_id)
-
     except Exception:
         async with db.session_scope() as sess:
             task_entity.status = entity.TaskStatus.ERROR
             sess.add(task_entity)
             await sess.commit()
+        _logger.info(f"task {task_id} error", extra={"task_id": task_id})
         raise
 
 
@@ -74,20 +74,27 @@ def init_task(task_id: str):
 
 
 async def finish_task(node_address: str, task_id: str):
-    await chain.get_client().finish_task(node_address, task_id)
+    tx_hash = await chain.get_client().finish_task(node_address, task_id)
     async with db.session_scope() as sess:
         q = sa.select(entity.Task).where(entity.Task.task_id == task_id)
         task: entity.Task = (await sess.execute(q)).scalar_one()
         task.status = entity.TaskStatus.FINISHED
         sess.add(task)
         await sess.commit()
+    _logger.info(
+        f"task {task_id} finished", extra={"task_id": task_id, "tx_hash": tx_hash}
+    )
 
 
 async def run_task_round(
     alg: HorizontalAlgorithm, node_address: str, task_id: str, round: int
 ):
     # start round
-    await chain.get_client().start_round(node_address, task_id, round)
+    tx_hash = await chain.get_client().start_round(node_address, task_id, round)
+    _logger.info(
+        f"task {task_id} round {round} start",
+        extra={"task_id": task_id, "tx_hash": tx_hash},
+    )
 
     connection_timeout = alg.connnection_timeout or 60
     wait_timeout = alg.wait_timeout or 60
@@ -141,8 +148,12 @@ async def select_candidates(
 
         await sess.commit()
         # select candidates
-        await chain.get_client().select_candidates(
+        tx_hash = await chain.get_client().select_candidates(
             node_address, task_id, round, clients
+        )
+        _logger.info(
+            f"task {task_id} round {round} select candidates {clients}",
+            extra={"task_id": task_id, "tx_hash": tx_hash},
         )
 
 
@@ -187,8 +198,12 @@ async def start_calculation(
         sess.add_all(members)
         await sess.commit()
         # start calculation
-        await chain.get_client().start_calculation(
+        tx_hash = await chain.get_client().start_calculation(
             node_address, task_id, round, next_clients
+        )
+        _logger.info(
+            f"task {task_id} round {round} {next_clients} start calculation",
+            extra={"task_id": task_id, "tx_hash": tx_hash},
         )
 
 
@@ -223,8 +238,12 @@ def make_masked_result(task_id: str, round: int, clients: List[str]):
         else:
             total_result += result_arr
     assert total_result is not None
-    _logger.info(f"masked arr {total_result} {total_result.dtype}")
+    _logger.debug(f"masked arr {total_result} {total_result.dtype}")
     delta.serialize.dump_arr(loc.task_masked_result_file(task_id, round), total_result)
+    _logger.info(
+        f"task {task_id} round {round} masked result {total_result}",
+        extra={"task_id": task_id},
+    )
 
     if os.path.exists(loc.task_round_metrics_dir(task_id, round)):
         total_metrics = defaultdict(int)
@@ -234,10 +253,14 @@ def make_masked_result(task_id: str, round: int, clients: List[str]):
                 metrics = json.load(f)
             for key, val in metrics.items():
                 total_metrics[key] += val
-        _logger.info(f"masked metrics {total_metrics}")
+        _logger.debug(f"masked metrics {total_metrics}")
         masked_metrics_filename = loc.task_masked_metrics_file(task_id, round)
         with open(masked_metrics_filename, mode="w", encoding="utf-8") as f:
             json.dump(total_metrics, f)
+        _logger.info(
+            f"task {task_id} round {round} masked metrics {dict(total_metrics)}",
+            extra={"task_id": task_id},
+        )
 
 
 async def start_aggreation(
@@ -292,8 +315,12 @@ async def start_aggreation(
         sess.add_all(members)
         await sess.commit()
         # start aggregation
-        await chain.get_client().start_aggregation(
+        tx_hash = await chain.get_client().start_aggregation(
             node_address, task_id, round, valid_clients
+        )
+        _logger.info(
+            f"task {task_id} round {round} {valid_clients} start aggregation",
+            extra={"task_id": task_id, "tx_hash": tx_hash},
         )
 
 
@@ -321,7 +348,7 @@ def unmask_result(
 
     for addr, seed in seeds.items():
         mask = utils.make_mask(seed, mask_arr.shape)
-        _logger.info(f"{addr} seed mask {mask}")
+        _logger.debug(f"{addr} seed mask {mask}")
         seed_mask += mask
 
     for (u, v), key in share_keys.items():
@@ -331,20 +358,24 @@ def unmask_result(
         else:
             sk_mask += mask
 
-    _logger.info(f"seed mask {seed_mask} {seed_mask.dtype}")
-    _logger.info(f"sk mask {sk_mask} {sk_mask.dtype}")  # type: ignore
+    _logger.debug(f"seed mask {seed_mask} {seed_mask.dtype}")
+    _logger.debug(f"sk mask {sk_mask} {sk_mask.dtype}")  # type: ignore
     unmask_arr: np.ndarray = mask_arr - seed_mask + sk_mask  # type: ignore
     unmask_arr = utils.unfix_precision(unmask_arr, precision)
     unmask_arr /= len(seeds)
-    _logger.info(f"weight arr: {unmask_arr}")
+    _logger.debug(f"weight arr: {unmask_arr}")
     delta.serialize.dump_arr(loc.task_weight_file(task_id, round), unmask_arr)
+    _logger.info(
+        f"task {task_id} round {round} unmasked result {unmask_arr}",
+        extra={"task_id": task_id},
+    )
 
     if os.path.exists(metrics_filename):
         with open(metrics_filename, mode="r", encoding="utf-8") as f:
             metrics = json.load(f)
-            _logger.info(f"metrics: {metrics}")
+            _logger.debug(f"metrics: {metrics}")
         metrics_keys, metrics_vals = zip(*metrics.items())
-        _logger.info(f"metrics vals {metrics_vals}")
+        _logger.debug(f"metrics vals {metrics_vals}")
         mask_metrics_arr = np.array(metrics_vals, dtype=np.int64)
 
         seed_mask = np.zeros_like(mask_metrics_arr)
@@ -352,7 +383,7 @@ def unmask_result(
 
         for addr, seed in seeds.items():
             mask = utils.make_mask(seed, mask_metrics_arr.shape)
-            _logger.info(f"{addr} seed mask {mask}")
+            _logger.debug(f"{addr} seed mask {mask}")
             seed_mask += mask
 
         for (u, v), key in share_keys.items():
@@ -363,17 +394,21 @@ def unmask_result(
                 sk_mask += mask
 
         unmask_metrics_arr: np.ndarray = mask_metrics_arr - seed_mask + sk_mask  # type: ignore
-        _logger.info(f"unmask_metrics_arr: {unmask_metrics_arr}")
+        _logger.debug(f"unmask_metrics_arr: {unmask_metrics_arr}")
         unmask_metrics_arr = utils.unfix_precision(unmask_metrics_arr, precision)
         unmask_metrics_arr /= len(seeds)
         unmask_metrics = {
             key: val for key, val in zip(metrics_keys, unmask_metrics_arr.tolist())
         }
-        _logger.info(f"metrics: {unmask_metrics}")
+        _logger.debug(f"metrics: {unmask_metrics}")
         with open(
             loc.task_metrics_file(task_id, round), mode="w", encoding="utf-8"
         ) as f:
             json.dump(unmask_metrics, f)
+        _logger.info(
+            f"task {task_id} round {round} metrics {unmask_metrics}",
+            extra={"task_id": task_id},
+        )
 
 
 async def end_round(
@@ -398,6 +433,10 @@ async def end_round(
             (await sess.execute(q)).scalars().all()
         )
         alive_addrs = [member.address for member in alive_members]
+        _logger.info(
+            f"task {task_id} round {round} alive members {alive_addrs}",
+            extra={"task_id": task_id},
+        )
 
         q = (
             sa.select(entity.RoundMember)
@@ -406,6 +445,13 @@ async def end_round(
         )
         dead_members: List[entity.RoundMember] = (await sess.execute(q)).scalars().all()
         dead_addrs = [member.address for member in dead_members]
+        if len(dead_addrs):
+            _logger.info(
+                f"task {task_id} round {round} dead members {dead_addrs}",
+                extra={"task_id": task_id},
+            )
+        else:
+            _logger.info(f"task {task_id} round {round} no dead members")
 
         secret_share = shamir.SecretShare(alg.min_clients)
 
@@ -432,14 +478,18 @@ async def end_round(
                 ):
                     for sender, ss in zip(dead_addrs, ss_datas):
                         secret_key_shares[sender].append(ss.secret_key)
-                        _logger.info(
+                        _logger.debug(
                             f"{sender[:8]} -> {receiver[:8]} sk share {serialize.bytes_to_hex(ss.secret_key)[:8]}"
                         )
+                    _logger.info(
+                        f"task {task_id} round {round} {receiver} upload dead members sk secret share",
+                        extra={"task_id": task_id},
+                    )
                 else:
                     final_addrs.remove(receiver)
             for sender, shares in secret_key_shares.items():
                 secret_keys[sender] = secret_share.resolve_shares(shares)
-                _logger.info(
+                _logger.debug(
                     f"{sender[:8]} sk2 {serialize.bytes_to_hex(secret_keys[sender])[:8]}"
                 )
 
@@ -461,25 +511,32 @@ async def end_round(
             ):
                 for sender, ss in zip(alive_addrs, ss_datas):
                     seed_shares[sender].append(ss.seed)
-                    _logger.info(
+                    _logger.debug(
                         f"{sender[:8]} -> {receiver[:8]} seed share {serialize.bytes_to_hex(ss.seed)[:8]}"
                     )
+                _logger.info(
+                    f"task {task_id} round {round} {receiver} upload alive members seed secret share"
+                )
             else:
                 final_addrs.remove(receiver)
         for sender, shares in seed_shares.items():
-            _logger.info(
-                f"{sender} seed shares {[serialize.bytes_to_hex(share) for share in shares]}"
-            )
             seeds[sender] = secret_share.resolve_shares(shares)
-            _logger.info(
+            _logger.debug(
                 f"{sender[:8]} seed {serialize.bytes_to_hex(seeds[sender])[:8]}"
             )
+        _logger.info(
+            f"task {task_id} round {round} {final_addrs} complete task execution",
+            extra={"task_id": task_id},
+        )
 
         pks = await chain.get_client().get_client_public_keys(
             task_id, round, alive_addrs
         )
-
         pk2_dict = {addr: pk[1] for addr, pk in zip(alive_addrs, pks)}
+        _logger.info(
+            f"task {task_id} round {round} get alive members public keys",
+            extra={"task_id": task_id},
+        )
 
         curve = ecdhe.CURVES[alg.curve]
         precision = alg.precision
@@ -505,4 +562,8 @@ async def end_round(
         await sess.commit()
 
         # end round
-        await chain.get_client().end_round(node_address, task_id, round)
+        tx_hash = await chain.get_client().end_round(node_address, task_id, round)
+        _logger.info(
+            f"task {task_id} round {round} finish",
+            extra={"task_id": task_id, "tx_hash": tx_hash},
+        )

@@ -5,7 +5,8 @@ from typing import Optional, Sequence
 
 
 async def _run():
-    from . import app, chain, config, coord, db, log, registry, runner, pool
+    from delta_node import (app, chain, commu, config, coord, db, log, pool,
+                            registry, runner)
 
     if len(config.chain_host) == 0:
         raise RuntimeError("chain connector host is required")
@@ -14,15 +15,17 @@ async def _run():
     if len(config.node_name) == 0:
         raise RuntimeError("node name is required")
 
-    listener = log.create_log_listener()
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(pool.IO_POOL)
+
+    listener = log.create_log_listener(loop)
     listener.start()
     log.init()
 
-    loop = asyncio.get_event_loop()
-    loop.set_default_executor(pool.IO_POOL)
     await db.init(config.db)
     chain.init(config.chain_host, config.chain_port, ssl=False)
     await registry.register(config.node_url, config.node_name)
+    await commu.init()
 
     fut = asyncio.gather(
         app.run("0.0.0.0", config.api_port), runner.run(), coord.run_unfinished_tasks()
@@ -30,11 +33,11 @@ async def _run():
     try:
         await fut
     finally:
+        await commu.close()
         await registry.unregister()
         chain.close()
         await db.close()
         listener.stop()
-        # pool.close()
 
 
 def run():

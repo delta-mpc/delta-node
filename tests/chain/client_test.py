@@ -26,7 +26,7 @@ name = "node1"
 
 @pytest.fixture(scope="module")
 async def address(client: chain.ChainClient):
-    address = await client.join(url, name)
+    _, address = await client.join(url, name)
     yield address
     await client.leave(address)
 
@@ -49,6 +49,12 @@ async def test_client(client: chain.ChainClient, address: str):
     info = await client.get_node_info(address)
     assert info.name == new_name
     name = new_name
+    # get nodes
+    nodes, count = await client.get_nodes(1, 20)
+    assert count == 1
+    assert nodes[0].address == address
+    assert nodes[0].name == name
+    assert nodes[0].url == url
 
     # event generator
     event_gen = client.subscribe(address)
@@ -58,7 +64,7 @@ async def test_client(client: chain.ChainClient, address: str):
     dataset = "mnist"
     task_commitment = bytes(random.getrandbits(8) for _ in range(32))
     task_type = "horizontal"
-    task_id = await client.create_task(address, dataset, task_commitment, task_type)
+    _, task_id = await client.create_task(address, dataset, task_commitment, task_type)
     event = await event_fut
     assert isinstance(event, entity.TaskCreateEvent)
     assert event.address == address

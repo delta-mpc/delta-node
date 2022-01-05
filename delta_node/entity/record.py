@@ -24,3 +24,6 @@ class Record(BaseTable):
     task_id: Optional[str] = field(
         default=None, metadata={"sa": sa.Column(sa.String, nullable=True, index=True)}
     )
+    tx_hash: Optional[str] = field(
+        default=None, metadata={"sa": sa.Column(sa.String, nullable=True, index=False)}
+    )

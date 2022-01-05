@@ -27,7 +27,7 @@ class Monitor(object):
         node_address = await registry.get_node_address()
         try:
             async for event in chain.get_client().subscribe(node_address):
-                _logger.info(f"event: {event.type}")
+                _logger.debug(f"event: {event.type}")
                 callbacks = self.callbacks[event.type]
                 for callback in callbacks:
                     fut = asyncio.create_task(callback(event))
@@ -35,7 +35,7 @@ class Monitor(object):
                     def _done_callback(fut: asyncio.Task):
                         try:
                             fut.result()
-                            _logger.info(
+                            _logger.debug(
                                 f"event {event.type} callback {callback.__name__} done"
                             )
                         except Exception as e:
@@ -62,7 +62,7 @@ runners_lock = asyncio.Lock()
 def create_task_runner(task: entity.RunnerTask):
     if task.type == "horizontal":
         task_runner = HFLTaskRunner(task)
-        _logger.info(f"create task runner for {task.task_id}")
+        _logger.debug(f"create task runner for {task.task_id}")
         return task_runner
     else:
         raise ValueError(f"unknown task type {task.type}")
@@ -74,9 +74,10 @@ async def monitor_task_create(event: entity.Event):
     accept = await loop.run_in_executor(pool.IO_POOL, check_dataset, event.dataset)
 
     if not accept:
-        _logger.info(f"reject task {event.task_id}")
+        _logger.debug(f"reject task {event.task_id}")
         return
 
+    _logger.info(f"start run task {event.task_id}", extra={"task_id": event.task_id})
     async with db.session_scope() as sess:
         task = entity.RunnerTask(
             creator=event.address,
@@ -98,7 +99,7 @@ async def monitor_task_create(event: entity.Event):
             task.status = entity.TaskStatus.RUNNING
             sess.add(task)
             await sess.commit()
-            _logger.info(f"task {event.task_id} start running")
+            _logger.debug(f"task {event.task_id} start running")
 
         runners[event.task_id] = task_runner
 
@@ -163,7 +164,7 @@ async def monitor_task_finish(event: entity.Event):
             return
 
     runner = runners[task_id]
-    _logger.info(f"task {task_id} finish")
+    _logger.debug(f"task {task_id} finish")
 
     await runner.finish()
 

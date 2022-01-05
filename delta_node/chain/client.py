@@ -1,7 +1,7 @@
 import logging
 from typing import AsyncGenerator, List, Tuple
 
-from delta_node import entity, serialize, entity
+from delta_node import entity, serialize
 from grpclib.client import Channel
 
 from . import chain_pb2
@@ -14,35 +14,38 @@ class ChainClient(object):
     def __init__(self, ch: Channel) -> None:
         self.stub = ChainStub(ch)
 
-    async def join(self, url: str, name: str) -> str:
+    async def join(self, url: str, name: str) -> Tuple[str, str]:
         req = chain_pb2.JoinReq(url=url, name=name)
         try:
             resp = await self.stub.Join(req)
-            return resp.address
+            return resp.tx_hash, resp.address
         except Exception as e:
             _logger.error(e)
             raise
 
-    async def update_name(self, address: str, name: str):
+    async def update_name(self, address: str, name: str) -> str:
         req = chain_pb2.UpdateNameReq(address=address, name=name)
         try:
-            await self.stub.UpdateName(req)
+            resp = await self.stub.UpdateName(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
 
-    async def updaet_url(self, address: str, url: str):
+    async def updaet_url(self, address: str, url: str) -> str:
         req = chain_pb2.UpdateUrlReq(address=address, url=url)
         try:
-            await self.stub.UpdateUrl(req)
+            resp = await self.stub.UpdateUrl(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
 
-    async def leave(self, address: str):
+    async def leave(self, address: str) -> str:
         req = chain_pb2.LeaveReq(address=address)
         try:
-            await self.stub.Leave(req)
+            resp = await self.stub.Leave(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -56,9 +59,24 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
+    async def get_nodes(
+        self, page: int, page_size: int
+    ) -> Tuple[List[entity.Node], int]:
+        req = chain_pb2.NodeInfosReq(page=page, page_size=page_size)
+        try:
+            resp = await self.stub.GetNodes(req)
+            nodes = [
+                entity.Node(address=node.address, url=node.url, name=node.name)
+                for node in resp.nodes
+            ]
+            return nodes, resp.total_count
+        except Exception as e:
+            _logger.error(e)
+            raise
+
     async def create_task(
         self, address: str, dataset: str, commitment: bytes, task_type: str
-    ) -> str:
+    ) -> Tuple[str, str]:
         hex_commitment = serialize.bytes_to_hex(commitment, max_length=32)
         req = chain_pb2.CreateTaskReq(
             address=address,
@@ -68,15 +86,16 @@ class ChainClient(object):
         )
         try:
             resp = await self.stub.CreateTask(req)
-            return resp.task_id
+            return resp.tx_hash, resp.task_id
         except Exception as e:
             _logger.error(e)
             raise
 
-    async def finish_task(self, address: str, task_id: str):
+    async def finish_task(self, address: str, task_id: str) -> str:
         req = chain_pb2.FinishTaskReq(address=address, task_id=task_id)
         try:
-            await self.stub.FinishTask(req)
+            resp = await self.stub.FinishTask(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -104,24 +123,26 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def start_round(self, address: str, task_id: str, round: int):
+    async def start_round(self, address: str, task_id: str, round: int) -> str:
         req = chain_pb2.StartRoundReq(address=address, task_id=task_id, round=round)
         try:
-            await self.stub.StartRound(req)
+            resp = await self.stub.StartRound(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
 
     async def join_round(
         self, address: str, task_id: str, round: int, pk1: bytes, pk2: bytes
-    ):
+    ) -> str:
         hex_pk1 = serialize.bytes_to_hex(pk1)
         hex_pk2 = serialize.bytes_to_hex(pk2)
         req = chain_pb2.JoinRoundReq(
             address=address, task_id=task_id, round=round, pk1=hex_pk1, pk2=hex_pk2
         )
         try:
-            await self.stub.JoinRound(req)
+            resp = await self.stub.JoinRound(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -142,12 +163,13 @@ class ChainClient(object):
 
     async def select_candidates(
         self, address: str, task_id: str, round: int, clients: List[str]
-    ):
+    ) -> str:
         req = chain_pb2.CandidatesReq(
             address=address, task_id=task_id, round=round, clients=clients
         )
         try:
-            await self.stub.SelectCandidates(req)
+            resp = await self.stub.SelectCandidates(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -159,7 +181,7 @@ class ChainClient(object):
         round: int,
         receivers: List[str],
         commitments: List[bytes],
-    ):
+    ) -> str:
         hex_commitments = [
             serialize.bytes_to_hex(commitment, max_length=32)
             for commitment in commitments
@@ -172,7 +194,8 @@ class ChainClient(object):
             commitments=hex_commitments,
         )
         try:
-            await self.stub.UploadSeedCommitment(req)
+            resp = await self.stub.UploadSeedCommitment(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -184,7 +207,7 @@ class ChainClient(object):
         round: int,
         receivers: List[str],
         commitments: List[bytes],
-    ):
+    ) -> str:
         hex_commitments = [
             serialize.bytes_to_hex(commitment, max_length=32)
             for commitment in commitments
@@ -197,7 +220,8 @@ class ChainClient(object):
             commitments=hex_commitments,
         )
         try:
-            await self.stub.UploadSecretKeyCommitment(req)
+            resp = await self.stub.UploadSecretKeyCommitment(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -219,25 +243,27 @@ class ChainClient(object):
 
     async def start_calculation(
         self, address: str, task_id: str, round: int, clients: List[str]
-    ):
+    ) -> str:
         req = chain_pb2.CalculationReq(
             address=address, task_id=task_id, round=round, clients=clients
         )
         try:
-            await self.stub.StartCalculation(req)
+            resp = await self.stub.StartCalculation(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
 
     async def upload_result_commitment(
         self, address: str, task_id: str, round: int, commitment: bytes
-    ):
+    ) -> str:
         hex_commitment = serialize.bytes_to_hex(commitment, max_length=32)
         req = chain_pb2.ResultCommitment(
             address=address, task_id=task_id, round=round, commitment=hex_commitment
         )
         try:
-            await self.stub.UploadResultCommitment(req)
+            resp = await self.stub.UploadResultCommitment(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -255,12 +281,13 @@ class ChainClient(object):
 
     async def start_aggregation(
         self, address: str, task_id: str, round: int, clients: List[str]
-    ):
+    ) -> str:
         req = chain_pb2.AggregationReq(
             address=address, task_id=task_id, round=round, clients=clients
         )
         try:
-            await self.stub.StartAggregation(req)
+            resp = await self.stub.StartAggregation(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -272,7 +299,7 @@ class ChainClient(object):
         round: int,
         senders: List[str],
         shares: List[bytes],
-    ):
+    ) -> str:
         hex_shares = [serialize.bytes_to_hex(share) for share in shares]
         req = chain_pb2.Share(
             address=address,
@@ -282,7 +309,8 @@ class ChainClient(object):
             shares=hex_shares,
         )
         try:
-            await self.stub.UploadSeed(req)
+            resp = await self.stub.UploadSeed(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -294,7 +322,7 @@ class ChainClient(object):
         round: int,
         senders: List[str],
         shares: List[bytes],
-    ):
+    ) -> str:
         hex_shares = [serialize.bytes_to_hex(share) for share in shares]
         req = chain_pb2.Share(
             address=address,
@@ -304,7 +332,8 @@ class ChainClient(object):
             shares=hex_shares,
         )
         try:
-            await self.stub.UploadSecretKey(req)
+            resp = await self.stub.UploadSecretKey(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
@@ -335,10 +364,11 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def end_round(self, address: str, task_id: str, round: int):
+    async def end_round(self, address: str, task_id: str, round: int) -> str:
         req = chain_pb2.EndRoundReq(address=address, task_id=task_id, round=round)
         try:
-            await self.stub.EndRound(req)
+            resp = await self.stub.EndRound(req)
+            return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise

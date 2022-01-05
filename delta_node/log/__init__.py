@@ -1,18 +1,17 @@
+import asyncio
 import logging
-import multiprocessing as mp
 from logging.handlers import QueueHandler, QueueListener
-from typing import Optional
 
 from delta_node import config, pool
 from . import db_handler, file_handler, stream_handler
 
 
-def create_log_listener():
+def create_log_listener(loop: asyncio.AbstractEventLoop):
     listener = QueueListener(
         pool.LOG_QUEUE,
         stream_handler.handler,
         file_handler.handler,
-        db_handler.handler,
+        db_handler.DBWriteHandler(loop),
     )
     return listener
 
