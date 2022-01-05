@@ -35,10 +35,10 @@ setup(
     include_package_data=True,
     exclude_package_data={"": [".gitignore"]},
     install_requires=[
+        "aiosqlite==0.17.0",
         "async_lru==1.0.2",
         "cryptography==3.4.7",
-        "delta==0.4.2",
-        "delta_task==0.3.0",
+        "delta-task==0.3.0",
         "fastapi==0.70.1",
         "grpclib==0.4.2",
         "httpx==0.21.1",
@@ -49,10 +49,11 @@ setup(
         "protobuf==3.19.1",
         "pydantic==1.8.2",
         "pytest==6.2.5",
+        'python-multipart==0.0.5',
         "PyYAML==6.0",
         "SQLAlchemy==1.4.21",
         "tqdm==4.46.0",
-        "torch==1.8.1+cpu"
+        "torch==1.8.2+cpu"
     ],
     tests_require=["pytest"],
     cmdclass={"test": PyTest},
