@@ -179,15 +179,18 @@ async def monitor_task_finish(event: entity.Event):
 
 async def create_unfinished_task(task: entity.RunnerTask):
     # check remote task
-    remote_task = await chain.get_client().get_task(task.task_id)
-    if remote_task.status == entity.TaskStatus.FINISHED:
-        async with db.session_scope() as sess:
-            task.status = entity.TaskStatus.FINISHED
-            sess.add(task)
-            await sess.commit()
-    else:
-        runner = create_task_runner(task)
-        runners[task.task_id] = runner
+    try:
+        remote_task = await chain.get_client().get_task(task.task_id)
+        if remote_task.status == entity.TaskStatus.FINISHED:
+            async with db.session_scope() as sess:
+                task.status = entity.TaskStatus.FINISHED
+                sess.add(task)
+                await sess.commit()
+        else:
+            runner = create_task_runner(task)
+            runners[task.task_id] = runner
+    except Exception as e:
+        _logger.error(e)
 
 
 async def start():
@@ -218,5 +221,5 @@ async def start():
         # create unfinished task
         if len(tasks) > 0:
             await asyncio.gather(*[create_unfinished_task(task) for task in tasks])
-        
+
     await monitor.start()
