@@ -44,3 +44,5 @@ data*/*.npz
 db/*.db
 *.db
 nodes/
+.python-version
+main.py

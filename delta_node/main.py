@@ -28,7 +28,7 @@ async def _run():
     await commu.init()
 
     fut = asyncio.gather(
-        app.run("0.0.0.0", config.api_port), runner.run(), coord.run_unfinished_tasks()
+        app.run("0.0.0.0", config.api_port), runner.run()
     )
     try:
         await fut
