@@ -1,15 +1,15 @@
-import asyncio
 import json
 import logging
 import os
 import shutil
-from typing import IO, Dict, List, Optional
+import time
+from typing import Dict, List, Optional
 
 import sqlalchemy as sa
-from delta_node import chain, coord, db, entity, pool, registry
+from delta_node import coord, db, entity
 from delta_node.serialize import bytes_to_hex, hex_to_bytes
-from fastapi import (APIRouter, BackgroundTasks, Depends, File, Form,
-                     HTTPException, Query, UploadFile)
+from fastapi import (APIRouter, Depends, File, Form, HTTPException, Query,
+                     UploadFile)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +27,13 @@ class CommonResp(BaseModel):
 @router.get("/config")
 def get_task_config(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
     config_filename = coord.task_config_file(task_id)
+    retry = 3
     if not os.path.exists(config_filename):
-        raise HTTPException(400, f"task {task_id} does not exist")
+        retry -= 1
+        if retry == 0:
+            raise HTTPException(400, f"task {task_id} does not exist")
+        else:
+            time.sleep(2)
 
     def file_iter():
         chunk_size = 1024 * 1024
