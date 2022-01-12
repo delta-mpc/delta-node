@@ -1,12 +1,13 @@
 import argparse
 import asyncio
 import os
+import signal
 from typing import Optional, Sequence
 
 
 async def _run():
-    from delta_node import (app, chain, commu, config, coord, db, log, pool,
-                            registry, runner)
+    from delta_node import (app, chain, commu, config, db, log, pool, registry,
+                            runner, shutdown)
 
     if len(config.chain_host) == 0:
         raise RuntimeError("chain connector host is required")
@@ -27,9 +28,12 @@ async def _run():
     await registry.register(config.node_url, config.node_name)
     await commu.init()
 
-    fut = asyncio.gather(
-        app.run("0.0.0.0", config.api_port), runner.run()
+    fut = asyncio.wait(
+        [app.run("0.0.0.0", config.api_port), runner.run()],
+        return_when=asyncio.FIRST_EXCEPTION,
     )
+    loop.add_signal_handler(signal.SIGINT, shutdown.shutdown_handler)
+    loop.add_signal_handler(signal.SIGTERM, shutdown.shutdown_handler)
     try:
         await fut
     finally:
@@ -41,10 +45,7 @@ async def _run():
 
 
 def run():
-    try:
-        asyncio.run(_run())
-    except KeyboardInterrupt:
-        pass
+    asyncio.run(_run())
 
 
 def init():

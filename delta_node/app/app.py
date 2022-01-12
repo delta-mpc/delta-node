@@ -1,7 +1,10 @@
-from fastapi import FastAPI
-from hypercorn.config import Config
-from hypercorn.asyncio import serve
 import asyncio
+from typing import Any
+
+from delta_node import shutdown
+from fastapi import FastAPI
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
 
 from .v1 import router as v1_router
 
@@ -14,4 +17,11 @@ async def run(host: str, port: int):
     config.bind = [f"{host}:{port}"]
     config.accesslog = "-"
 
-    await serve(app, config, shutdown_trigger=lambda: asyncio.Future())  # type: ignore
+    shutdown_event = asyncio.Event()
+
+    def _signal_handler(*_: Any) -> None:
+        shutdown_event.set()
+
+    shutdown.add_handler(_signal_handler)
+
+    await serve(app, config, shutdown_trigger=shutdown_event.wait)  # type: ignore

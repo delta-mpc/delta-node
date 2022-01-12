@@ -109,8 +109,10 @@ def download_mnist(image_url: str, label_url: str, ratio: float = 1):
 
 
 def mnist_train():
-    download_mnist(TRAIN_IMAGE_URL, TRAIN_LABEL_URL, 0.67)
+    if not os.path.exists(os.path.join(config.data_dir, "mnist")):
+        download_mnist(TRAIN_IMAGE_URL, TRAIN_LABEL_URL, 0.67)
 
 
 def mnist_test():
-    download_mnist(TEST_IMAGE_URL, TEST_LABEL_URL, 0.67)
+    if not os.path.exists(os.path.join(config.data_dir, "mnist")):
+        download_mnist(TEST_IMAGE_URL, TEST_LABEL_URL, 0.67)
