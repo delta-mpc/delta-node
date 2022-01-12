@@ -1,10 +1,10 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional
 
 import sqlalchemy as sa
-from delta_node import chain, db, entity, pool, registry
+from delta_node import chain, db, entity, pool, registry, shutdown
 
 from .dataset import check_dataset
 from .horizontal import HFLTaskRunner
@@ -45,6 +45,8 @@ class Monitor(object):
                             _logger.exception(e)
 
                     fut.add_done_callback(_done_callback)
+        except asyncio.CancelledError:
+            pass
         finally:
             _logger.info("monitor closed")
 
@@ -222,4 +224,11 @@ async def start():
         if len(tasks) > 0:
             await asyncio.gather(*[create_unfinished_task(task) for task in tasks])
 
-    await monitor.start()
+    fut = asyncio.create_task(monitor.start())
+
+    def _shutdown_handler(*_: Any):
+        fut.cancel()
+
+    shutdown.add_handler(_shutdown_handler)
+
+    await fut
