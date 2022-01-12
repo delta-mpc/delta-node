@@ -35,6 +35,20 @@ async def register(
         node: Optional[entity.Node] = (await sess.execute(q)).scalars().one_or_none()
 
         if node:
+            # join first to avoid address changed when connect to monkey chain connector
+            await chain.get_client().join(url, name)
+            updated = False
+            if node.url != url:
+                await chain.get_client().updaet_url(node.address, url)
+                node.url = url
+                updated = True
+            if node.name != name:
+                await chain.get_client().update_name(node.address, name)
+                node.name = name
+                updated = True
+            if updated:
+                sess.add(node)
+                await sess.commit()
             _logger.info(f"registered node, node address: {node.address}")
 
         else:
