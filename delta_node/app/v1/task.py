@@ -19,10 +19,6 @@ _logger = logging.getLogger(__name__)
 task_router = APIRouter(prefix="/task")
 
 
-class CreateTaskResp(BaseModel):
-    task_id: str
-
-
 def create_task_file(task_file: IO[bytes]):
     f = TemporaryFile(mode="w+b")
     shutil.copyfileobj(task_file, f)
@@ -60,6 +56,10 @@ async def run_task(id: int, task_file: IO[bytes]):
     await coord.run_task(task_id)
 
 
+class CreateTaskResp(BaseModel):
+    task_id: int
+
+
 @task_router.post("", response_model=CreateTaskResp)
 async def create_task(
     *,
@@ -75,11 +75,11 @@ async def create_task(
     await session.refresh(task_item)
 
     background.add_task(run_task, task_item.id, f)
-    return CreateTaskResp(task_id=str(task_item.id))
+    return CreateTaskResp(task_id=task_item.id)
 
 
 class Task(BaseModel):
-    id: str
+    id: int
     created_at: int
     name: str
     type: str
@@ -89,23 +89,23 @@ class Task(BaseModel):
 
 @task_router.get("/list", response_model=List[Task])
 async def get_task_list(
-    task_ids: List[str] = Query(...),
+    task_ids: List[int] = Query(...),
     session: AsyncSession = Depends(db.get_session),
 ):
-    q = sa.select(entity.Task).where(entity.Task.task_id.in_(task_ids))  # type: ignore
+    q = sa.select(entity.Task).where(entity.Task.id.in_(task_ids))  # type: ignore
     tasks: List[entity.Task] = (await session.execute(q)).scalars().all()
-    task_dict = {task.task_id: task for task in tasks}
+    task_dict = {task.id: task for task in tasks}
     task_items = []
     for task_id in task_ids:
         task = task_dict[task_id]
         task_items.append(
             Task(
-                id=task.task_id,
-                created_at=task.created_at,
+                id=task.id,
+                created_at=int(task.created_at.timestamp() * 1000),
                 name=task.name,
                 type=task.type,
                 creator=task.creator,
-                stauts=task.status.name,
+                status=task.status.name,
             )
         )
     return task_items
@@ -113,33 +113,49 @@ async def get_task_list(
 
 @task_router.get("/metadata", response_model=Task)
 async def get_task_metadata(
-    task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"),
+    task_id: int = Query(..., ge=1),
     session: AsyncSession = Depends(db.get_session),
 ):
-    q = sa.select(entity.Task).where(entity.Task.task_id == task_id)
+    q = sa.select(entity.Task).where(entity.Task.id == task_id)
     task: Optional[entity.Task] = (await session.execute(q)).scalar_one_or_none()
     if task is None:
         raise HTTPException(400, f"task {task_id} does not exist")
 
     return Task(
-        id=task.task_id,
-        created_at=task.created_at,
+        id=task.id,
+        created_at=int(task.created_at.timestamp() * 1000),
         name=task.name,
         type=task.type,
         creator=task.creator,
-        stauts=task.status.name,
+        status=task.status.name,
     )
 
 
-@task_router.get("/result")
-def get_task_result(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
+def task_result_file(task_id: str) -> Optional[str]:
     result_filename = coord.task_result_file(task_id)
-    if not os.path.exists(result_filename):
+    if os.path.exists(result_filename):
+        return result_filename
+
+
+@task_router.get("/result")
+async def get_task_result(
+    task_id: int = Query(..., ge=1), session: AsyncSession = Depends(db.get_session)
+):
+    q = sa.select(entity.Task).where(entity.Task.id == task_id)
+    task: Optional[entity.Task] = (await session.execute(q)).scalar_one_or_none()
+    if task is None:
         raise HTTPException(400, f"task {task_id} does not exist")
 
-    def file_iter():
+    loop = asyncio.get_running_loop()
+    result_filename = await loop.run_in_executor(
+        pool.IO_POOL, task_result_file, task.task_id
+    )
+    if result_filename is None:
+        raise HTTPException(400, f"task {task_id} does not exist")
+
+    def file_iter(filename: str):
         chunk_size = 1024 * 1024
-        with open(result_filename, mode="rb") as f:
+        with open(filename, mode="rb") as f:
             while True:
                 content = f.read(chunk_size)
                 if len(content) == 0:
@@ -147,7 +163,7 @@ def get_task_result(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
                 yield content
 
     return StreamingResponse(
-        file_iter(),
+        file_iter(result_filename),
         media_type="application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename={task_id}.result"},
     )
@@ -161,15 +177,20 @@ class TaskLog(BaseModel):
 
 @task_router.get("/logs", response_model=List[TaskLog])
 async def get_task_logs(
-    task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"),
+    task_id: int = Query(..., ge=1),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, gt=0),
     *,
     session: AsyncSession = Depends(db.get_session),
 ):
+    q = sa.select(entity.Task).where(entity.Task.id == task_id)
+    task: Optional[entity.Task] = (await session.execute(q)).scalar_one_or_none()
+    if task is None:
+        raise HTTPException(400, f"task {task_id} does not exist")
+
     q = (
         sa.select(entity.Record)
-        .where(entity.Record.task_id == task_id)
+        .where(entity.Record.task_id == task.task_id)
         .order_by(entity.Record.id)
         .limit(page_size)
         .offset((page - 1) * page_size)
@@ -178,7 +199,7 @@ async def get_task_logs(
 
     logs = [
         TaskLog(
-            created_at=int(record.created_at.timestamp()),
+            created_at=int(record.created_at.timestamp() * 1000),
             message=record.message,
             tx_hash=record.tx_hash,
         )
@@ -210,19 +231,19 @@ async def get_tasks(
     )
     tasks: List[entity.Task] = (await session.execute(q)).scalars().all()
 
-    q = sa.select(sa.func(entity.Task.id))
+    q = sa.select(sa.func.count(entity.Task.id))
     task_count = (await session.execute(q)).scalar_one()
 
     total_pages = math.ceil(task_count / page_size)
 
     task_items = [
         Task(
-            id=task.task_id,
-            created_at=task.created_at,
+            id=task.id,
+            created_at=int(task.created_at.timestamp() * 1000),
             name=task.name,
             type=task.type,
             creator=task.creator,
-            stauts=task.status.name,
+            status=task.status.name,
         )
         for task in tasks
     ]
