@@ -300,7 +300,7 @@ class HFLRoundRunner(object):
             node_adderss, self.task_id, self.round, pk1, pk2
         )
         _logger.info(
-            f"try to join in task {self.task_id} round {self.round}",
+            f"[Join the training round] try to join in task {self.task_id} round {self.round}",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
 
@@ -393,7 +393,7 @@ class HFLRoundRunner(object):
         )
         _logger.debug("upload seed share commitments")
         _logger.info(
-            f"task {self.task_id} round {self.round} upload seed secret share commitments",
+            f"[Secret Sharing Parts Commitments] task {self.task_id} round {self.round} upload seed secret share commitments",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
         tx_hash = await chain.get_client().upload_secret_key_commitment(
@@ -405,7 +405,7 @@ class HFLRoundRunner(object):
         )
         _logger.debug("upload sk share commitments")
         _logger.info(
-            f"task {self.task_id} round {self.round} upload secret key secret share commitments",
+            f"[Secret Sharing Parts Commitments] task {self.task_id} round {self.round} upload secret key secret share commitments",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
 
@@ -575,7 +575,7 @@ class HFLRoundRunner(object):
             node_address, self.task_id, self.round, commitment
         )
         _logger.info(
-            f"task {self.task_id} round {self.round} upload result commitment",
+            f"[Masked Model Incremental Commitment] task {self.task_id} round {self.round} upload result commitment",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
 
@@ -649,7 +649,7 @@ class HFLRoundRunner(object):
                 sk_shares,
             )
             _logger.info(
-                f"task {self.task_id} round {self.round} upload dead members' secret key secret shares",
+                f"[Secret Sharing Parts Data] task {self.task_id} round {self.round} upload dead members' secret key secret shares",
                 extra={"task_id": self.task_id, "tx_hash": tx_hash},
             )
         tx_hash = await chain.get_client().upload_seed(
@@ -660,7 +660,7 @@ class HFLRoundRunner(object):
             seed_shares,
         )
         _logger.info(
-            f"task {self.task_id} round {self.round} upload alive members' seed secret shares",
+            f"[Secret Sharing Parts Data] task {self.task_id} round {self.round} upload alive members' seed secret shares",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
         self.status = entity.RoundStatus.AGGREGATING
