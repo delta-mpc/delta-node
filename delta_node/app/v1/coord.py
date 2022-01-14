@@ -119,7 +119,7 @@ async def upload_secret_share(
     await session.commit()
 
     _logger.info(
-        f"task {shares.task_id} round {shares.round} {shares.address} upload secret shares"
+        f"task {shares.task_id} round {shares.round} {shares.address} upload secret shares", extra={"task_id": shares.task_id}
     )
     return CommonResp()
 
@@ -180,7 +180,7 @@ async def get_secret_shares(
         round=round,
         shares=shares,
     )
-    _logger.info(f"task {task_id} round {round} {address} get secret shares")
+    _logger.info(f"task {task_id} round {round} {address} get secret shares", extra={"task_id": task_id})
     return resp
 
 
@@ -194,7 +194,7 @@ def upload_result(
     dst = coord.task_member_result_file(task_id, round, address)
     with open(dst, mode="wb") as f:
         shutil.copyfileobj(file.file, f)
-    _logger.info(f"task {task_id} round {round} {address} upload result")
+    _logger.info(f"task {task_id} round {round} {address} upload result", extra={"task_id": task_id})
     return CommonResp()
 
 

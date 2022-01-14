@@ -50,7 +50,7 @@ async def run_task(id: int, task_file: IO[bytes]):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(pool.IO_POOL, move_task_file, task_file, task_id)
     _logger.info(
-        f"create task {task_id}", extra={"task_id": task_id, "tx_hash": tx_hash}
+        f"[Create Task] create task {task_id}", extra={"task_id": task_id, "tx_hash": tx_hash}
     )
 
     await coord.run_task(task_id)

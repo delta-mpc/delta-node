@@ -57,7 +57,7 @@ async def run_task(task_entity: entity.Task):
             task_entity.status = entity.TaskStatus.ERROR
             sess.add(task_entity)
             await sess.commit()
-        _logger.info(f"task {task_id} error", extra={"task_id": task_id})
+        _logger.error(f"task {task_id} error", extra={"task_id": task_id})
         raise
 
 
@@ -82,7 +82,7 @@ async def finish_task(node_address: str, task_id: str):
         sess.add(task)
         await sess.commit()
     _logger.info(
-        f"task {task_id} finished", extra={"task_id": task_id, "tx_hash": tx_hash}
+        f"[Finish Task] task {task_id} finished", extra={"task_id": task_id, "tx_hash": tx_hash}
     )
 
 
@@ -92,7 +92,7 @@ async def run_task_round(
     # start round
     tx_hash = await chain.get_client().start_round(node_address, task_id, round)
     _logger.info(
-        f"task {task_id} round {round} start",
+        f"[Start Round] task {task_id} round {round} start",
         extra={"task_id": task_id, "tx_hash": tx_hash},
     )
 
@@ -152,7 +152,7 @@ async def select_candidates(
             node_address, task_id, round, clients
         )
         _logger.info(
-            f"task {task_id} round {round} select candidates {clients}",
+            f"[Select Candidates] task {task_id} round {round} select candidates {clients}",
             extra={"task_id": task_id, "tx_hash": tx_hash},
         )
 
@@ -202,7 +202,7 @@ async def start_calculation(
             node_address, task_id, round, next_clients
         )
         _logger.info(
-            f"task {task_id} round {round} {next_clients} start calculation",
+            f"[Start Calculation] task {task_id} round {round} {next_clients} start calculation",
             extra={"task_id": task_id, "tx_hash": tx_hash},
         )
 
@@ -319,7 +319,7 @@ async def start_aggreation(
             node_address, task_id, round, valid_clients
         )
         _logger.info(
-            f"task {task_id} round {round} {valid_clients} start aggregation",
+            f"[Start Aggregation] task {task_id} round {round} {valid_clients} start aggregation",
             extra={"task_id": task_id, "tx_hash": tx_hash},
         )
 
@@ -451,7 +451,7 @@ async def end_round(
                 extra={"task_id": task_id},
             )
         else:
-            _logger.info(f"task {task_id} round {round} no dead members")
+            _logger.info(f"task {task_id} round {round} no dead members", extra={"task_id": task_id})
 
         secret_share = shamir.SecretShare(alg.min_clients)
 
@@ -483,7 +483,6 @@ async def end_round(
                         )
                     _logger.info(
                         f"task {task_id} round {round} {receiver} upload dead members sk secret share",
-                        extra={"task_id": task_id},
                     )
                 else:
                     final_addrs.remove(receiver)
@@ -535,7 +534,6 @@ async def end_round(
         pk2_dict = {addr: pk[1] for addr, pk in zip(alive_addrs, pks)}
         _logger.info(
             f"task {task_id} round {round} get alive members public keys",
-            extra={"task_id": task_id},
         )
 
         curve = ecdhe.CURVES[alg.curve]
@@ -564,6 +562,6 @@ async def end_round(
         # end round
         tx_hash = await chain.get_client().end_round(node_address, task_id, round)
         _logger.info(
-            f"task {task_id} round {round} finish",
+            f"[End Round] task {task_id} round {round} finish",
             extra={"task_id": task_id, "tx_hash": tx_hash},
         )
