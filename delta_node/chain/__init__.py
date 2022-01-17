@@ -2,6 +2,7 @@ import threading
 
 from delta_node import config
 from grpclib.client import Channel
+from grpclib.config import Configuration
 
 from .client import ChainClient
 
@@ -16,7 +17,13 @@ def init(
     if hasattr(_local, "ch") or hasattr(_local, "client"):
         raise ValueError("chain has been initialized")
 
-    ch = Channel(host, port, ssl=ssl)
+    config = Configuration(
+        _keepalive_time=10,
+        _keepalive_timeout=5,
+        _keepalive_permit_without_calls=True,
+        _http2_max_pings_without_data=0,
+    )
+    ch = Channel(host, port, ssl=ssl, config=config)
     client = ChainClient(ch)
     _local.ch = ch
     _local.client = client

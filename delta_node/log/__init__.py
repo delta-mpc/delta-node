@@ -9,8 +9,8 @@ from . import db_handler, file_handler, stream_handler
 def create_log_listener(loop: asyncio.AbstractEventLoop):
     listener = QueueListener(
         pool.LOG_QUEUE,
-        stream_handler.handler,
-        file_handler.handler,
+        *stream_handler.create_handlers(),
+        *file_handler.create_handlers(),
         db_handler.DBWriteHandler(loop),
     )
     return listener
