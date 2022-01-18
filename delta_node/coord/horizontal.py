@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import random
+import shutil
 from collections import defaultdict
 from typing import Dict, List, Optional
 
@@ -51,7 +52,7 @@ async def run_task(task_entity: entity.Task):
             task_entity.status = entity.TaskStatus.FINISHED
             sess.add(task_entity)
             await sess.commit()
-        await finish_task(node_address, task_id)
+        await finish_task(node_address, task_id, max_rounds)
     except Exception:
         async with db.session_scope() as sess:
             task_entity.status = entity.TaskStatus.ERROR
@@ -73,16 +74,25 @@ def init_task(task_id: str):
     return task
 
 
-async def finish_task(node_address: str, task_id: str):
-    tx_hash = await chain.get_client().finish_task(node_address, task_id)
+async def finish_task(node_address: str, task_id: str, max_rounds: int):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        pool.IO_POOL,
+        shutil.copyfile,
+        loc.task_weight_file(task_id, max_rounds),
+        loc.task_result_file(task_id),
+    )
+
     async with db.session_scope() as sess:
         q = sa.select(entity.Task).where(entity.Task.task_id == task_id)
         task: entity.Task = (await sess.execute(q)).scalar_one()
         task.status = entity.TaskStatus.FINISHED
         sess.add(task)
         await sess.commit()
+    tx_hash = await chain.get_client().finish_task(node_address, task_id)
     _logger.info(
-        f"[Finish Task] task {task_id} finished", extra={"task_id": task_id, "tx_hash": tx_hash}
+        f"[Finish Task] task {task_id} finished",
+        extra={"task_id": task_id, "tx_hash": tx_hash},
     )
 
 
@@ -451,7 +461,10 @@ async def end_round(
                 extra={"task_id": task_id},
             )
         else:
-            _logger.info(f"task {task_id} round {round} no dead members", extra={"task_id": task_id})
+            _logger.info(
+                f"task {task_id} round {round} no dead members",
+                extra={"task_id": task_id},
+            )
 
         secret_share = shamir.SecretShare(alg.min_clients)
 
