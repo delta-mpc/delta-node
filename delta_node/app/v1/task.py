@@ -44,6 +44,7 @@ async def run_task(id: int, task_file: IO[bytes]):
         )
         task_item.task_id = task_id
         task_item.creator = node_address
+        task_item.status = entity.TaskStatus.RUNNING
         sess.add(task_item)
         await sess.commit()
 
@@ -151,7 +152,7 @@ async def get_task_result(
         pool.IO_POOL, task_result_file, task.task_id
     )
     if result_filename is None:
-        raise HTTPException(400, f"task {task_id} does not exist")
+        raise HTTPException(400, f"task {task_id} is not finished")
 
     def file_iter(filename: str):
         chunk_size = 1024 * 1024
