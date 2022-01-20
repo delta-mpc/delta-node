@@ -98,17 +98,18 @@ async def get_task_list(
     task_dict = {task.id: task for task in tasks}
     task_items = []
     for task_id in task_ids:
-        task = task_dict[task_id]
-        task_items.append(
-            Task(
-                id=task.id,
-                created_at=int(task.created_at.timestamp() * 1000),
-                name=task.name,
-                type=task.type,
-                creator=task.creator,
-                status=task.status.name,
+        if task_id in task_dict:
+            task = task_dict[task_id]
+            task_items.append(
+                Task(
+                    id=task.id,
+                    created_at=int(task.created_at.timestamp() * 1000),
+                    name=task.name,
+                    type=task.type,
+                    creator=task.creator,
+                    status=task.status.name,
+                )
             )
-        )
     return task_items
 
 
