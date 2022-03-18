@@ -12,6 +12,7 @@ from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
                      Query, UploadFile)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 _logger = logging.getLogger(__name__)
@@ -51,7 +52,8 @@ async def run_task(id: int, task_file: IO[bytes]):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(pool.IO_POOL, move_task_file, task_file, task_id)
     _logger.info(
-        f"[Create Task] create task {task_id}", extra={"task_id": task_id, "tx_hash": tx_hash}
+        f"[Create Task] create task {task_id}",
+        extra={"task_id": task_id, "tx_hash": tx_hash},
     )
 
     await coord.run_task(task_id)
@@ -223,14 +225,14 @@ class TasksPage(BaseModel):
 async def get_tasks(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, gt=0),
+    order: str = Query("desc", regex=r"^asc|desc$"),
     session: AsyncSession = Depends(db.get_session),
 ):
-    q = (
-        sa.select(entity.Task)
-        .order_by(entity.Task.id)
-        .limit(page_size)
-        .offset((page - 1) * page_size)
-    )
+    q = sa.select(entity.Task).limit(page_size).offset((page - 1) * page_size)
+    if order == "asc":
+        q = q.order_by(entity.Task.id)
+    else:
+        q = q.order_by(desc(entity.Task.id))
     tasks: List[entity.Task] = (await session.execute(q)).scalars().all()
 
     q = sa.select(sa.func.count(entity.Task.id))
