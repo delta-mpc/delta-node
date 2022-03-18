@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -49,7 +49,7 @@ def load_file(
 
 
 class FileDataset(Dataset):
-    def __init__(self, filename: str, preprocess: Callable = None) -> None:
+    def __init__(self, filename: str, preprocess: Optional[Callable] = None) -> None:
         result = load_file(filename)
         if isinstance(result, Image.Image):
             raise ValueError("file dataset does not support image file")
@@ -71,7 +71,7 @@ class FileDataset(Dataset):
 
 
 class DirectoryDataset(Dataset):
-    def __init__(self, directory: str, preprocess: Callable = None) -> None:
+    def __init__(self, directory: str, preprocess: Optional[Callable] = None) -> None:
         self._xs = []
         self._ys = []
         self._preprocess = preprocess

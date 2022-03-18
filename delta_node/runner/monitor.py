@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional
 
 import sqlalchemy as sa
 from delta_node import chain, db, entity, pool, registry, shutdown
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-EventCallback = Callable[[entity.Event], Awaitable[None]]
+EventCallback = Callable[[entity.Event], Coroutine[None, None, None]]
 
 
 class Monitor(object):

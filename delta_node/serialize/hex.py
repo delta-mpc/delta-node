@@ -1,3 +1,5 @@
+from typing import Optional
+
 __all__ = [
     "int_to_bytes",
     "bytes_to_int",
@@ -6,7 +8,7 @@ __all__ = [
 ]
 
 
-def bytes_to_hex(src: bytes, with0x: bool = True, max_length: int = None) -> str:
+def bytes_to_hex(src: bytes, with0x: bool = True, max_length: Optional[int] = None) -> str:
     if max_length is not None:
         assert len(src) <= max_length, f"input bytes length is too long ({len(src)} > {max_length})"
     res = src.hex()
@@ -17,7 +19,7 @@ def bytes_to_hex(src: bytes, with0x: bool = True, max_length: int = None) -> str
     return res
 
 
-def hex_to_bytes(src: str, length: int = None) -> bytes:
+def hex_to_bytes(src: str, length: Optional[int] = None) -> bytes:
     if src.startswith("0x"):
         src = src[2:]
     if length is not None:

@@ -16,7 +16,7 @@ _local = threading.local()
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     if (not hasattr(_local, "session")) or (not hasattr(_local, "engine")):
         raise ValueError("db has not been initialized")
-    session: sessionmaker[AsyncSession] = _local.session
+    session: sessionmaker = _local.session
     async with session() as sess:
         try:
             yield sess

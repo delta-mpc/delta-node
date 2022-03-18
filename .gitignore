@@ -38,6 +38,9 @@ MANIFEST
 # pytest
 .pytest_cache
 
+# venv
+.venv
+
 config/
 data*/*.npz
 *whls/
