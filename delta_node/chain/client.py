@@ -1,8 +1,14 @@
+import asyncio
 import logging
-from typing import AsyncGenerator, List, Tuple
+from typing import AsyncGenerator, List, Optional, Tuple
 
 from delta_node import entity, serialize
 from grpclib.client import Channel
+from tenacity import retry
+from tenacity.after import after_log
+from tenacity.retry import retry_if_exception_type
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 
 from . import chain_pb2
 from .chain_grpc import ChainStub
@@ -373,7 +379,7 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def subscribe(self, address: str) -> AsyncGenerator[entity.Event, None]:
+    async def _subscribe(self, address: str) -> AsyncGenerator[entity.Event, None]:
         req = chain_pb2.EventReq(address=address)
         try:
             async with self.stub.Subscribe.open() as stream:
@@ -423,6 +429,43 @@ class ChainClient(object):
                         yield entity.TaskFinishEvent(
                             task_id=event.task_finished.task_id
                         )
+                    elif event_type == "heartbeat":
+                        yield entity.HeartbeatEvent()
         except Exception as e:
             _logger.error(e)
             raise
+
+    def subscribe(
+        self,
+        address: str,
+        timeout: Optional[int] = None,
+        retry_attemps: Optional[int] = None,
+    ) -> AsyncGenerator[entity.TaskEvent, None]:
+
+        if retry_attemps:
+            wrapper = retry(
+                retry=retry_if_exception_type(asyncio.TimeoutError),
+                after=after_log(_logger, logging.DEBUG),
+                wait=wait_fixed(5),
+                stop=stop_after_attempt(retry_attemps),
+            )
+        else:
+            wrapper = retry(
+                retry=retry_if_exception_type(asyncio.TimeoutError),
+                after=after_log(_logger, logging.DEBUG),
+                wait=wait_fixed(5),
+            )
+        
+        @wrapper
+        async def _inner_subscribe():
+            event_gen = self._subscribe(address=address)
+            while True:
+                try:
+                    event = await asyncio.wait_for(event_gen.asend(None), timeout)
+                    if isinstance(event, entity.TaskEvent):
+                        yield event
+                except StopAsyncIteration:
+                    break
+            await event_gen.aclose()
+
+        return _inner_subscribe()

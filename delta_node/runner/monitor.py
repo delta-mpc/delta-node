@@ -15,18 +15,22 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-EventCallback = Callable[[entity.Event], Coroutine[None, None, None]]
+EventCallback = Callable[[entity.TaskEvent], Coroutine[None, None, None]]
 
 
 class Monitor(object):
     def __init__(self) -> None:
         self.callbacks: Dict[entity.EventType, List[EventCallback]] = defaultdict(list)
 
-    async def start(self):
+    async def start(
+        self, timeout: Optional[int] = None, retry_attemps: Optional[int] = None
+    ):
         _logger.info("monitor started")
         node_address = await registry.get_node_address()
         try:
-            async for event in chain.get_client().subscribe(node_address):
+            async for event in chain.get_client().subscribe(
+                node_address, timeout=timeout, retry_attemps=retry_attemps
+            ):
                 _logger.debug(f"event: {event.type}")
                 callbacks = self.callbacks[event.type]
                 for callback in callbacks:
@@ -70,7 +74,7 @@ def create_task_runner(task: entity.RunnerTask):
         raise ValueError(f"unknown task type {task.type}")
 
 
-async def monitor_task_create(event: entity.Event):
+async def monitor_task_create(event: entity.TaskEvent):
     assert isinstance(event, entity.TaskCreateEvent)
     loop = asyncio.get_running_loop()
     accept = await loop.run_in_executor(pool.IO_POOL, check_dataset, event.dataset)
@@ -106,7 +110,7 @@ async def monitor_task_create(event: entity.Event):
         runners[event.task_id] = task_runner
 
 
-async def monitor_event(event: entity.Event):
+async def monitor_event(event: entity.TaskEvent):
     task_id = event.task_id
 
     async with runners_lock:
@@ -141,7 +145,7 @@ async def monitor_event(event: entity.Event):
             del runners[task_id]
 
 
-async def monitor_task_finish(event: entity.Event):
+async def monitor_task_finish(event: entity.TaskEvent):
     assert isinstance(event, entity.TaskFinishEvent)
     task_id = event.task_id
 
@@ -195,7 +199,7 @@ async def create_unfinished_task(task: entity.RunnerTask):
         _logger.error(e)
 
 
-async def start():
+async def start(timeout: Optional[int] = None, retry_attemps: Optional[int] = None):
     monitor = Monitor()
     monitor.register("task_created", monitor_task_create)
 
@@ -224,7 +228,9 @@ async def start():
         if len(tasks) > 0:
             await asyncio.gather(*[create_unfinished_task(task) for task in tasks])
 
-    fut = asyncio.create_task(monitor.start())
+    fut = asyncio.create_task(
+        monitor.start(timeout=timeout, retry_attemps=retry_attemps)
+    )
 
     def _shutdown_handler(*_: Any):
         fut.cancel()

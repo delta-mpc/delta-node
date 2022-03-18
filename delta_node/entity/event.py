@@ -1,16 +1,19 @@
+import string
 from dataclasses import dataclass, field
 from typing import List, Literal
 
 __all__ = [
     "EventType",
     "Event",
+    "TaskEvent",
     "TaskCreateEvent",
     "PartnerSelectedEvent",
     "CalculationStartedEvent",
     "AggregationStartedEvent",
     "RoundStartedEvent",
     "RoundEndedEvent",
-    "TaskFinishEvent"
+    "TaskFinishEvent",
+    "HeartbeatEvent",
 ]
 
 EventType = Literal[
@@ -20,13 +23,18 @@ EventType = Literal[
     "calculation_started",
     "aggregation_started",
     "round_ended",
-    "task_finish"
+    "task_finish",
+    "heartbeat",
 ]
 
 
 @dataclass
 class Event:
     type: EventType = field(init=False)
+
+
+@dataclass
+class TaskEvent(Event):
     task_id: str
 
 
@@ -53,30 +61,35 @@ class _Addrs(object):
 
 
 @dataclass
-class PartnerSelectedEvent(Event, _Addrs, _Round):
+class PartnerSelectedEvent(TaskEvent, _Addrs, _Round):
     type: EventType = field(init=False, default="partner_selected")
 
 
 @dataclass
-class CalculationStartedEvent(Event, _Addrs, _Round):
+class CalculationStartedEvent(TaskEvent, _Addrs, _Round):
     type: EventType = field(init=False, default="calculation_started")
 
 
 @dataclass
-class AggregationStartedEvent(Event, _Addrs, _Round):
+class AggregationStartedEvent(TaskEvent, _Addrs, _Round):
     type: EventType = field(init=False, default="aggregation_started")
 
 
 @dataclass
-class RoundStartedEvent(Event, _Round):
+class RoundStartedEvent(TaskEvent, _Round):
     type: EventType = field(init=False, default="round_started")
 
 
 @dataclass
-class RoundEndedEvent(Event, _Round):
+class RoundEndedEvent(TaskEvent, _Round):
     type: EventType = field(init=False, default="round_ended")
 
 
 @dataclass
-class TaskFinishEvent(Event):
+class TaskFinishEvent(TaskEvent):
     type: EventType = field(init=False, default="task_finish")
+
+
+@dataclass
+class HeartbeatEvent(Event):
+    type: EventType = field(init=False, default="heartbeat")
