@@ -50,3 +50,4 @@ nodes/
 .python-version
 main.py
 logs/
+requirements.local.txt

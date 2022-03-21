@@ -15,7 +15,6 @@ python-multipart==0.0.5
 PyYAML==6.0
 SQLAlchemy==1.4.21
 tqdm==4.46.0
-tenacity==8.0.1
 
--f https://mirror.sjtu.edu.cn/pytorch-wheels/lts/1.8/torch_lts.html
+-f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
 torch==1.8.2+cpu
