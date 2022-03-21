@@ -39,7 +39,7 @@ class TaskEvent(Event):
 
 
 @dataclass
-class TaskCreateEvent(Event):
+class TaskCreateEvent(TaskEvent):
     type: EventType = field(init=False, default="task_created")
     address: str
     task_id: str
