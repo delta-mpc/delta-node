@@ -1,10 +1,10 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional
 
 import sqlalchemy as sa
-from delta_node import chain, db, entity, pool, registry, shutdown
+from delta_node import chain, db, entity, pool, registry, shutdown, config
 
 from .dataset import check_dataset
 from .horizontal import HFLTaskRunner
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-EventCallback = Callable[[entity.Event], Awaitable[None]]
+EventCallback = Callable[[entity.TaskEvent], Coroutine[None, None, None]]
 
 
 class Monitor(object):
@@ -26,7 +26,11 @@ class Monitor(object):
         _logger.info("monitor started")
         node_address = await registry.get_node_address()
         try:
-            async for event in chain.get_client().subscribe(node_address):
+            async for event in chain.get_client().subscribe(
+                node_address,
+                timeout=config.chain_heartbeat,
+                retry_attemps=config.chain_retry,
+            ):
                 _logger.debug(f"event: {event.type}")
                 callbacks = self.callbacks[event.type]
                 for callback in callbacks:
@@ -47,6 +51,9 @@ class Monitor(object):
                     fut.add_done_callback(_done_callback)
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            _logger.exception(e)
+            raise
         finally:
             _logger.info("monitor closed")
 
@@ -70,7 +77,7 @@ def create_task_runner(task: entity.RunnerTask):
         raise ValueError(f"unknown task type {task.type}")
 
 
-async def monitor_task_create(event: entity.Event):
+async def monitor_task_create(event: entity.TaskEvent):
     assert isinstance(event, entity.TaskCreateEvent)
     loop = asyncio.get_running_loop()
     accept = await loop.run_in_executor(pool.IO_POOL, check_dataset, event.dataset)
@@ -106,7 +113,7 @@ async def monitor_task_create(event: entity.Event):
         runners[event.task_id] = task_runner
 
 
-async def monitor_event(event: entity.Event):
+async def monitor_event(event: entity.TaskEvent):
     task_id = event.task_id
 
     async with runners_lock:
@@ -141,7 +148,7 @@ async def monitor_event(event: entity.Event):
             del runners[task_id]
 
 
-async def monitor_task_finish(event: entity.Event):
+async def monitor_task_finish(event: entity.TaskEvent):
     assert isinstance(event, entity.TaskFinishEvent)
     task_id = event.task_id
 

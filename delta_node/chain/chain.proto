@@ -209,6 +209,7 @@ message EndRoundReq {
 
 message EventReq {
     string address = 1;
+    int32 timeout = 2;
 }
 
 message Event {
@@ -220,6 +221,7 @@ message Event {
         AggregationStartedEvent aggregation_started = 5;
         RoundEndedEvent round_ended = 6;
         TaskFinishEvent task_finished = 7;
+        HeartBeatEvent heartbeat = 8;
     }
 }
 
@@ -262,6 +264,10 @@ message RoundEndedEvent {
 
 message TaskFinishEvent {
     string task_id = 1;
+}
+
+message HeartBeatEvent {
+
 }
 
 service Chain {

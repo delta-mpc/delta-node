@@ -16,6 +16,10 @@ chain_connector:
   host: ""
   # 区块链连接器的端口
   port: 4500
+  # 区块链连接器心跳包间隔
+  heartbeat: 30
+  # 区块链连接器断线重试次数
+  retry: 3
 
 # 本节点对外的公开地址，将会公开到区块链上，供其他Delta Node节点连接
 node:

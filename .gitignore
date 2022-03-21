@@ -38,6 +38,9 @@ MANIFEST
 # pytest
 .pytest_cache
 
+# venv
+.venv
+
 config/
 data*/*.npz
 *whls/
@@ -46,3 +49,5 @@ db/*.db
 nodes/
 .python-version
 main.py
+logs/
+requirements.local.txt

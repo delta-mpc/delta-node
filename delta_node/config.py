@@ -17,6 +17,8 @@ db: str = _c.get("db")
 _chain: Dict = _c.get("chain_connector")
 chain_host: str = _chain.get("host", "")
 chain_port: int = _chain.get("port", 4500)
+chain_heartbeat: int = _chain.get("heartbeat", 30)
+chain_retry: int = _chain.get("retry", 3)
 
 _node: Dict = _c.get("node")
 node_name: str = _node.get("name", "")
