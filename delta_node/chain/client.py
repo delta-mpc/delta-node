@@ -1,11 +1,10 @@
 import asyncio
 import logging
-from typing import AsyncGenerator, List, Optional, Tuple
+from typing import AsyncGenerator, List, Tuple
 
 from delta_node import entity, serialize
 from grpclib.client import Channel
 from tenacity import retry
-from tenacity.after import after_log
 from tenacity.retry import retry_if_exception_type
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
@@ -379,93 +378,91 @@ class ChainClient(object):
             _logger.error(e)
             raise
 
-    async def _subscribe(self, address: str) -> AsyncGenerator[entity.Event, None]:
-        req = chain_pb2.EventReq(address=address)
-        try:
-            async with self.stub.Subscribe.open() as stream:
-                await stream.send_message(req, end=True)
-                async for event in stream:
-                    event_type = event.WhichOneof("event")
-                    if event_type == "task_created":
-                        yield entity.TaskCreateEvent(
-                            address=event.task_created.address,
-                            task_id=event.task_created.task_id,
-                            dataset=event.task_created.dataset,
-                            url=event.task_created.url,
-                            commitment=serialize.hex_to_bytes(
-                                event.task_created.commitment
-                            ),
-                            task_type=event.task_created.task_type,
-                        )
-                    elif event_type == "round_started":
-                        yield entity.RoundStartedEvent(
-                            task_id=event.round_started.task_id,
-                            round=event.round_started.round,
-                        )
-                    elif event_type == "partner_selected":
-                        yield entity.PartnerSelectedEvent(
-                            task_id=event.partner_selected.task_id,
-                            round=event.partner_selected.round,
-                            addrs=list(event.partner_selected.addrs),
-                        )
-                    elif event_type == "calculation_started":
-                        yield entity.CalculationStartedEvent(
-                            task_id=event.calculation_started.task_id,
-                            round=event.calculation_started.round,
-                            addrs=list(event.calculation_started.addrs),
-                        )
-                    elif event_type == "aggregation_started":
-                        yield entity.AggregationStartedEvent(
-                            task_id=event.aggregation_started.task_id,
-                            round=event.aggregation_started.round,
-                            addrs=list(event.aggregation_started.addrs),
-                        )
-                    elif event_type == "round_ended":
-                        yield entity.RoundEndedEvent(
-                            task_id=event.round_ended.task_id,
-                            round=event.round_ended.round,
-                        )
-                    elif event_type == "task_finished":
-                        yield entity.TaskFinishEvent(
-                            task_id=event.task_finished.task_id
-                        )
-                    elif event_type == "heartbeat":
-                        yield entity.HeartbeatEvent()
-        except Exception as e:
-            _logger.error(e)
-            raise
+    async def _subscribe(
+        self, address: str, timeout: int = 0
+    ) -> AsyncGenerator[entity.Event, None]:
+        req = chain_pb2.EventReq(address=address, timeout=timeout)
+        async with self.stub.Subscribe.open() as stream:
+            await stream.send_message(req, end=True)
+            async for event in stream:
+                event_type = event.WhichOneof("event")
+                if event_type == "task_created":
+                    yield entity.TaskCreateEvent(
+                        address=event.task_created.address,
+                        task_id=event.task_created.task_id,
+                        dataset=event.task_created.dataset,
+                        url=event.task_created.url,
+                        commitment=serialize.hex_to_bytes(
+                            event.task_created.commitment
+                        ),
+                        task_type=event.task_created.task_type,
+                    )
+                elif event_type == "round_started":
+                    yield entity.RoundStartedEvent(
+                        task_id=event.round_started.task_id,
+                        round=event.round_started.round,
+                    )
+                elif event_type == "partner_selected":
+                    yield entity.PartnerSelectedEvent(
+                        task_id=event.partner_selected.task_id,
+                        round=event.partner_selected.round,
+                        addrs=list(event.partner_selected.addrs),
+                    )
+                elif event_type == "calculation_started":
+                    yield entity.CalculationStartedEvent(
+                        task_id=event.calculation_started.task_id,
+                        round=event.calculation_started.round,
+                        addrs=list(event.calculation_started.addrs),
+                    )
+                elif event_type == "aggregation_started":
+                    yield entity.AggregationStartedEvent(
+                        task_id=event.aggregation_started.task_id,
+                        round=event.aggregation_started.round,
+                        addrs=list(event.aggregation_started.addrs),
+                    )
+                elif event_type == "round_ended":
+                    yield entity.RoundEndedEvent(
+                        task_id=event.round_ended.task_id,
+                        round=event.round_ended.round,
+                    )
+                elif event_type == "task_finished":
+                    yield entity.TaskFinishEvent(task_id=event.task_finished.task_id)
+                elif event_type == "heartbeat":
+                    yield entity.HeartbeatEvent()
 
-    def subscribe(
+    async def subscribe(
         self,
         address: str,
-        timeout: Optional[int] = None,
-        retry_attemps: Optional[int] = None,
+        timeout: int = 0,
+        retry_attemps: int = 0,
     ) -> AsyncGenerator[entity.TaskEvent, None]:
-
-        if retry_attemps:
-            wrapper = retry(
-                retry=retry_if_exception_type(asyncio.TimeoutError),
-                after=after_log(_logger, logging.DEBUG),
-                wait=wait_fixed(5),
-                stop=stop_after_attempt(retry_attemps),
-            )
-        else:
-            wrapper = retry(
-                retry=retry_if_exception_type(asyncio.TimeoutError),
-                after=after_log(_logger, logging.DEBUG),
-                wait=wait_fixed(5),
-            )
-        
-        @wrapper
-        async def _inner_subscribe():
-            event_gen = self._subscribe(address=address)
-            while True:
-                try:
-                    event = await asyncio.wait_for(event_gen.asend(None), timeout)
+        origin_retry_attemps = retry_attemps
+        while retry_attemps + 1 > 0:
+            event_gen = self._subscribe(address=address, timeout=timeout)
+            try:
+                while True:
+                    event = await asyncio.wait_for(event_gen.asend(None), timeout * 2)
                     if isinstance(event, entity.TaskEvent):
                         yield event
-                except StopAsyncIteration:
-                    break
-            await event_gen.aclose()
-
-        return _inner_subscribe()
+                    elif isinstance(event, entity.HeartbeatEvent):
+                        _logger.debug("receive heartbeat from connector")
+            except StopAsyncIteration:
+                return
+            except asyncio.TimeoutError as e:
+                if retry_attemps == 0:
+                    _logger.error(
+                        f"cannot connect to connector {origin_retry_attemps} times, exit"
+                    )
+                    raise e
+                _logger.warning(
+                    f"connector does not send heartbeat after {timeout * 2} seconds, reconnect"
+                )
+                await asyncio.sleep(2)
+                retry_attemps -= 1
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                _logger.exception(e)
+                raise e
+            finally:
+                await event_gen.aclose()

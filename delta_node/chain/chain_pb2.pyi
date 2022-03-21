@@ -615,12 +615,15 @@ global___EndRoundReq = EndRoundReq
 class EventReq(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
     ADDRESS_FIELD_NUMBER: builtins.int
+    TIMEOUT_FIELD_NUMBER: builtins.int
     address: typing.Text
+    timeout: builtins.int
     def __init__(self,
         *,
         address: typing.Text = ...,
+        timeout: builtins.int = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["address",b"address"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["address",b"address","timeout",b"timeout"]) -> None: ...
 global___EventReq = EventReq
 
 class Event(google.protobuf.message.Message):

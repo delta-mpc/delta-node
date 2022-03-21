@@ -209,6 +209,7 @@ message EndRoundReq {
 
 message EventReq {
     string address = 1;
+    int32 timeout = 2;
 }
 
 message Event {

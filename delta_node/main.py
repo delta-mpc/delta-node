@@ -29,7 +29,7 @@ async def _run():
     await commu.init()
 
     fut = asyncio.wait(
-        [app.run("0.0.0.0", config.api_port), runner.run(timeout=60, retry_attemps=5)],
+        [app.run("0.0.0.0", config.api_port), runner.run()],
         return_when=asyncio.FIRST_EXCEPTION,
     )
     loop.add_signal_handler(signal.SIGINT, shutdown.shutdown_handler)

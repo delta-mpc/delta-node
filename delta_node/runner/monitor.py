@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional
 
 import sqlalchemy as sa
-from delta_node import chain, db, entity, pool, registry, shutdown
+from delta_node import chain, db, entity, pool, registry, shutdown, config
 
 from .dataset import check_dataset
 from .horizontal import HFLTaskRunner
@@ -22,14 +22,14 @@ class Monitor(object):
     def __init__(self) -> None:
         self.callbacks: Dict[entity.EventType, List[EventCallback]] = defaultdict(list)
 
-    async def start(
-        self, timeout: Optional[int] = None, retry_attemps: Optional[int] = None
-    ):
+    async def start(self):
         _logger.info("monitor started")
         node_address = await registry.get_node_address()
         try:
             async for event in chain.get_client().subscribe(
-                node_address, timeout=timeout, retry_attemps=retry_attemps
+                node_address,
+                timeout=config.chain_heartbeat,
+                retry_attemps=config.chain_retry,
             ):
                 _logger.debug(f"event: {event.type}")
                 callbacks = self.callbacks[event.type]
@@ -51,6 +51,9 @@ class Monitor(object):
                     fut.add_done_callback(_done_callback)
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            _logger.exception(e)
+            raise
         finally:
             _logger.info("monitor closed")
 
@@ -199,7 +202,7 @@ async def create_unfinished_task(task: entity.RunnerTask):
         _logger.error(e)
 
 
-async def start(timeout: Optional[int] = None, retry_attemps: Optional[int] = None):
+async def start():
     monitor = Monitor()
     monitor.register("task_created", monitor_task_create)
 
@@ -228,9 +231,7 @@ async def start(timeout: Optional[int] = None, retry_attemps: Optional[int] = No
         if len(tasks) > 0:
             await asyncio.gather(*[create_unfinished_task(task) for task in tasks])
 
-    fut = asyncio.create_task(
-        monitor.start(timeout=timeout, retry_attemps=retry_attemps)
-    )
+    fut = asyncio.create_task(monitor.start())
 
     def _shutdown_handler(*_: Any):
         fut.cancel()
