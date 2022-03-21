@@ -135,7 +135,7 @@ async def monitor_event(event: entity.TaskEvent):
     try:
         await runner.dispatch(event)
     except Exception as e:
-        _logger.error(f"task {task_id} error")
+        _logger.error(f"task {task_id} error {str(e)}")
         _logger.exception(e)
 
         await runner.finish()
