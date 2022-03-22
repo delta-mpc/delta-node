@@ -36,6 +36,8 @@ async def _run():
     loop.add_signal_handler(signal.SIGTERM, shutdown.shutdown_handler)
     try:
         await fut
+    except KeyboardInterrupt:
+        return
     finally:
         await commu.close()
         await registry.unregister()
@@ -46,6 +48,35 @@ async def _run():
 
 def run():
     asyncio.run(_run())
+
+
+async def _leave():
+    from delta_node import chain, config, db, log, pool, registry
+
+    if len(config.chain_host) == 0:
+        raise RuntimeError("chain connector host is required")
+    if len(config.node_url) == 0:
+        raise RuntimeError("node host is required")
+    if len(config.node_name) == 0:
+        raise RuntimeError("node name is required")
+
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(pool.IO_POOL)
+
+    listener = log.create_log_listener(loop)
+    listener.start()
+    log.init()
+
+    await db.init(config.db)
+    chain.init(config.chain_host, config.chain_port, ssl=False)
+    await registry.unregister()
+    chain.close()
+    await db.close()
+    listener.stop()
+
+
+def leave():
+    asyncio.run(_leave())
 
 
 def init():
@@ -82,8 +113,11 @@ def main(input_args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
         "action",
-        choices=["init", "run", "get-mnist"],
-        help="delta node start action: 'init' to init delta node config, 'run' to start the node",
+        choices=["init", "run", "get-mnist", "leave"],
+        help="""delta node start action: 
+        'init' to init delta node config, 
+        'run' to start the node, 
+        'leave' to unregister from the computing network""",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0")
     args = parser.parse_args(input_args)
@@ -93,3 +127,5 @@ def main(input_args: Optional[Sequence[str]] = None):
         run()
     elif args.action == "get-mnist":
         mnist()
+    elif args.action == "leave":
+        leave()
