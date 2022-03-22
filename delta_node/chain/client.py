@@ -1,13 +1,10 @@
 import asyncio
 import logging
 from typing import AsyncGenerator, List, Tuple
+from contextlib import suppress
 
 from delta_node import entity, serialize
 from grpclib.client import Channel
-from tenacity import retry
-from tenacity.retry import retry_if_exception_type
-from tenacity.stop import stop_after_attempt
-from tenacity.wait import wait_fixed
 
 from . import chain_pb2
 from .chain_grpc import ChainStub
@@ -439,6 +436,7 @@ class ChainClient(object):
         origin_retry_attemps = retry_attemps
         while retry_attemps + 1 > 0:
             event_gen = self._subscribe(address=address, timeout=timeout)
+            gen_finished = False
             try:
                 while True:
                     event = await asyncio.wait_for(event_gen.asend(None), timeout * 2)
@@ -447,6 +445,7 @@ class ChainClient(object):
                     elif isinstance(event, entity.HeartbeatEvent):
                         _logger.debug("receive heartbeat from connector")
             except StopAsyncIteration:
+                gen_finished = True
                 return
             except asyncio.TimeoutError as e:
                 if retry_attemps == 0:
@@ -460,9 +459,15 @@ class ChainClient(object):
                 await asyncio.sleep(2)
                 retry_attemps -= 1
             except asyncio.CancelledError:
-                pass
+                return
             except Exception as e:
                 _logger.exception(e)
                 raise e
             finally:
-                await event_gen.aclose()
+                if not gen_finished:
+                    task = asyncio.create_task(event_gen.asend(None))
+                    task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await task
+                    await event_gen.aclose()
+                    gen_finished = True

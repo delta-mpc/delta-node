@@ -16,6 +16,7 @@ async def run(host: str, port: int):
     config = Config()
     config.bind = [f"{host}:{port}"]
     config.accesslog = "-"
+    config.errorlog = "-"
 
     shutdown_event = asyncio.Event()
 
