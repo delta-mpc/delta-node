@@ -53,12 +53,12 @@ async def run_task(task_entity: entity.Task):
             sess.add(task_entity)
             await sess.commit()
         await finish_task(node_address, task_id, max_rounds)
-    except Exception:
+    except Exception as e:
         async with db.session_scope() as sess:
             task_entity.status = entity.TaskStatus.ERROR
             sess.add(task_entity)
             await sess.commit()
-        _logger.error(f"task {task_id} error", extra={"task_id": task_id})
+        _logger.error(f"task {task_id} error: {str(e)}", extra={"task_id": task_id})
         raise
 
 
