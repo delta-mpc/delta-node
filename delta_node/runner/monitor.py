@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional
 
 import sqlalchemy as sa
-from delta_node import chain, db, entity, pool, registry, shutdown, config
+from delta_node import chain, db, entity, pool, registry, config
 
 from .dataset import check_dataset
 from .horizontal import HFLTaskRunner

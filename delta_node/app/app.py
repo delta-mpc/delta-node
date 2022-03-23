@@ -1,7 +1,5 @@
 import asyncio
 from typing import Any
-
-from delta_node import shutdown
 from fastapi import FastAPI
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
