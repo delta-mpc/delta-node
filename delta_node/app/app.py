@@ -20,9 +20,7 @@ async def run(host: str, port: int):
 
     shutdown_event = asyncio.Event()
 
-    def _signal_handler(*_: Any) -> None:
+    try:
+        await serve(app, config, shutdown_trigger=shutdown_event.wait)  # type: ignore
+    except asyncio.CancelledError:
         shutdown_event.set()
-
-    shutdown.add_handler(_signal_handler)
-
-    await serve(app, config, shutdown_trigger=shutdown_event.wait)  # type: ignore

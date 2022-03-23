@@ -214,28 +214,4 @@ async def start():
 
     monitor.register("task_finish", monitor_task_finish)
 
-    # get unfinished tasks
-    async with db.session_scope() as sess:
-        q = (
-            sa.select(entity.RunnerTask)
-            .where(
-                sa.or_(
-                    entity.RunnerTask.status == entity.TaskStatus.PENDING,  # type: ignore
-                    entity.RunnerTask.status == entity.TaskStatus.RUNNING,  # type: ignore
-                )
-            )
-            .order_by(entity.RunnerTask.id)
-        )
-        tasks: List[entity.RunnerTask] = (await sess.execute(q)).scalars().all()
-        # create unfinished task
-        if len(tasks) > 0:
-            await asyncio.gather(*[create_unfinished_task(task) for task in tasks])
-
-    fut = asyncio.create_task(monitor.start())
-
-    def _shutdown_handler(*_: Any):
-        fut.cancel()
-
-    shutdown.add_handler(_shutdown_handler)
-
-    await fut
+    await monitor.start()
