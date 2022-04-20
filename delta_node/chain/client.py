@@ -465,7 +465,7 @@ class ChainClient(object):
                 raise e
             finally:
                 if not gen_finished:
-                    task = asyncio.create_task(event_gen.asend(None))
+                    task = asyncio.ensure_future(event_gen.asend(None))
                     task.cancel()
                     with suppress(asyncio.CancelledError):
                         await task
