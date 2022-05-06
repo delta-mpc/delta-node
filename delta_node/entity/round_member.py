@@ -32,7 +32,7 @@ class RoundMember(BaseTable):
     )
 
     round: Optional["TaskRound"] = field(
-        default=None,
+        init=False,
         metadata={
             "sa": relationship(
                 "TaskRound",
@@ -43,7 +43,7 @@ class RoundMember(BaseTable):
     )
 
     send_shares: List["SecretShare"] = field(
-        default_factory=list,
+        init=False,
         metadata={
             "sa": relationship(
                 "SecretShare",
@@ -52,8 +52,9 @@ class RoundMember(BaseTable):
             )
         },
     )
+    
     received_shares: List["SecretShare"] = field(
-        default_factory=list,
+        init=False,
         metadata={
             "sa": relationship(
                 "SecretShare",
