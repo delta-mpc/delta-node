@@ -42,7 +42,7 @@ MANIFEST
 .venv
 
 config/
-data*/
+data/
 *whls/
 db/*.db
 *.db
