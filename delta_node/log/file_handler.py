@@ -4,7 +4,7 @@ from logging import LogRecord
 from logging.handlers import RotatingFileHandler
 from typing import List
 
-from .. import config
+from delta_node import config
 
 
 def create_handlers() -> List[logging.Handler]:

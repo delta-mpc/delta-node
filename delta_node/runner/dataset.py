@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import random
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -10,8 +12,10 @@ from PIL import Image, UnidentifiedImageError
 from torch.utils.data import DataLoader, Dataset
 
 
-def check_dataset(dataset: str):
-    return os.path.exists(os.path.join(config.data_dir, dataset))
+def check_datasets(datasets: List[str]):
+    return all(
+        os.path.exists(os.path.join(config.data_dir, dataset)) for dataset in datasets
+    )
 
 
 class UnsupportedFileError(Exception):

@@ -30,7 +30,7 @@ class PyTest(TestCommand):
 
 setup(
     name="delta_node",
-    version="0.3.0",
+    version="0.5.0rc1",
     packages=find_packages(),
     include_package_data=True,
     exclude_package_data={"": [".gitignore"]},
@@ -38,7 +38,7 @@ setup(
         "aiosqlite==0.17.0",
         "async_lru==1.0.2",
         "cryptography==3.4.7",
-        "delta-task==0.3.0",
+        "delta-task==0.5.0rc1",
         "fastapi==0.70.1",
         "grpclib==0.4.2",
         "httpx==0.21.1",

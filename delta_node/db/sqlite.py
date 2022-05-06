@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import threading
 import logging
@@ -42,8 +44,9 @@ async def init(db: str = config.db):
     )
     session = sessionmaker(
         engine,
-        class_=AsyncSession,
+        class_=AsyncSession,  # type: ignore
         autocommit=False,
+        autoflush=False,
         expire_on_commit=False,
     )
 

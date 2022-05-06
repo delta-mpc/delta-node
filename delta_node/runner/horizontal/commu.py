@@ -1,23 +1,20 @@
-import logging
+from __future__ import annotations
+
 from typing import IO, Dict, List
 
 import httpx
-from delta_node import entity, serialize
-
-_logger = logging.getLogger(__name__)
+from delta_node import entity, pool, serialize
 
 
-class Client(object):
-    def __init__(
-        self, url: str, client: httpx.Client, aclient: httpx.AsyncClient
-    ) -> None:
-        self.base_url = url + "/v1/coord"
-        self.client = client
-        self.aclient = aclient
+class CommuClient(object):
+    def __init__(self, url: str) -> None:
+        base_url = url + "/v1/coord/"
+        self.client = httpx.Client(base_url=base_url)
 
     def download_task_config(self, task_id: str, dst: IO[bytes]):
         params = {"task_id": task_id}
-        with self.client.stream("GET", self.base_url + "/config", params=params) as resp:
+        with self.client.stream("GET", "config", params=params) as resp:
+            resp.raise_for_status()
             size = 0
             for chunk in resp.iter_bytes():
                 dst.write(chunk)
@@ -45,17 +42,24 @@ class Client(object):
             ],
         }
 
-        resp = await self.aclient.post(self.base_url + "/secret_shares", json=data)
-        resp.raise_for_status()
+        def _call():
+            resp = self.client.post("secret_shares", json=data)
+            resp.raise_for_status()
+
+        await pool.run_in_io(_call)
 
     async def get_secret_shares(
         self, node_address: str, task_id: str, round: int
     ) -> List[entity.SecretShareData]:
         data = {"address": node_address, "task_id": task_id, "round": round}
 
-        resp = await self.aclient.get(self.base_url + "/secret_shares", params=data)
-        resp.raise_for_status()
-        result = resp.json()
+        def _call():
+            resp = self.client.get("secret_shares", params=data)
+            resp.raise_for_status()
+            result = resp.json()
+            return result
+
+        result = await pool.run_in_io(_call)
 
         ret = [
             entity.SecretShareData(
@@ -68,11 +72,17 @@ class Client(object):
         ]
         return ret
 
+    def download_task_context(self, task_id: str, var_name: str, dst: IO[bytes]):
+        params = {"task_id": task_id, "name": var_name}
+        with self.client.stream("GET", "context", params=params) as resp:
+            resp.raise_for_status()
+            for chunk in resp.iter_bytes():
+                dst.write(chunk)
+
     def download_task_weight(self, task_id: str, round: int, dst: IO[bytes]):
         params = {"task_id": task_id, "round": round}
-        with self.client.stream(
-            "GET", self.base_url + "/weight", params=params
-        ) as resp:
+        with self.client.stream("GET", "weight", params=params) as resp:
+            resp.raise_for_status()
             for chunk in resp.iter_bytes():
                 dst.write(chunk)
 
@@ -81,7 +91,7 @@ class Client(object):
     ):
         files = {"file": src}
         data = {"address": address, "task_id": task_id, "round": round}
-        resp = self.client.post(self.base_url + "/result", data=data, files=files)
+        resp = self.client.post("result", data=data, files=files)
         resp.raise_for_status()
 
     def upload_task_round_metrics(
@@ -93,5 +103,8 @@ class Client(object):
             "round": round,
             "metrics": metrics,
         }
-        resp = self.client.post(self.base_url + "/metrics", json=data)
+        resp = self.client.post("metrics", json=data)
         resp.raise_for_status()
+
+    def close(self):
+        self.client.close()

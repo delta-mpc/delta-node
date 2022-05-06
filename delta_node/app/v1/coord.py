@@ -3,11 +3,13 @@ import logging
 import os
 import shutil
 import time
+from io import BytesIO
 from typing import Dict, List, Optional
 
 import sqlalchemy as sa
+from delta.core.task import DataNode, DataLocation
 from delta_node import coord, db, entity
-from delta_node.serialize import bytes_to_hex, hex_to_bytes
+from delta_node.serialize import bytes_to_hex, hex_to_bytes, dump_obj
 from fastapi import (APIRouter, Depends, File, Form, HTTPException, Query,
                      UploadFile)
 from fastapi.responses import StreamingResponse
@@ -26,7 +28,7 @@ class CommonResp(BaseModel):
 
 @router.get("/config")
 def get_task_config(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
-    config_filename = coord.task_config_file(task_id)
+    config_filename = coord.loc.task_config_file(task_id)
     retry = 3
     if not os.path.exists(config_filename):
         retry -= 1
@@ -48,6 +50,32 @@ def get_task_config(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
         file_iter(),
         media_type="application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename={task_id}.config"},
+    )
+
+
+@router.get("/context")
+def get_task_context(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"), name: str = Query(...)):
+    manager = coord.get_task_manager(task_id)
+    if manager is None:
+        raise HTTPException(400, f"task {task_id} has not started or has finished")
+    datanode = DataNode(name=name, location=DataLocation.SERVER)
+    value = manager.ctx.get(datanode)[0]
+
+    def value_iter():
+        chunk_size = 1024 * 1024
+        with BytesIO() as f:
+            dump_obj(f, value)
+            f.seek(0)
+            while True:
+                content = f.read(chunk_size)
+                if len(content) == 0:
+                    break
+                yield content
+    
+    return StreamingResponse(
+        value_iter(),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename={task_id}_{name}.ctx"},
     )
 
 
@@ -112,9 +140,9 @@ async def upload_secret_share(
             receiver.id,
             hex_to_bytes(share.seed_share),
             hex_to_bytes(share.sk_share),
-            sender=sender,
-            receiver=receiver,
         )
+        ss.sender = sender
+        ss.receiver = receiver
         session.add(ss)
     await session.commit()
 
@@ -154,9 +182,9 @@ async def get_secret_shares(
         (await session.execute(q)).scalars().one_or_none()
     )
     if not member:
-        raise HTTPException(400, f"member ${address} does not exists")
+        raise HTTPException(400, f"member {address} does not exists")
     if member.status != entity.RoundStatus.CALCULATING:
-        raise HTTPException(400, f"member ${address} is not allowed")
+        raise HTTPException(400, f"member {address} is not allowed")
 
     sender_ids = [share.sender_id for share in member.received_shares]
     q = sa.select(entity.RoundMember).where(entity.RoundMember.id.in_(sender_ids))  # type: ignore
@@ -191,7 +219,7 @@ def upload_result(
     round: int = Form(...),
     file: UploadFile = File(...),
 ):
-    dst = coord.task_member_result_file(task_id, round, address)
+    dst = coord.loc.task_member_result_file(task_id, round, address)
     with open(dst, mode="wb") as f:
         shutil.copyfileobj(file.file, f)
     _logger.info(f"task {task_id} round {round} {address} upload result", extra={"task_id": task_id})
@@ -205,7 +233,7 @@ class Metrics(TaskRound):
 @router.post("/metrics", response_model=CommonResp)
 def upload_metrics(metrics: Metrics):
     with open(
-        coord.task_member_metrics_file(metrics.task_id, metrics.round, metrics.address),
+        coord.loc.task_member_metrics_file(metrics.task_id, metrics.round, metrics.address),
         mode="w",
         encoding="utf-8",
     ) as f:
@@ -217,7 +245,7 @@ def upload_metrics(metrics: Metrics):
 def get_task_weight(
     task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"), round: int = Query(...)
 ):
-    weight_filename = coord.task_weight_file(task_id, round)
+    weight_filename = coord.loc.task_weight_file(task_id, round)
     if not os.path.exists(weight_filename):
         raise HTTPException(400, f"task {task_id} does not exist")
 

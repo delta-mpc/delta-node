@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from delta_node.db import mapper_registry
@@ -43,8 +42,8 @@ class SecretShare(BaseTable):
         metadata={"sa": sa.Column(sa.BINARY, nullable=False, index=False)}
     )
 
-    sender: Optional["RoundMember"] = field(
-        default=None,
+    sender: "RoundMember" = field(
+        init=False,
         metadata={
             "sa": relationship(
                 "RoundMember",
@@ -54,8 +53,8 @@ class SecretShare(BaseTable):
         },
     )
 
-    receiver: Optional["RoundMember"] = field(
-        default=None,
+    receiver: "RoundMember" = field(
+        init=False,
         metadata={
             "sa": relationship(
                 "RoundMember",

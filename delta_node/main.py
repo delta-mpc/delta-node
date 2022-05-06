@@ -6,7 +6,7 @@ from typing import Optional, Sequence
 
 
 async def _run():
-    from delta_node import (app, chain, commu, config, db, log, pool, registry,
+    from delta_node import (app, chain, config, db, log, pool, registry,
                             runner)
 
     if len(config.chain_host) == 0:
@@ -17,7 +17,6 @@ async def _run():
         raise RuntimeError("node name is required")
 
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(pool.IO_POOL)
 
     listener = log.create_log_listener(loop)
     listener.start()
@@ -26,7 +25,6 @@ async def _run():
     await db.init(config.db)
     chain.init(config.chain_host, config.chain_port, ssl=False)
     await registry.register(config.node_url, config.node_name)
-    await commu.init()
 
     runner_fut = asyncio.create_task(runner.run())
     app_fut = asyncio.create_task(app.run("0.0.0.0", config.api_port))
@@ -39,7 +37,6 @@ async def _run():
     except asyncio.CancelledError:
         pass
     finally:
-        await commu.close()
         await registry.unregister()
         chain.close()
         await db.close()
@@ -66,7 +63,6 @@ async def _leave():
         raise RuntimeError("node name is required")
 
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(pool.IO_POOL)
 
     listener = log.create_log_listener(loop)
     listener.start()
