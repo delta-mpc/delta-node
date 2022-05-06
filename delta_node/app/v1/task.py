@@ -8,8 +8,15 @@ from typing import IO, List, Optional
 
 import sqlalchemy as sa
 from delta_node import chain, coord, db, entity, pool, registry
-from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
-                     Query, UploadFile)
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import desc
@@ -28,35 +35,28 @@ def create_task_file(task_file: IO[bytes]):
 
 def move_task_file(task_file: IO[bytes], task_id: str):
     task_file.seek(0)
-    with open(coord.task_config_file(task_id), mode="wb") as f:
+    with open(coord.loc.task_config_file(task_id), mode="wb") as f:
         shutil.copyfileobj(task_file, f)
     task_file.close()
 
 
-async def run_task(id: int, task_file: IO[bytes]):
+async def run_task(task_item: entity.Task, task_file: IO[bytes]):
     node_address = await registry.get_node_address()
 
-    async with db.session_scope() as sess:
-        q = sa.select(entity.Task).where(entity.Task.id == id)
-        task_item: entity.Task = (await sess.execute(q)).scalar_one()
+    tx_hash, task_id = await chain.get_client().create_task(
+        node_address, task_item.dataset, task_item.commitment, task_item.type
+    )
+    task_item.task_id = task_id
+    task_item.creator = node_address
+    task_item.status = entity.TaskStatus.RUNNING
 
-        tx_hash, task_id = await chain.get_client().create_task(
-            node_address, task_item.dataset, task_item.commitment, task_item.type
-        )
-        task_item.task_id = task_id
-        task_item.creator = node_address
-        task_item.status = entity.TaskStatus.RUNNING
-        sess.add(task_item)
-        await sess.commit()
-
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(pool.IO_POOL, move_task_file, task_file, task_id)
+    await pool.run_in_io(move_task_file, task_file, task_id)
     _logger.info(
         f"[Create Task] create task {task_id}",
         extra={"task_id": task_id, "tx_hash": tx_hash},
     )
 
-    await coord.run_task(task_id)
+    await coord.run_task(node_address, task_item)
 
 
 class CreateTaskResp(BaseModel):
@@ -70,14 +70,13 @@ async def create_task(
     session: AsyncSession = Depends(db.get_session),
     background: BackgroundTasks,
 ):
-    loop = asyncio.get_running_loop()
-    f = await loop.run_in_executor(pool.IO_POOL, create_task_file, file.file)
-    task_item = await loop.run_in_executor(pool.IO_POOL, coord.create_task, f)
+    f = await pool.run_in_io(create_task_file, file.file)
+    task_item = await pool.run_in_io(coord.create_task, f)
     session.add(task_item)
     await session.commit()
     await session.refresh(task_item)
 
-    background.add_task(run_task, task_item.id, f)
+    background.add_task(run_task, task_item, f)
     return CreateTaskResp(task_id=task_item.id)
 
 
@@ -136,7 +135,7 @@ async def get_task_metadata(
 
 
 def task_result_file(task_id: str) -> Optional[str]:
-    result_filename = coord.task_result_file(task_id)
+    result_filename = coord.loc.task_result_file(task_id)
     if os.path.exists(result_filename):
         return result_filename
 
@@ -150,10 +149,7 @@ async def get_task_result(
     if task is None:
         raise HTTPException(400, f"task {task_id} does not exist")
 
-    loop = asyncio.get_running_loop()
-    result_filename = await loop.run_in_executor(
-        pool.IO_POOL, task_result_file, task.task_id
-    )
+    result_filename = await pool.run_in_io(task_result_file, task.task_id)
     if result_filename is None:
         raise HTTPException(400, f"task {task_id} is not finished")
 
