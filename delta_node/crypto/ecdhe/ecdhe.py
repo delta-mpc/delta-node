@@ -3,7 +3,7 @@ from typing import Tuple
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from ... import serialize
+from delta_node import serialize
 
 __all__ = ["generate_key_pair", "generate_shared_key"]
 
