@@ -31,6 +31,16 @@ def task_round_dir(task_id: str, round: int) -> str:
     return dirname
 
 
+def task_context_dir(task_id: str) -> str:
+    dirname = os.path.join(task_dir(task_id), "context")
+    if not os.path.exists(dirname):
+        os.makedirs(dirname, exist_ok=True)
+    return dirname
+
+
+def task_context_file(task_id: str, var_name: str) -> str:
+    return os.path.join(task_context_dir(task_id), f"{var_name}.ctx")
+
 def task_round_result_dir(task_id: str, round: int) -> str:
     dirname = os.path.join(task_round_dir(task_id, round), "result")
     if not os.path.exists(dirname):

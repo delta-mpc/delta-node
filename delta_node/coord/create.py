@@ -11,7 +11,7 @@ def create_task(task_file: IO[bytes]) -> entity.Task:
     task_file.seek(0)
 
     task = delta.serialize.load_task(task_file)
-    dataset = task.dataset
+    dataset = ",".join(task.dataset)
 
     task_file.seek(0)
     commitment = utils.calc_commitment(task_file)
