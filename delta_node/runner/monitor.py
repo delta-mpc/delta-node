@@ -1,26 +1,36 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional
+from typing import Dict, List, TypeVar
 
 import sqlalchemy as sa
-from delta_node import chain, db, entity, pool, registry, config
+from delta_node import chain, config, db, entity, pool, registry
+from typing_extensions import Protocol
 
-from .dataset import check_dataset
-from .horizontal import HFLTaskRunner
-
-if TYPE_CHECKING:
-    from .runner import TaskRunner
+from .dataset import check_datasets
+from .event_box import EventBox
+from .manager import Manager
 
 _logger = logging.getLogger(__name__)
 
 
-EventCallback = Callable[[entity.TaskEvent], Coroutine[None, None, None]]
+T = TypeVar("T", contravariant=True)
+
+
+class EventCallback(Protocol[T]):
+    __name__: str
+
+    async def __call__(self, monitor: T, event: entity.TaskEvent):
+        ...
 
 
 class Monitor(object):
     def __init__(self) -> None:
-        self.callbacks: Dict[entity.EventType, List[EventCallback]] = defaultdict(list)
+        self.callbacks: Dict[
+            entity.EventType, List[EventCallback[Monitor]]
+        ] = defaultdict(list)
 
     async def start(self):
         _logger.info("monitor started")
@@ -34,7 +44,7 @@ class Monitor(object):
                 _logger.debug(f"event: {event.type}")
                 callbacks = self.callbacks[event.type]
                 for callback in callbacks:
-                    fut = asyncio.create_task(callback(event))
+                    fut = asyncio.create_task(callback(self, event))
 
                     def _done_callback(fut: asyncio.Task):
                         try:
@@ -57,33 +67,66 @@ class Monitor(object):
         finally:
             _logger.info("monitor closed")
 
-    def register(self, event: entity.EventType, callback: EventCallback):
+    def register(self, event: entity.EventType, callback: EventCallback[Monitor]):
         self.callbacks[event].append(callback)
 
-    def unregister(self, event: entity.EventType, callback: EventCallback):
+    def unregister(self, event: entity.EventType, callback: EventCallback[Monitor]):
         self.callbacks[event].remove(callback)
 
 
-runners: "Dict[str, TaskRunner]" = {}
-runners_lock = asyncio.Lock()
+managers: Dict[str, Manager] = {}
 
 
-def create_task_runner(task: entity.RunnerTask):
+async def create_task_manager(monitor: Monitor, task: entity.RunnerTask):
+    node_address = await registry.get_node_address()
+
     if task.type == "horizontal":
-        task_runner = HFLTaskRunner(task)
-        _logger.debug(f"create task runner for {task.task_id}")
-        return task_runner
+        from .horizontal import ClientTaskManager
+        event_box = EventBox(task.task_id)
+
+        async def monitor_event(monitor: Monitor, event: entity.TaskEvent):
+            _logger.debug(f"monitor event {event.type}")
+            await event_box.recv_event(event)
+
+        monitor.register("round_started", monitor_event)
+        monitor.register("partner_selected", monitor_event)
+        monitor.register("calculation_started", monitor_event)
+        monitor.register("aggregation_started", monitor_event)
+        monitor.register("round_ended", monitor_event)
+
+        manager = ClientTaskManager(node_address, task, event_box)
+        await manager.init()
+        _logger.debug(f"client task manager {task.task_id} initialized")
+
+        managers[task.task_id] = manager
+
+        return manager
     else:
-        raise ValueError(f"unknown task type {task.type}")
+        raise TypeError(f"unknown task type {task.type}")
 
 
-async def monitor_task_create(event: entity.TaskEvent):
+def run_task_manager(manager: Manager):
+    fut = asyncio.ensure_future(manager.run())
+
+    def _task_finish(fut: asyncio.Future):
+        try:
+            fut.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            _logger.error(f"task {manager.task_id} error: {e}")
+            _logger.exception(e)
+
+    fut.add_done_callback(_task_finish)
+
+
+async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
     assert isinstance(event, entity.TaskCreateEvent)
-    loop = asyncio.get_running_loop()
-    accept = await loop.run_in_executor(pool.IO_POOL, check_dataset, event.dataset)
+    datasets = event.dataset.split(",")
+    accept = await pool.run_in_io(check_datasets, datasets)
 
     if not accept:
-        _logger.debug(f"reject task {event.task_id}")
+        _logger.info(f"reject task {event.task_id}")
         return
 
     _logger.info(f"start run task {event.task_id}", extra={"task_id": event.task_id})
@@ -95,98 +138,27 @@ async def monitor_task_create(event: entity.TaskEvent):
             commitment=event.commitment,
             url=event.url,
             type=event.task_type,
+            status=entity.TaskStatus.PENDING,
         )
         sess.add(task)
         await sess.commit()
 
-    async with runners_lock:
-        task_runner = create_task_runner(task)
-
-        await task_runner.dispatch(event)
-
-        async with db.session_scope() as sess:
-            task.status = entity.TaskStatus.RUNNING
-            sess.add(task)
-            await sess.commit()
-            _logger.debug(f"task {event.task_id} start running")
-
-        runners[event.task_id] = task_runner
+    manager = await create_task_manager(monitor, task)
+    run_task_manager(manager)
 
 
-async def monitor_event(event: entity.TaskEvent):
-    task_id = event.task_id
-
-    async with runners_lock:
-        if task_id not in runners:
-            return
-        async with db.session_scope() as sess:
-            q = (
-                sa.select(entity.RunnerTask)
-                .where(entity.RunnerTask.task_id == task_id)
-                .where(entity.RunnerTask.status == entity.TaskStatus.RUNNING)
-            )
-            task: Optional[entity.RunnerTask] = (
-                await sess.execute(q)
-            ).scalar_one_or_none()
-        if task is None:
-            return
-
-    runner = runners[task_id]
-    try:
-        await runner.dispatch(event)
-    except Exception as e:
-        _logger.error(f"task {task_id} error: {str(e)}")
-        _logger.exception(e)
-
-        await runner.finish()
-
-        async with runners_lock:
-            async with db.session_scope() as sess:
-                task.status = entity.TaskStatus.ERROR
-                sess.add(task)
-                await sess.commit()
-            del runners[task_id]
-
-
-async def monitor_task_finish(event: entity.TaskEvent):
+async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
     assert isinstance(event, entity.TaskFinishEvent)
     task_id = event.task_id
 
-    async with runners_lock:
-        if task_id not in runners:
-            return
-        async with db.session_scope() as sess:
-            q = (
-                sa.select(entity.RunnerTask)
-                .where(entity.RunnerTask.task_id == task_id)
-                .where(
-                    sa.or_(
-                        entity.RunnerTask.status == entity.TaskStatus.RUNNING,  # type: ignore
-                        entity.RunnerTask.status == entity.TaskStatus.PENDING,  # type: ignore
-                    )
-                )
-            )
-            task: Optional[entity.RunnerTask] = (
-                await sess.execute(q)
-            ).scalar_one_or_none()
-        if task is None:
-            return
-
-    runner = runners[task_id]
-    _logger.debug(f"task {task_id} finish")
-
-    await runner.finish()
-
-    async with runners_lock:
-        async with db.session_scope() as sess:
-            task.status = entity.TaskStatus.FINISHED
-            sess.add(task)
-            await sess.commit()
-
-        del runners[task_id]
+    manager = managers.get(task_id)
+    if manager is not None:
+        await manager.finish(True)
+        managers.pop(task_id)
+    _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
 
 
-async def create_unfinished_task(task: entity.RunnerTask):
+async def create_unfinished_task(monitor: Monitor, task: entity.RunnerTask):
     # check remote task
     try:
         remote_task = await chain.get_client().get_task(task.task_id)
@@ -196,8 +168,9 @@ async def create_unfinished_task(task: entity.RunnerTask):
                 sess.add(task)
                 await sess.commit()
         else:
-            runner = create_task_runner(task)
-            runners[task.task_id] = runner
+            manager = await create_task_manager(monitor, task)
+            run_task_manager(manager)
+
     except Exception as e:
         _logger.error(e)
 
@@ -205,12 +178,6 @@ async def create_unfinished_task(task: entity.RunnerTask):
 async def start():
     monitor = Monitor()
     monitor.register("task_created", monitor_task_create)
-
-    monitor.register("round_started", monitor_event)
-    monitor.register("partner_selected", monitor_event)
-    monitor.register("calculation_started", monitor_event)
-    monitor.register("aggregation_started", monitor_event)
-    monitor.register("round_ended", monitor_event)
 
     monitor.register("task_finish", monitor_task_finish)
 

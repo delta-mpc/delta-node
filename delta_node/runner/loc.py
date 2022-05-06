@@ -3,7 +3,15 @@ import os
 from delta_node import config
 
 
-__all__ = ["task_config_file", "task_state_file", "task_result_file", "task_metrics_file", "task_weight_file"]
+__all__ = [
+    "task_config_file",
+    "task_state_file",
+    "task_result_file",
+    "task_metrics_file",
+    "task_weight_file",
+    "task_context_dir",
+    "task_context_file",
+]
 
 
 def task_dir(task_id: str) -> str:
@@ -31,4 +39,14 @@ def task_weight_file(task_id: str, round: int) -> str:
 
 def task_metrics_file(task_id: str, round: int) -> str:
     return os.path.join(task_dir(task_id), f"task.{round}.metrics")
-    
+
+
+def task_context_dir(task_id: str) -> str:
+    dirname = os.path.join(task_dir(task_id), "context")
+    if not os.path.exists(dirname):
+        os.makedirs(dirname, exist_ok=True)
+    return dirname
+
+
+def task_context_file(task_id: str, var_name: str) -> str:
+    return os.path.join(task_context_dir(task_id), f"{var_name}.ctx")
