@@ -104,20 +104,27 @@ def init():
         os.makedirs(config.log_dir, exist_ok=True)
 
 
-def mnist():
+def get_mnist():
     from . import mnist
 
     mnist.mnist_train()
 
 
+def get_df():
+    from .df import make_dfs
+
+    make_dfs()
+
 def main(input_args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
         "action",
-        choices=["init", "run", "get-mnist", "leave"],
+        choices=["init", "run", "get-mnist", "get-df", "leave"],
         help="""delta node start action: 
         'init' to init delta node config, 
         'run' to start the node, 
+        'get-mnist' to get mnist dataset used for learning example,
+        'get-df' to get dataframe used for analytics example,
         'leave' to unregister from the computing network""",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0")
@@ -127,6 +134,8 @@ def main(input_args: Optional[Sequence[str]] = None):
     elif args.action == "run":
         run()
     elif args.action == "get-mnist":
-        mnist()
+        get_mnist()
+    elif args.action == "get-df":
+        get_df()
     elif args.action == "leave":
         leave()
