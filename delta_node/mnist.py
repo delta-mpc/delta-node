@@ -9,7 +9,7 @@ import numpy as np
 import httpx
 from tqdm import tqdm
 
-from . import config
+from delta_node import config
 
 URL_PREFIX = "https://dataset.bj.bcebos.com/mnist/"
 TEST_IMAGE_URL = URL_PREFIX + "t10k-images-idx3-ubyte.gz"
