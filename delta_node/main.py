@@ -111,20 +111,20 @@ def get_mnist():
 
 
 def get_df():
-    from .df import make_dfs
+    from .wages import make_wage_df
 
-    make_dfs()
+    make_wage_df()
 
 def main(input_args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
         "action",
-        choices=["init", "run", "get-mnist", "get-df", "leave"],
+        choices=["init", "run", "get-mnist", "get-wages", "leave"],
         help="""delta node start action: 
         'init' to init delta node config, 
         'run' to start the node, 
         'get-mnist' to get mnist dataset used for learning example,
-        'get-df' to get dataframe used for analytics example,
+        'get-wages' to get wages dataframe used for analytics example,
         'leave' to unregister from the computing network""",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0")
@@ -135,7 +135,7 @@ def main(input_args: Optional[Sequence[str]] = None):
         run()
     elif args.action == "get-mnist":
         get_mnist()
-    elif args.action == "get-df":
+    elif args.action == "get-wages":
         get_df()
     elif args.action == "leave":
         leave()
