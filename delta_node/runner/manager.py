@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from delta.core.task import ClientContext
+from delta_node import entity
 
 
 class Manager(ABC):
@@ -18,4 +19,8 @@ class Manager(ABC):
 
     @abstractmethod
     async def finish(self, success: bool):
+        ...
+
+    @abstractmethod
+    async def recv_event(self, event: entity.TaskEvent):
         ...
