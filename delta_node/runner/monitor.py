@@ -5,12 +5,10 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, TypeVar
 
-import sqlalchemy as sa
 from delta_node import chain, config, db, entity, pool, registry
 from typing_extensions import Protocol
 
 from .dataset import check_datasets
-from .event_box import EventBox
 from .manager import Manager
 
 _logger = logging.getLogger(__name__)
