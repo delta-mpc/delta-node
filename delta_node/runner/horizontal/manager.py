@@ -19,13 +19,13 @@ _logger = logging.getLogger(__name__)
 
 class ClientTaskManager(Manager):
     def __init__(
-        self, node_address: str, task: entity.RunnerTask, event_box: EventBox
+        self, node_address: str, task: entity.RunnerTask
     ) -> None:
         self.node_address = node_address
         self.task_entity = task
 
         self.task: Task
-        self.event_box = event_box
+        self.event_box = EventBox(task.task_id)
         self.client = CommuClient(task.url)
 
         self.running_fut: asyncio.Future | None = None
@@ -131,3 +131,6 @@ class ClientTaskManager(Manager):
 
         await pool.run_in_io(self.ctx.clear)
         await pool.run_in_io(self.client.close)
+
+    async def recv_event(self, event: entity.TaskEvent):
+        await self.event_box.recv_event(event)

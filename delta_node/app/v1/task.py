@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import math
 import os
@@ -170,6 +169,7 @@ async def get_task_result(
 
 
 class TaskLog(BaseModel):
+    id: int
     created_at: int
     message: str
     tx_hash: Optional[str] = None
@@ -178,8 +178,8 @@ class TaskLog(BaseModel):
 @task_router.get("/logs", response_model=List[TaskLog])
 async def get_task_logs(
     task_id: int = Query(..., ge=1),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, gt=0),
+    start: int = Query(0, ge=0),
+    limit: int = Query(20, gt=0),
     *,
     session: AsyncSession = Depends(db.get_session),
 ):
@@ -191,14 +191,15 @@ async def get_task_logs(
     q = (
         sa.select(entity.Record)
         .where(entity.Record.task_id == task.task_id)
+        .where(entity.Record.id >= start)
         .order_by(entity.Record.id)
-        .limit(page_size)
-        .offset((page - 1) * page_size)
+        .limit(limit)
     )
     records: List[entity.Record] = (await session.execute(q)).scalars().all()
 
     logs = [
         TaskLog(
+            id=record.id,
             created_at=int(record.created_at.timestamp() * 1000),
             message=record.message,
             tx_hash=record.tx_hash,
@@ -206,6 +207,26 @@ async def get_task_logs(
         for record in records
     ]
     return logs
+
+
+class TaskStatus(BaseModel):
+    status: entity.TaskStatus
+
+    class Config:
+        use_enum_values = True
+
+
+@task_router.get("/status", response_model=TaskStatus)
+async def get_task_status(
+    task_id: int = Query(..., ge=1), *, session: AsyncSession = Depends(db.get_session)
+):
+    q = sa.select(entity.Task).where(entity.Task.id == task_id)
+    task: Optional[entity.Task] = (await session.execute(q)).scalar_one_or_none()
+    if task is None:
+        raise HTTPException(400, f"task {task_id} does not exist")
+
+    res = TaskStatus(status=task.status)
+    return res
 
 
 router = APIRouter()

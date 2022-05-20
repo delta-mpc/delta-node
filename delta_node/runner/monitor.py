@@ -5,12 +5,10 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, TypeVar
 
-import sqlalchemy as sa
 from delta_node import chain, config, db, entity, pool, registry
 from typing_extensions import Protocol
 
 from .dataset import check_datasets
-from .event_box import EventBox
 from .manager import Manager
 
 _logger = logging.getLogger(__name__)
@@ -74,38 +72,52 @@ class Monitor(object):
         self.callbacks[event].remove(callback)
 
 
-managers: Dict[str, Manager] = {}
+class ManagerWrapper(object):
+    def __init__(self, node_address: str, task: entity.RunnerTask) -> None:
+        if task.type == "horizontal":
+            from .horizontal import ClientTaskManager
+
+            self.manager: Manager = ClientTaskManager(node_address, task)
+            self.task_id = self.manager.task_id
+            self.ctx = self.manager.ctx
+        else:
+            raise TypeError(f"unknown task type {task.type}")
+
+    async def init(self):
+        await self.manager.init()
+
+    async def run(self):
+        await self.manager.run()
+
+    async def finish(self, success: bool):
+        await self.manager.finish(success)
+
+    async def monitor_event(self, monitor: Monitor, event: entity.TaskEvent):
+        _logger.debug(f"monitor event {event.type}")
+        await self.manager.recv_event(event)
 
 
-async def create_task_manager(monitor: Monitor, task: entity.RunnerTask):
+managers: Dict[str, ManagerWrapper] = {}
+
+
+async def create_task_manager(
+    monitor: Monitor, task: entity.RunnerTask
+) -> ManagerWrapper:
     node_address = await registry.get_node_address()
+    manager = ManagerWrapper(node_address, task)
+    managers[task.task_id] = manager
+    await manager.init()
 
-    if task.type == "horizontal":
-        from .horizontal import ClientTaskManager
-        event_box = EventBox(task.task_id)
+    monitor.register("round_started", manager.monitor_event)
+    monitor.register("partner_selected", manager.monitor_event)
+    monitor.register("calculation_started", manager.monitor_event)
+    monitor.register("aggregation_started", manager.monitor_event)
+    monitor.register("round_ended", manager.monitor_event)
 
-        async def monitor_event(monitor: Monitor, event: entity.TaskEvent):
-            _logger.debug(f"monitor event {event.type}")
-            await event_box.recv_event(event)
-
-        monitor.register("round_started", monitor_event)
-        monitor.register("partner_selected", monitor_event)
-        monitor.register("calculation_started", monitor_event)
-        monitor.register("aggregation_started", monitor_event)
-        monitor.register("round_ended", monitor_event)
-
-        manager = ClientTaskManager(node_address, task, event_box)
-        await manager.init()
-        _logger.debug(f"client task manager {task.task_id} initialized")
-
-        managers[task.task_id] = manager
-
-        return manager
-    else:
-        raise TypeError(f"unknown task type {task.type}")
+    return manager
 
 
-def run_task_manager(manager: Manager):
+def run_task_manager(manager: ManagerWrapper):
     fut = asyncio.ensure_future(manager.run())
 
     def _task_finish(fut: asyncio.Future):
@@ -151,10 +163,15 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
     assert isinstance(event, entity.TaskFinishEvent)
     task_id = event.task_id
 
-    manager = managers.get(task_id)
+    manager = managers.pop(task_id, None)
     if manager is not None:
         await manager.finish(True)
-        managers.pop(task_id)
+        monitor.unregister("round_started", manager.monitor_event)
+        monitor.unregister("partner_selected", manager.monitor_event)
+        monitor.unregister("calculation_started", manager.monitor_event)
+        monitor.unregister("aggregation_started", manager.monitor_event)
+        monitor.unregister("round_ended", manager.monitor_event)
+
     _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
 
 
