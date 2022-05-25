@@ -21,6 +21,3 @@ class Manager(ABC):
     async def finish(self, success: bool):
         ...
 
-    @abstractmethod
-    async def recv_event(self, event: entity.TaskEvent):
-        ...

@@ -10,6 +10,7 @@ from typing_extensions import Protocol
 
 from .dataset import check_datasets
 from .manager import Manager
+from .event_box import EventBox
 
 _logger = logging.getLogger(__name__)
 
@@ -72,52 +73,59 @@ class Monitor(object):
         self.callbacks[event].remove(callback)
 
 
-class ManagerWrapper(object):
-    def __init__(self, node_address: str, task: entity.RunnerTask) -> None:
-        if task.type == "horizontal":
-            from .horizontal import ClientTaskManager
+class ManagerStore(object):
+    managers: Dict[str, Manager] = {}
+    lock = asyncio.Lock()
 
-            self.manager: Manager = ClientTaskManager(node_address, task)
-            self.task_id = self.manager.task_id
-            self.ctx = self.manager.ctx
-        else:
-            raise TypeError(f"unknown task type {task.type}")
+    @classmethod
+    async def get(cls, task_id: str) -> Manager:
+        async with cls.lock:
+            return cls.managers[task_id]
 
-    async def init(self):
-        await self.manager.init()
+    @classmethod
+    async def set(cls, task_id: str, manager: Manager):
+        async with cls.lock:
+            cls.managers[task_id] = manager
 
-    async def run(self):
-        await self.manager.run()
-
-    async def finish(self, success: bool):
-        await self.manager.finish(success)
-
-    async def monitor_event(self, monitor: Monitor, event: entity.TaskEvent):
-        _logger.debug(f"monitor event {event.type}")
-        await self.manager.recv_event(event)
+    @classmethod
+    async def pop(cls, task_id: str) -> Manager:
+        async with cls.lock:
+            return cls.managers.pop(task_id)
 
 
-managers: Dict[str, ManagerWrapper] = {}
+class EventBoxStore(object):
+    event_boxes: Dict[str, EventBox] = {}
+    lock = asyncio.Lock()
+
+    @classmethod
+    async def get(cls, task_id: str) -> EventBox:
+        async with cls.lock:
+            if task_id not in cls.event_boxes:
+                event_box = EventBox(task_id)
+                cls.event_boxes[task_id] = event_box
+            return cls.event_boxes[task_id]
+
+    @classmethod
+    async def pop(cls, task_id: str) -> EventBox:
+        async with cls.lock:
+            return cls.event_boxes.pop(task_id)
 
 
-async def create_task_manager(
-    monitor: Monitor, task: entity.RunnerTask
-) -> ManagerWrapper:
+async def create_task_manager(monitor: Monitor, task: entity.RunnerTask) -> Manager:
     node_address = await registry.get_node_address()
-    manager = ManagerWrapper(node_address, task)
-    managers[task.task_id] = manager
-    await manager.init()
+    if task.type == "horizontal":
+        from .horizontal import ClientTaskManager
 
-    monitor.register("round_started", manager.monitor_event)
-    monitor.register("partner_selected", manager.monitor_event)
-    monitor.register("calculation_started", manager.monitor_event)
-    monitor.register("aggregation_started", manager.monitor_event)
-    monitor.register("round_ended", manager.monitor_event)
+        event_box = await EventBoxStore.get(task.task_id)
+        manager = ClientTaskManager(node_address, task, event_box)
+    else:
+        raise TypeError(f"unknown task type {task.type}")
 
+    await ManagerStore.set(task.task_id, manager)
     return manager
 
 
-def run_task_manager(manager: ManagerWrapper):
+def run_task_manager(manager: Manager):
     fut = asyncio.ensure_future(manager.run())
 
     def _task_finish(fut: asyncio.Future):
@@ -156,6 +164,7 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
         await sess.commit()
 
     manager = await create_task_manager(monitor, task)
+    await manager.init()
     run_task_manager(manager)
 
 
@@ -163,14 +172,10 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
     assert isinstance(event, entity.TaskFinishEvent)
     task_id = event.task_id
 
-    manager = managers.pop(task_id, None)
+    manager = await ManagerStore.pop(task_id)
     if manager is not None:
         await manager.finish(True)
-        monitor.unregister("round_started", manager.monitor_event)
-        monitor.unregister("partner_selected", manager.monitor_event)
-        monitor.unregister("calculation_started", manager.monitor_event)
-        monitor.unregister("aggregation_started", manager.monitor_event)
-        monitor.unregister("round_ended", manager.monitor_event)
+    await EventBoxStore.pop(task_id)
 
     _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
 
@@ -186,16 +191,29 @@ async def create_unfinished_task(monitor: Monitor, task: entity.RunnerTask):
                 await sess.commit()
         else:
             manager = await create_task_manager(monitor, task)
+            await manager.init()
             run_task_manager(manager)
 
     except Exception as e:
         _logger.error(e)
 
 
+async def monitor_task_event(monitor: Monitor, event: entity.TaskEvent):
+    task_id = event.task_id
+    event_box = await EventBoxStore.get(task_id)
+    await event_box.recv_event(event)
+
+
 async def start():
     monitor = Monitor()
     monitor.register("task_created", monitor_task_create)
-
+    
+    monitor.register("round_started", monitor_task_event)
+    monitor.register("partner_selected", monitor_task_event)
+    monitor.register("calculation_started", monitor_task_event)
+    monitor.register("aggregation_started", monitor_task_event)
+    monitor.register("round_ended", monitor_task_event)
+    
     monitor.register("task_finish", monitor_task_finish)
 
     await monitor.start()
