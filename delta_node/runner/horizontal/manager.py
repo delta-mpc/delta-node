@@ -19,13 +19,16 @@ _logger = logging.getLogger(__name__)
 
 class ClientTaskManager(Manager):
     def __init__(
-        self, node_address: str, task: entity.RunnerTask
+        self, node_address: str, task: entity.RunnerTask, event_box: EventBox
     ) -> None:
+        assert (
+            task.task_id == event_box.task_id
+        ), "task.task_id is not equal to event_box.task_id"
         self.node_address = node_address
         self.task_entity = task
 
         self.task: Task
-        self.event_box = EventBox(task.task_id)
+        self.event_box = event_box
         self.client = CommuClient(task.url)
 
         self.running_fut: asyncio.Future | None = None
