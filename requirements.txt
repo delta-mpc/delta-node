@@ -1,7 +1,7 @@
 aiosqlite==0.17.0
 async_lru==1.0.2
 cryptography==3.4.7
-delta-task==0.5.3
+delta-task==0.6.0
 fastapi==0.70.1
 grpclib==0.4.2
 httpx==0.21.1
