@@ -5,7 +5,7 @@ import logging
 import delta.serialize
 import sqlalchemy as sa
 from delta.core.strategy import Strategy
-from delta.core.task import DataLocation, Task
+from delta.core.task import DataLocation, Task, EarlyStop
 
 from delta_node import chain, db, entity, pool, serialize
 from delta_node.coord import loc
@@ -120,7 +120,10 @@ class ServerTaskManager(Manager):
             await self.init()
             max_rounds = len(self.task.steps)
             while self.round < max_rounds + 1:
-                await self.execute_round(self.round)
+                try:
+                    await self.execute_round(self.round)
+                except EarlyStop:
+                    break
                 self.round += 1
             await self.finish()
         except Exception as e:
