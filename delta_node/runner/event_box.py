@@ -37,8 +37,11 @@ class EventBox(object):
         _logger.debug(f"event box {self.task_id} wait for event {event_type}")
         condition = await self.get_condition(event_type)
 
-        async with condition:
-            await asyncio.wait_for(condition.wait_for(lambda: event_type in self.bucket), timeout=timeout)
-
+        async def wait():
+            async with condition:
+                await condition.wait_for(lambda: event_type in self.bucket)
+            
+        await asyncio.wait_for(wait(), timeout=timeout)
         await self.remove_condition(event_type)
+
         return self.bucket.pop(event_type)

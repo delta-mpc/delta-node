@@ -67,6 +67,9 @@ class ClientTaskContext(ClientContext):
         with open(filename, mode="wb") as f:
             client.download_task_context(self.task_id, var.name, f)
 
+        value = serialize.load_obj(filename)
+        self.cache[var.name] = value
+
     def set(self, *pairs: Tuple[DataNode, Any]):
         def set_var(var: DataNode, data: Any):
             self.cache[var.name] = data

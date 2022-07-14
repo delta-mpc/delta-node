@@ -6,8 +6,7 @@ from typing import Optional, Sequence
 
 
 async def _run():
-    from delta_node import (app, chain, config, db, log, pool, registry,
-                            runner)
+    from delta_node import app, chain, config, db, log, pool, registry, runner
 
     if len(config.chain_host) == 0:
         raise RuntimeError("chain connector host is required")
@@ -104,27 +103,28 @@ def init():
         os.makedirs(config.log_dir, exist_ok=True)
 
 
-def get_mnist():
-    from . import mnist
-
-    mnist.mnist_train()
-
-
-def get_df():
-    from .wages import make_wage_df
-
-    make_wage_df()
-
 def main(input_args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description="delta node", prog="Delta Node")
     parser.add_argument(
         "action",
-        choices=["init", "run", "get-mnist", "get-wages", "leave"],
+        choices=[
+            "init",
+            "run",
+            "get-mnist",
+            "get-wages",
+            "get-iris",
+            "get-spector",
+            "get-all-data",
+            "leave",
+        ],
         help="""delta node start action: 
         'init' to init delta node config, 
         'run' to start the node, 
         'get-mnist' to get mnist dataset used for learning example,
         'get-wages' to get wages dataframe used for analytics example,
+        'get-iris' to get iris dataframe used for lr example,
+        'get-spector' to get spector dataframe used for lr example,
+        'get-all-data' to get all memtioned dataset,
         'leave' to unregister from the computing network""",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0")
@@ -134,8 +134,24 @@ def main(input_args: Optional[Sequence[str]] = None):
     elif args.action == "run":
         run()
     elif args.action == "get-mnist":
+        from .dataset.examples import get_mnist
+
         get_mnist()
     elif args.action == "get-wages":
-        get_df()
+        from .dataset.examples import get_wages
+
+        get_wages()
+    elif args.action == "get-iris":
+        from .dataset.examples import get_iris
+
+        get_iris()
+    elif args.action == "get-spector":
+        from .dataset.examples import get_spector
+
+        get_spector()
+    elif args.action == "get-all-data":
+        from .dataset.examples import get_all
+
+        get_all()
     elif args.action == "leave":
         leave()
