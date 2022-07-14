@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 import shutil
 from typing import Any, MutableMapping, Tuple, List
 
@@ -14,6 +15,9 @@ from delta.core.task import (
 
 from delta_node import pool, serialize
 from delta_node.coord import loc
+
+
+_logger = logging.getLogger(__name__)
 
 
 class ServerTaskContext(ServerContext):
@@ -39,6 +43,7 @@ class ServerTaskContext(ServerContext):
                 raise ValueError(f"Cannot get var {var.name}")
             if var.name not in self.cache:
                 self.cache[var.name] = value
+            _logger.debug(f"Get var {var.name} : {value}")
             return value
 
         if len(vars) == 0:
@@ -53,6 +58,7 @@ class ServerTaskContext(ServerContext):
             self.cache[var.name] = data
             filename = loc.task_context_file(self.task_id, var.name)
             serialize.dump_obj(filename, data)
+            _logger.debug(f"Set var {var.name} : {data}")
 
         if len(pairs) == 1:
             set_var(*pairs[0])
