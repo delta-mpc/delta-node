@@ -32,6 +32,7 @@ setup(
     name="delta_node",
     version="0.6.0rc1",
     packages=find_packages(),
+    package_data={"delta_node": ["dataset/examples/*.csv"]},
     include_package_data=True,
     exclude_package_data={"": [".gitignore"]},
     install_requires=[
