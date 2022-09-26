@@ -26,7 +26,7 @@ node:
   # 本节点的名称
   name: "node1"
   # 本节点的对外公开地址
-  url: "127.0.0.1:6700"
+  url: "http://127.0.0.1:6700"
 
 # 本节点的http服务监听地址，用于Deltaboard的连接以及Delta Task的注册等
 api_port: 6700
