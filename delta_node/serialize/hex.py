@@ -8,25 +8,36 @@ __all__ = [
 ]
 
 
-def bytes_to_hex(src: bytes, with0x: bool = True, max_length: Optional[int] = None) -> str:
-    if max_length is not None:
-        assert len(src) <= max_length, f"input bytes length is too long ({len(src)} > {max_length})"
+def bytes_to_hex(src: bytes, with0x: bool = True, length: Optional[int] = None) -> str:
+    """
+    convert bytes to hex string
+    
+    src: source bytes
+    with0x: whether to output hex string starts with '0x'
+    length: output hex string byte length (len(output) / 2)
+    """
+    if length is not None:
+        assert len(src) <= length, f"input bytes length is too long ({len(src)} > {length})"
     res = src.hex()
-    if max_length is not None:
-        res = res.zfill(max_length)
+    if length is not None:
+        res = res.zfill(length * 2)
     if with0x:
         res = "0x" + res
     return res
 
 
 def hex_to_bytes(src: str, length: Optional[int] = None) -> bytes:
+    """
+    convert hex string to bytes
+
+    src: source hex string
+    length: output bytes length
+    """
     if src.startswith("0x"):
         src = src[2:]
     if length is not None:
-        src = src.lstrip("0")
-        assert len(src) <= length, f"input length is too long ({len(src)} > {length})"
-        if len(src) < length:
-            src = src.zfill(length)
+        assert len(src) <= length * 2, f"input hex string length is too long ({len(src)} > {length * 2})"
+        src = src.zfill(length * 2)
     return bytes.fromhex(src)
 
 
