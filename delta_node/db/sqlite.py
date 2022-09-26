@@ -50,14 +50,20 @@ async def init(db: str = config.db):
         expire_on_commit=False,
     )
 
-    path = db.split(":///", maxsplit=2)[1]
-    filename = path.split(r"/")[-1]
-    dirname = path[: -len(filename)]
+    paths = db.split("://", maxsplit=1)
+    if len(paths) == 2 and len(paths[1]) > 0:
+        path = paths[1].split(r"/", maxsplit=1)[1]
 
-    if not os.path.exists(path):
-        if len(dirname) > 0:
-            os.makedirs(dirname, exist_ok=True)
+        filename = path.split(r"/")[-1]
+        dirname = path[: -len(filename)]
 
+        if not os.path.exists(path):
+            if len(dirname) > 0:
+                os.makedirs(dirname, exist_ok=True)
+
+            async with engine.begin() as conn:
+                await conn.run_sync(mapper_registry.metadata.create_all)
+    else:
         async with engine.begin() as conn:
             await conn.run_sync(mapper_registry.metadata.create_all)
 
