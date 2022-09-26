@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package identity;
+
+import "transaction.proto";
+
+message JoinReq {
+  string url = 1;
+  string name = 2;
+}
+
+message JoinResp {
+  string tx_hash = 1;
+  string address = 2;
+}
+
+message UpdateUrlReq {
+  string address = 1;
+  string url = 2;
+}
+
+message UpdateNameReq {
+  string address = 1;
+  string name = 2;
+}
+
+message LeaveReq {
+  string address = 1;
+}
+
+message NodeInfoReq {
+  string address = 1;
+}
+
+message NodeInfo {
+  string url = 1;
+  string name = 2;
+  string address = 3;
+}
+
+message NodeInfosReq {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message NodeInfos {
+  repeated NodeInfo nodes = 1;
+  int32 total_count = 2;
+}
+
+
+service Identity {
+  rpc Join(JoinReq) returns (JoinResp) {}
+  rpc UpdateUrl(UpdateUrlReq) returns (transaction.Transaction) {}
+  rpc UpdateName(UpdateNameReq) returns (transaction.Transaction) {}
+  rpc Leave(LeaveReq) returns (transaction.Transaction) {}
+  rpc GetNodeInfo(NodeInfoReq) returns (NodeInfo) {}
+  rpc GetNodes(NodeInfosReq) returns (NodeInfos) {}
+}

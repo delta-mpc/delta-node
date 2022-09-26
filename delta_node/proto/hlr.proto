@@ -1,60 +1,15 @@
 syntax = "proto3";
 
-package chain;
+package hlr;
 
-message Transaction {
-    string tx_hash = 1;
-}
-
-message JoinReq {
-    string url = 1;
-    string name = 2;
-}
-
-message JoinResp {
-    string tx_hash = 1;
-    string address = 2;
-}
-
-message UpdateUrlReq {
-    string address = 1;
-    string url = 2;
-}
-
-message UpdateNameReq {
-    string address = 1;
-    string name = 2;
-}
-
-message LeaveReq {
-    string address = 1;
-}
-
-message NodeInfoReq {
-    string address = 1;
-}
-
-message NodeInfo {
-    string url = 1;
-    string name = 2;
-    string address = 3;
-}
-
-message NodeInfosReq {
-    int32 page = 1;
-    int32 page_size = 2;
-}
-
-message NodeInfos {
-    repeated NodeInfo nodes = 1;
-    int32 total_count = 2;
-}
+import "transaction.proto";
 
 message CreateTaskReq {
     string address = 1;
     string dataset = 2;
     string commitment = 3;
-    string task_type = 4;
+    bool enable_verify = 4;
+    int32 tolerance = 5;
 }
 
 message CreateTaskResp {
@@ -79,12 +34,24 @@ message TaskResp {
     string commitment = 5;
     string task_type = 6;
     bool finished = 7;
+    bool enable_verify = 8;
+    int32 tolerance = 9;
 }
 
 message StartRoundReq {
     string address = 1;
     string task_id = 2;
     int32 round = 3;
+    string weight_commitment = 4;
+}
+
+message WeightCommitmentReq {
+  string task_id = 1;
+  int32 round = 2;
+}
+
+message WeightCommitmentResp {
+  string commitment = 1;
 }
 
 message JoinRoundReq {
@@ -111,7 +78,8 @@ enum RoundStatus {
 message TaskRoundResp {
     int32 round = 1;
     RoundStatus status = 2;
-    repeated string clients = 3;
+    repeated string joined_clients = 3;
+    repeated string finished_clients = 4;
 }
 
 message CandidatesReq {
@@ -207,94 +175,49 @@ message EndRoundReq {
     int32 round = 3;
 }
 
-message EventReq {
-    string address = 1;
-    int32 timeout = 2;
+
+message VerifyReq {
+  string address = 1;
+  string task_id = 2;
+  int32 weight_size = 3;
+  string proof = 4;
+  repeated string pub_signals = 5;
+  int32 block_index = 6;
+  int32 samples = 7;
 }
 
-message Event {
-    oneof event {
-        TaskCreateEvent task_created = 1;
-        RoundStartedEvent round_started = 2;
-        PartnerSelectedEvent partner_selected = 3;
-        CalculationStartedEvent calculation_started = 4;
-        AggregationStartedEvent aggregation_started = 5;
-        RoundEndedEvent round_ended = 6;
-        TaskFinishEvent task_finished = 7;
-        HeartBeatEvent heartbeat = 8;
-    }
+message VerifyResp {
+  string tx_hash = 1;
+  bool valid = 2;
 }
 
-message TaskCreateEvent {
-    string address = 1;
-    string task_id = 2;
-    string dataset = 3;
-    string url = 4;
-    string commitment = 5;
-    string task_type = 6;
+message VerifyState {
+  repeated string unfinished_clients = 1;
+  repeated string invalid_clients = 2;
+  bool valid = 3;
 }
 
-message RoundStartedEvent {
-    string task_id = 1;
-    int32 round = 2;  
-}
-
-message PartnerSelectedEvent {
-    string task_id = 1;
-    int32 round = 2;
-    repeated string addrs = 3;
-}
-
-message CalculationStartedEvent {
-    string task_id = 1;
-    int32 round = 2;
-    repeated string addrs = 3;
-}
-
-message AggregationStartedEvent {
-    string task_id = 1;
-    int32 round = 2;
-    repeated string addrs = 3;
-}
-
-message RoundEndedEvent {
-    string task_id = 1;
-    int32 round = 2;
-}
-
-message TaskFinishEvent {
-    string task_id = 1;
-}
-
-message HeartBeatEvent {
-
-}
-
-service Chain {
-    rpc Join(JoinReq) returns (JoinResp) {}
-    rpc UpdateUrl(UpdateUrlReq) returns (Transaction) {}
-    rpc UpdateName(UpdateNameReq) returns (Transaction) {}
-    rpc Leave(LeaveReq) returns (Transaction) {}
-    rpc GetNodeInfo(NodeInfoReq) returns (NodeInfo) {}
-    rpc GetNodes(NodeInfosReq) returns (NodeInfos) {}
+service HLR {
     rpc CreateTask(CreateTaskReq) returns (CreateTaskResp) {}
-    rpc FinishTask(FinishTaskReq) returns (Transaction) {}
+    rpc FinishTask(FinishTaskReq) returns (transaction.Transaction) {}
     rpc GetTask(TaskReq) returns (TaskResp) {}
-    rpc StartRound(StartRoundReq) returns (Transaction) {}
-    rpc JoinRound(JoinRoundReq) returns (Transaction) {}
+    rpc StartRound(StartRoundReq) returns (transaction.Transaction) {}
+    rpc GetWeightCommitment(WeightCommitmentReq) returns (WeightCommitmentResp) {}
+    rpc JoinRound(JoinRoundReq) returns (transaction.Transaction) {}
     rpc GetTaskRound(TaskRoundReq) returns (TaskRoundResp) {}
-    rpc SelectCandidates(CandidatesReq) returns (Transaction) {}
-    rpc UploadSeedCommitment(ShareCommitment) returns (Transaction) {}
-    rpc UploadSecretKeyCommitment(ShareCommitment) returns (Transaction) {}
+    rpc SelectCandidates(CandidatesReq) returns (transaction.Transaction) {}
+    rpc UploadSeedCommitment(ShareCommitment) returns (transaction.Transaction) {}
+    rpc UploadSecretKeyCommitment(ShareCommitment) returns (transaction.Transaction) {}
     rpc GetClientPublickKeys(PublicKeyReq) returns (PublicKeyResp) {}
-    rpc StartCalculation(CalculationReq) returns (Transaction) {}
-    rpc UploadResultCommitment(ResultCommitment) returns (Transaction) {}
+    rpc StartCalculation(CalculationReq) returns (transaction.Transaction) {}
+    rpc UploadResultCommitment(ResultCommitment) returns (transaction.Transaction) {}
     rpc GetResultCommitment(ResultCommitmentReq) returns (ResultCommitmentResp) {}
-    rpc StartAggregation(AggregationReq) returns (Transaction) {}
-    rpc UploadSeed(Share) returns (Transaction) {}
-    rpc UploadSecretKey(Share) returns (Transaction) {}
+    rpc StartAggregation(AggregationReq) returns (transaction.Transaction) {}
+    rpc UploadSeed(Share) returns (transaction.Transaction) {}
+    rpc UploadSecretKey(Share) returns (transaction.Transaction) {}
     rpc GetSecretShareDatas(SecretShareReq) returns (SecretShareResp) {}
-    rpc EndRound(EndRoundReq) returns (Transaction) {}
-    rpc Subscribe(EventReq) returns (stream Event) {}
+    rpc EndRound(EndRoundReq) returns (transaction.Transaction) {}
+    rpc Verify(VerifyReq) returns (VerifyResp) {}
+    rpc GetVerifierState(TaskReq) returns (VerifyState) {}
 }
 

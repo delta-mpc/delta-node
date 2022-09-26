@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from delta_node.db import mapper_registry
 from sqlalchemy.orm import relationship
 
-from .base import BaseTable
+from ..base import BaseTable
 
 if TYPE_CHECKING:
     from .round_member import RoundMember
@@ -26,7 +26,7 @@ class SecretShareData:
 @mapper_registry.mapped
 @dataclass
 class SecretShare(BaseTable):
-    __tablename__ = "secret_share"
+    __tablename__ = "hlr_secret_share"
     __sa_dataclass_metadata_key__ = "sa"
 
     sender_id: int = field(
@@ -46,8 +46,8 @@ class SecretShare(BaseTable):
         init=False,
         metadata={
             "sa": relationship(
-                "RoundMember",
-                primaryjoin="foreign(SecretShare.sender_id) == RoundMember.id",
+                "delta_node.entity.hlr.round_member.RoundMember",
+                primaryjoin="foreign(delta_node.entity.hlr.secret_share.SecretShare.sender_id) == delta_node.entity.hlr.round_member.RoundMember.id",
                 back_populates="send_shares"
             )
         },
@@ -57,8 +57,8 @@ class SecretShare(BaseTable):
         init=False,
         metadata={
             "sa": relationship(
-                "RoundMember",
-                primaryjoin="foreign(SecretShare.receiver_id) == RoundMember.id",
+                "delta_node.entity.hlr.round_member.RoundMember",
+                primaryjoin="foreign(delta_node.entity.hlr.secret_share.SecretShare.receiver_id) == delta_node.entity.hlr.round_member.RoundMember.id",
                 back_populates="received_shares"
             )
         },

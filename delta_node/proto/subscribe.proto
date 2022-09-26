@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package subscribe;
+
+
+message Event {
+  oneof event {
+      TaskCreateEvent task_created = 1;
+      RoundStartedEvent round_started = 2;
+      PartnerSelectedEvent partner_selected = 3;
+      CalculationStartedEvent calculation_started = 4;
+      AggregationStartedEvent aggregation_started = 5;
+      RoundEndedEvent round_ended = 6;
+      TaskFinishEvent task_finished = 7;
+      HeartBeatEvent heartbeat = 8;
+      TaskMemberVerifiedEvent task_member_verified = 9;
+      TaskVerifiedEvent task_verified = 10;
+      DataRegisteredEvent data_registered = 11;
+  }
+}
+
+message TaskCreateEvent {
+  string address = 1;
+  string task_id = 2;
+  string dataset = 3;
+  string url = 4;
+  string commitment = 5;
+  string task_type = 6;
+  bool enable_verify = 7;
+  int32 tolerance = 8;
+}
+
+message RoundStartedEvent {
+  string task_id = 1;
+  int32 round = 2;  
+}
+
+message PartnerSelectedEvent {
+  string task_id = 1;
+  int32 round = 2;
+  repeated string addrs = 3;
+}
+
+message CalculationStartedEvent {
+  string task_id = 1;
+  int32 round = 2;
+  repeated string addrs = 3;
+}
+
+message AggregationStartedEvent {
+  string task_id = 1;
+  int32 round = 2;
+  repeated string addrs = 3;
+}
+
+message RoundEndedEvent {
+  string task_id = 1;
+  int32 round = 2;
+}
+
+message TaskFinishEvent {
+  string task_id = 1;
+}
+
+message HeartBeatEvent {
+
+}
+
+message TaskMemberVerifiedEvent {
+  string task_id = 1;
+  string address = 2;
+  bool verified = 3;
+}
+
+message TaskVerifiedEvent {
+  string task_id = 1;
+  bool verified = 2;
+}
+
+message DataRegisteredEvent {
+  string owner = 1;
+  string name = 2;
+  int32 index = 3;
+  string commitment = 4;
+}
+
+message EventReq {
+  string address = 1;
+  int32 timeout = 2;
+}
+
+service Subscribe {
+  rpc Subscribe(EventReq) returns (stream Event) {}
+}

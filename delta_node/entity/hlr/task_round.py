@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from delta_node.db import mapper_registry
 from sqlalchemy.orm import relationship
 
-from .base import BaseTable
+from ..base import BaseTable
 
 if TYPE_CHECKING:
     from .round_member import RoundMember
@@ -25,7 +25,7 @@ class RoundStatus(Enum):
 @mapper_registry.mapped
 @dataclass
 class TaskRound(BaseTable):
-    __tablename__ = "task_round"
+    __tablename__ = "hlr_task_round"
     __sa_dataclass_metadata_key__ = "sa"
 
     task_id: str = field(
@@ -37,15 +37,19 @@ class TaskRound(BaseTable):
     status: RoundStatus = field(
         metadata={"sa": sa.Column(sa.Enum(RoundStatus), nullable=False, index=True)}
     )
+    weight_commitment: bytes = field(
+        metadata={"sa": sa.Column(sa.BINARY, nullable=False, index=False)}
+    )
 
-    clients: List[str] = field(default_factory=list)
+    joined_clients: List[str] = field(default_factory=list)
+    finished_clients: List[str] = field(default_factory=list)
 
     members: List["RoundMember"] = field(
         default_factory=list,
         metadata={
             "sa": relationship(
-                "RoundMember",
-                primaryjoin="foreign(RoundMember.round_id) == TaskRound.id",
+                "delta_node.entity.hlr.round_member.RoundMember",
+                primaryjoin="foreign(delta_node.entity.hlr.round_member.RoundMember.round_id) == delta_node.entity.hlr.task_round.TaskRound.id",
                 back_populates="round",
             )
         },

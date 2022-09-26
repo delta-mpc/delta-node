@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package transaction;
+
+message Transaction {
+  string tx_hash = 1;
+}
