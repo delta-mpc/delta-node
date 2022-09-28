@@ -16,6 +16,7 @@ python-multipart==0.0.5
 PyYAML==6.0
 SQLAlchemy==1.4.21
 tqdm==4.46.0
+gmpy2==2.1.2
 
 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
 torch==1.8.2+cpu

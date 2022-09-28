@@ -55,6 +55,7 @@ setup(
         "SQLAlchemy==1.4.21",
         "tqdm==4.46.0",
         "torch==1.8.2+cpu",
+        "gmpy2==2.1.2"
     ],
     tests_require=["pytest", "pytest-asyncio"],
     cmdclass={"test": PyTest},
