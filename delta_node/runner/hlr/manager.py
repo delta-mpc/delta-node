@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from io import BytesIO
 
 import delta.serialize
 from delta.core.task import DataLocation, Step, Task
-from delta_node import db, entity, pool
+from delta_node import db, entity, pool, chain, utils, serialize, registry, zk
 from delta_node.runner import loc
 from delta_node.runner.event_box import EventBox
 from delta_node.runner.manager import Manager
@@ -19,7 +20,7 @@ _logger = logging.getLogger(__name__)
 
 class ClientTaskManager(Manager):
     def __init__(
-        self, node_address: str, task: entity.horizontal.RunnerTask, event_box: EventBox
+        self, node_address: str, task: entity.hlr.RunnerTask, event_box: EventBox
     ) -> None:
         assert (
             task.task_id == event_box.task_id
@@ -116,6 +117,85 @@ class ClientTaskManager(Manager):
 
         if self.running_fut is not None:
             self.running_fut.cancel()
+
+        if success and self.task_entity.enable_verify:
+            await self.verify()
+
+    async def verify(self):
+        # upload data commitment
+        data = self.ctx.get_data()
+        with BytesIO() as buffer:
+            serialize.dump_obj(buffer, data)
+            data_commitment = utils.calc_commitment(buffer.getvalue())
+        _logger.debug(
+            f"task {self.task_id} data commitment {serialize.bytes_to_hex(data_commitment)}"
+        )
+        node_address = await registry.get_node_address()
+        data_fut = asyncio.create_task(
+            chain.datahub.get_client().register(
+                node_address, self.task_entity.dataset, 0, data_commitment
+            )
+        )
+        data_fut.add_done_callback(
+            lambda _: _logger.info(
+                f"task {self.task_id} upload data commitment",
+                extra={"task_id": self.task_id},
+            )
+        )
+        # get weight
+        weight = self.ctx.get_weight()
+        # generate proof
+        proof_fut = asyncio.create_task(
+            zk.get_client().prove(weight.tolist(), data.tolist())
+        )
+        proof_fut.add_done_callback(
+            lambda _: _logger.info(
+                f"task {self.task_id} generate zk proof",
+                extra={"task_id": self.task_id},
+            )
+        )
+        _, proofs = await asyncio.gather(data_fut, proof_fut)
+        # verify
+        verify_futs = []
+        for proof in proofs:
+            if proof.index == len(proofs) - 1:
+                samples = len(data) % 128
+            else:
+                samples = 128
+            fut = asyncio.create_task(
+                chain.hlr.get_client().verify(
+                    node_address,
+                    self.task_id,
+                    len(weight),
+                    proof.proof,
+                    proof.pub_signals,
+                    proof.index,
+                    samples,
+                )
+            )
+
+            def _done(task):
+                try:
+                    _, valid = task.result()
+                    if valid:
+                        _logger.info(
+                            f"task {self.task_id} proof {proof.index} verification approved",
+                            extra={"task_id": self.task_id},
+                        )
+                    else:
+                        _logger.info(
+                            f"task {self.task_id} proof {proof.index} verification failed",
+                            extra={"task_id": self.task_id},
+                        )
+                except:
+                    _logger.info(
+                        f"task {self.task_id} proof {proof.index} verification failed",
+                        extra={"task_id": self.task_id},
+                    )
+
+            fut.add_done_callback(_done)
+            verify_futs.append(fut)
+        await asyncio.wait(verify_futs, return_when=asyncio.FIRST_EXCEPTION)
 
     async def run(self):
         while True:
