@@ -1,7 +1,7 @@
 import math
 from typing import List
 
-from delta_node import chain
+from delta_node.chain import identity
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
@@ -21,7 +21,7 @@ class NodesPage(BaseModel):
 
 @router.get("/nodes", response_model=NodesPage)
 async def get_nodes(page: int = Query(..., ge=1), page_size: int = Query(20, gt=0)):
-    nodes, total_count = await chain.get_client().get_nodes(
+    nodes, total_count = await identity.get_client().get_nodes(
         page=page, page_size=page_size
     )
     total_pages = math.ceil(total_count / page_size)

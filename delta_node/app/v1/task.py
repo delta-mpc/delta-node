@@ -6,7 +6,8 @@ from tempfile import TemporaryFile
 from typing import IO, List, Optional
 
 import sqlalchemy as sa
-from delta_node import chain, coord, db, entity, pool, registry
+from delta_node import coord, db, entity, pool, registry
+from delta_node.chain import horizontal, hlr
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -42,9 +43,16 @@ def move_task_file(task_file: IO[bytes], task_id: str):
 async def run_task(task_item: entity.Task, task_file: IO[bytes]):
     node_address = await registry.get_node_address()
 
-    tx_hash, task_id = await chain.get_client().create_task(
-        node_address, task_item.dataset, task_item.commitment, task_item.type
-    )
+    if task_item.type == "horizontal":
+        tx_hash, task_id = await horizontal.get_client().create_task(
+            node_address, task_item.dataset, task_item.commitment, task_item.type
+        )
+    elif task_item.type == "hlr":
+        tx_hash, task_id = await hlr.get_client().create_task(
+            node_address, task_item.dataset, task_item.commitment, task_item.enable_verify, task_item.tolerance
+        )
+    else:
+        raise TypeError(f"unknown task type {task_item.type}")
     task_item.task_id = task_id
     task_item.creator = node_address
     task_item.status = entity.TaskStatus.RUNNING

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -101,23 +103,38 @@ async def upload_secret_share(
     shares: SecretShares, session: AsyncSession = Depends(db.get_session)
 ):
     q = (
-        sa.select(entity.TaskRound)
-        .where(entity.TaskRound.task_id == shares.task_id)
-        .where(entity.TaskRound.round == shares.round)
+        sa.select(entity.Task)
+        .where(entity.Task.task_id == shares.task_id)
     )
-    round: Optional[entity.TaskRound] = (
+    task: entity.Task | None = (await session.execute(q)).scalars().one_or_none()
+    if task is None:
+        raise HTTPException(400, "task does not exist")
+    
+    if task.type == "horizontal":
+        te = entity.horizontal
+    elif task.type == "hlr":
+        te = entity.hlr
+    else:
+        raise HTTPException(400, f"unknown task type {task.type}")
+
+    q = (
+        sa.select(te.TaskRound)
+        .where(te.TaskRound.task_id == shares.task_id)
+        .where(te.TaskRound.round == shares.round)
+    )
+    round = (
         (await session.execute(q)).scalars().one_or_none()
     )
     if not round:
         raise HTTPException(400, "task round does not exist")
-    if round.status != entity.RoundStatus.RUNNING:
+    if round.status != te.RoundStatus.RUNNING:
         raise HTTPException(400, "round is not in running phase")
 
     # get members in running phase
     q = (
-        sa.select(entity.RoundMember)
-        .where(entity.RoundMember.status == entity.RoundStatus.RUNNING)
-        .where(entity.RoundMember.round_id == round.id)
+        sa.select(te.RoundMember)
+        .where(te.RoundMember.status == te.RoundStatus.RUNNING)
+        .where(te.RoundMember.round_id == round.id)
     )
     members = (await session.execute(q)).scalars().all()
     member_addrs = [member.address for member in members]
@@ -135,7 +152,7 @@ async def upload_secret_share(
 
     for share in shares.shares:
         receiver = member_dict[share.receiver]
-        ss = entity.SecretShare(
+        ss = te.SecretShare(
             sender.id,
             receiver.id,
             hex_to_bytes(share.seed_share),
@@ -160,35 +177,50 @@ async def get_secret_shares(
     session: AsyncSession = Depends(db.get_session),
 ):
     q = (
-        sa.select(entity.TaskRound)
-        .where(entity.TaskRound.task_id == task_id)
-        .where(entity.TaskRound.round == round)
+        sa.select(entity.Task)
+        .where(entity.Task.task_id == task_id)
     )
-    round_entity: Optional[entity.TaskRound] = (
+    task: entity.Task | None = (await session.execute(q)).scalars().one_or_none()
+    if task is None:
+        raise HTTPException(400, "task does not exist")
+
+    if task.type == "horizontal":
+        te = entity.horizontal
+    elif task.type == "hlr":
+        te = entity.hlr
+    else:
+        raise HTTPException(400, f"unknown task type {task.type}")
+
+    q = (
+        sa.select(te.TaskRound)
+        .where(te.TaskRound.task_id == task_id)
+        .where(te.TaskRound.round == round)
+    )
+    round_entity = (
         (await session.execute(q)).scalars().one_or_none()
     )
     if not round_entity:
         raise HTTPException(400, "task round does not exist")
-    if round_entity.status != entity.RoundStatus.CALCULATING:
+    if round_entity.status != te.RoundStatus.CALCULATING:
         raise HTTPException(400, "round is not in calculating phase")
 
     q = (
-        sa.select(entity.RoundMember)
-        .where(entity.RoundMember.round_id == round_entity.id)
-        .where(entity.RoundMember.address == address)
-        .options(selectinload(entity.RoundMember.received_shares))
+        sa.select(te.RoundMember)
+        .where(te.RoundMember.round_id == round_entity.id)
+        .where(te.RoundMember.address == address)
+        .options(selectinload(te.RoundMember.received_shares))
     )
-    member: Optional[entity.RoundMember] = (
+    member = (
         (await session.execute(q)).scalars().one_or_none()
     )
     if not member:
         raise HTTPException(400, f"member {address} does not exists")
-    if member.status != entity.RoundStatus.CALCULATING:
+    if member.status != te.RoundStatus.CALCULATING:
         raise HTTPException(400, f"member {address} is not allowed")
 
     sender_ids = [share.sender_id for share in member.received_shares]
-    q = sa.select(entity.RoundMember).where(entity.RoundMember.id.in_(sender_ids))  # type: ignore
-    senders: List[entity.RoundMember] = (await session.execute(q)).scalars().all()
+    q = sa.select(te.RoundMember).where(te.RoundMember.id.in_(sender_ids)) # type: ignore
+    senders = (await session.execute(q)).scalars().all()
 
     sender_dict = {sender.id: sender for sender in senders}
     shares = []

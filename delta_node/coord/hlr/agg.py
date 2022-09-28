@@ -13,8 +13,8 @@ from delta.core.task import AggResultType
 from sqlalchemy import func
 
 from delta_node import db, pool, serialize, utils
-from delta_node.entity.horizontal import RoundMember, RoundStatus, TaskRound, SecretShare
-from delta_node.chain import horizontal as chain
+from delta_node.entity.hlr import RoundMember, RoundStatus, TaskRound, SecretShare
+from delta_node.chain import hlr as chain
 from delta_node.crypto import ecdhe, shamir
 from delta_node.coord import loc
 from .context import ServerTaskContext
@@ -87,7 +87,7 @@ class ServerAggregator(object):
 
     async def select_u1(self) -> List[RoundMember]:
         task_round = await chain.get_client().get_task_round(self.task_id, self.round)
-        u0 = task_round.clients
+        u0 = task_round.joined_clients
 
         async with db.session_scope() as sess:
             q = (
@@ -127,7 +127,7 @@ class ServerAggregator(object):
 
     async def select_candidates(self, u1: List[RoundMember]):
         async with db.session_scope() as sess:
-            self.task_round.clients = [member.address for member in u1]
+            self.task_round.joined_clients = [member.address for member in u1]
             self.task_round.status = RoundStatus.RUNNING
             task_round = await sess.merge(self.task_round)
             sess.add(task_round)
