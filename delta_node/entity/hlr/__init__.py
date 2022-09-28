@@ -2,7 +2,7 @@ from .round_member import RoundMember
 from .secret_share import SecretShare, SecretShareData
 from .task import RunnerTask
 from .task_round import RoundStatus, TaskRound
-from .verifier import VerifierState
+from .verifier import VerifierState, Proof
 
 __all__ = [
     "RunnerTask",
@@ -12,4 +12,5 @@ __all__ = [
     "SecretShare",
     "SecretShareData",
     "VerifierState",
+    "Proof",
 ]

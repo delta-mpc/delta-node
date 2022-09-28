@@ -16,7 +16,7 @@ __all__ = [
     "HeartbeatEvent",
     "DataRegisteredEvent",
     "TaskMemberVerifiedEvent",
-    "TaskVerifiedEvent",
+    "TaskVerificationConfirmedEvent",
 ]
 
 EventType = Literal[
@@ -30,7 +30,7 @@ EventType = Literal[
     "heartbeat",
     "data_registered",
     "task_member_verified",
-    "task_verified",
+    "task_verification_confirmed",
 ]
 
 
@@ -120,6 +120,5 @@ class TaskMemberVerifiedEvent(TaskEvent):
 
 
 @dataclass
-class TaskVerifiedEvent(TaskEvent):
-    type: EventType = field(init=False, default="task_verified")
-    verified: bool
+class TaskVerificationConfirmedEvent(TaskEvent):
+    type: EventType = field(init=False, default="task_verification_confirmed")

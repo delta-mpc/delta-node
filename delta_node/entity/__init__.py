@@ -1,7 +1,8 @@
+from . import hlr, horizontal, identity
 from .base import BaseTable
 from .event import *
-from .task import Task, TaskStatus
 from .record import Record
+from .task import Task, TaskStatus
 
 __all__ = [
     "BaseTable",
@@ -20,6 +21,9 @@ __all__ = [
     "HeartbeatEvent",
     "DataRegisteredEvent",
     "TaskMemberVerifiedEvent",
-    "TaskVerifiedEvent",
+    "TaskVerificationConfirmedEvent",
     "Record",
+    "horizontal",
+    "hlr",
+    "identity",
 ]
