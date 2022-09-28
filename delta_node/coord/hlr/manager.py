@@ -62,9 +62,7 @@ class ServerTaskManager(Manager):
     async def execute_round(self, round: int):
         # calculate weight commitment
         weight = self.ctx.get_weight()
-        with BytesIO() as buffer:
-            serialize.dump_obj(buffer, weight)
-            weight_commitment = utils.calc_commitment(buffer.getvalue())
+        weight_commitment = utils.calc_weight_commitment(weight)
         # start round
         tx_hash = await chain.get_client().start_round(
             self.node_address, self.task_id, round, weight_commitment

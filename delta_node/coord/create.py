@@ -1,3 +1,4 @@
+import math
 from typing import IO
 
 import delta
@@ -15,6 +16,7 @@ def create_task(task_file: IO[bytes]) -> entity.Task:
     commitment = utils.calc_commitment(task_file)
 
     if task.type == "hlr":
+        tol = -int(math.log10(task.options["tol"]))
         task_item = entity.Task(
             creator="",
             task_id="",
@@ -23,8 +25,8 @@ def create_task(task_file: IO[bytes]) -> entity.Task:
             status=entity.TaskStatus.PENDING,
             name=task.name,
             type=task.type,
-            enable_verify=task.enable_verify,  # type: ignore
-            tolerance=task.options["tol"],  # type: ignore
+            enable_verify=task.enable_verify,
+            tolerance=tol
         )
     elif task.type == "horizontal":
         task_item = entity.Task(

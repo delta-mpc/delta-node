@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from io import BytesIO
 
 import delta.serialize
 from delta.core.task import DataLocation, Step, Task
-from delta_node import db, entity, pool, chain, utils, serialize, registry, zk
+from delta_node import db, entity, pool, chain, utils, serialize, zk
 from delta_node.runner import loc
 from delta_node.runner.event_box import EventBox
 from delta_node.runner.manager import Manager
@@ -124,24 +123,24 @@ class ClientTaskManager(Manager):
     async def verify(self):
         # upload data commitment
         data = self.ctx.get_data()
-        with BytesIO() as buffer:
-            serialize.dump_obj(buffer, data)
-            data_commitment = utils.calc_commitment(buffer.getvalue())
-        _logger.debug(
-            f"task {self.task_id} data commitment {serialize.bytes_to_hex(data_commitment)}"
-        )
-        node_address = await registry.get_node_address()
-        data_fut = asyncio.create_task(
-            chain.datahub.get_client().register(
-                node_address, self.task_entity.dataset, 0, data_commitment
+        data_commitments = utils.calc_data_commitment(data)
+        data_futs = []
+        for i, data_commitment in enumerate(data_commitments):
+            _logger.debug(
+                f"task {self.task_id} data commitment {serialize.bytes_to_hex(data_commitment)}"
             )
-        )
-        data_fut.add_done_callback(
-            lambda _: _logger.info(
-                f"task {self.task_id} upload data commitment",
-                extra={"task_id": self.task_id},
+            data_fut = asyncio.create_task(
+                chain.datahub.get_client().register(
+                    self.node_address, self.task_entity.dataset, i, data_commitment
+                )
             )
-        )
+            data_fut.add_done_callback(
+                lambda _: _logger.info(
+                    f"task {self.task_id} upload data commitment",
+                    extra={"task_id": self.task_id},
+                )
+            )
+            data_futs.append(data_fut)
         # get weight
         weight = self.ctx.get_weight()
         # generate proof
@@ -154,17 +153,18 @@ class ClientTaskManager(Manager):
                 extra={"task_id": self.task_id},
             )
         )
-        _, proofs = await asyncio.gather(data_fut, proof_fut)
+        proofs = (await asyncio.gather(proof_fut, *data_futs))[0]
         # verify
         verify_futs = []
+        block_size = utils.constant.data_block_size()
         for proof in proofs:
             if proof.index == len(proofs) - 1:
-                samples = len(data) % 128
+                samples = len(data) % block_size
             else:
-                samples = 128
+                samples = block_size
             fut = asyncio.create_task(
                 chain.hlr.get_client().verify(
-                    node_address,
+                    self.node_address,
                     self.task_id,
                     len(weight),
                     proof.proof,
