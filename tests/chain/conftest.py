@@ -5,14 +5,6 @@ from delta_node import chain, db
 from delta_node.chain import datahub, hlr, horizontal, identity, subscribe
 
 
-@pytest.fixture(scope="module")
-def event_loop():
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest.fixture(scope="module", autouse=True)
 async def init():
     await db.init("sqlite+aiosqlite://")

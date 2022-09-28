@@ -376,3 +376,15 @@ class Client(object):
             _logger.error(e)
             raise
 
+    async def confirm_verification(self, address: str, task_id: str) -> str:
+        req = pb.ConfirmReq(
+            address=address,
+            task_id=task_id
+        )
+        try:
+            resp = await self.stub.ConfirmVerification(req)
+            return resp.tx_hash
+        except Exception as e:
+            _logger.error(e)
+            raise
+

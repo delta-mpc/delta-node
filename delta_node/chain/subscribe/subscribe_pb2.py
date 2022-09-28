@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fsubscribe.proto\x12\tsubscribe\"\x8c\x05\n\x05\x45vent\x12\x32\n\x0ctask_created\x18\x01 \x01(\x0b\x32\x1a.subscribe.TaskCreateEventH\x00\x12\x35\n\rround_started\x18\x02 \x01(\x0b\x32\x1c.subscribe.RoundStartedEventH\x00\x12;\n\x10partner_selected\x18\x03 \x01(\x0b\x32\x1f.subscribe.PartnerSelectedEventH\x00\x12\x41\n\x13\x63\x61lculation_started\x18\x04 \x01(\x0b\x32\".subscribe.CalculationStartedEventH\x00\x12\x41\n\x13\x61ggregation_started\x18\x05 \x01(\x0b\x32\".subscribe.AggregationStartedEventH\x00\x12\x31\n\x0bround_ended\x18\x06 \x01(\x0b\x32\x1a.subscribe.RoundEndedEventH\x00\x12\x33\n\rtask_finished\x18\x07 \x01(\x0b\x32\x1a.subscribe.TaskFinishEventH\x00\x12.\n\theartbeat\x18\x08 \x01(\x0b\x32\x19.subscribe.HeartBeatEventH\x00\x12\x42\n\x14task_member_verified\x18\t \x01(\x0b\x32\".subscribe.TaskMemberVerifiedEventH\x00\x12\x35\n\rtask_verified\x18\n \x01(\x0b\x32\x1c.subscribe.TaskVerifiedEventH\x00\x12\x39\n\x0f\x64\x61ta_registered\x18\x0b \x01(\x0b\x32\x1e.subscribe.DataRegisteredEventH\x00\x42\x07\n\x05\x65vent\"\xa2\x01\n\x0fTaskCreateEvent\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x12\n\ncommitment\x18\x05 \x01(\t\x12\x11\n\ttask_type\x18\x06 \x01(\t\x12\x15\n\renable_verify\x18\x07 \x01(\x08\x12\x11\n\ttolerance\x18\x08 \x01(\x05\"3\n\x11RoundStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"E\n\x14PartnerSelectedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x43\x61lculationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x41ggregationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"1\n\x0fRoundEndedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"\"\n\x0fTaskFinishEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"\x10\n\x0eHeartBeatEvent\"M\n\x17TaskMemberVerifiedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x12\x10\n\x08verified\x18\x03 \x01(\x08\"6\n\x11TaskVerifiedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x10\n\x08verified\x18\x02 \x01(\x08\"U\n\x13\x44\x61taRegisteredEvent\x12\r\n\x05owner\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05index\x18\x03 \x01(\x05\x12\x12\n\ncommitment\x18\x04 \x01(\t\",\n\x08\x45ventReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07timeout\x18\x02 \x01(\x05\x32\x43\n\tSubscribe\x12\x36\n\tSubscribe\x12\x13.subscribe.EventReq\x1a\x10.subscribe.Event\"\x00\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fsubscribe.proto\x12\tsubscribe\"\xa7\x05\n\x05\x45vent\x12\x32\n\x0ctask_created\x18\x01 \x01(\x0b\x32\x1a.subscribe.TaskCreateEventH\x00\x12\x35\n\rround_started\x18\x02 \x01(\x0b\x32\x1c.subscribe.RoundStartedEventH\x00\x12;\n\x10partner_selected\x18\x03 \x01(\x0b\x32\x1f.subscribe.PartnerSelectedEventH\x00\x12\x41\n\x13\x63\x61lculation_started\x18\x04 \x01(\x0b\x32\".subscribe.CalculationStartedEventH\x00\x12\x41\n\x13\x61ggregation_started\x18\x05 \x01(\x0b\x32\".subscribe.AggregationStartedEventH\x00\x12\x31\n\x0bround_ended\x18\x06 \x01(\x0b\x32\x1a.subscribe.RoundEndedEventH\x00\x12\x33\n\rtask_finished\x18\x07 \x01(\x0b\x32\x1a.subscribe.TaskFinishEventH\x00\x12.\n\theartbeat\x18\x08 \x01(\x0b\x32\x19.subscribe.HeartBeatEventH\x00\x12\x42\n\x14task_member_verified\x18\t \x01(\x0b\x32\".subscribe.TaskMemberVerifiedEventH\x00\x12P\n\x1btask_verification_confirmed\x18\n \x01(\x0b\x32).subscribe.TaskVerificationConfirmedEventH\x00\x12\x39\n\x0f\x64\x61ta_registered\x18\x0b \x01(\x0b\x32\x1e.subscribe.DataRegisteredEventH\x00\x42\x07\n\x05\x65vent\"\xa2\x01\n\x0fTaskCreateEvent\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\t\x12\x0f\n\x07\x64\x61taset\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x12\n\ncommitment\x18\x05 \x01(\t\x12\x11\n\ttask_type\x18\x06 \x01(\t\x12\x15\n\renable_verify\x18\x07 \x01(\x08\x12\x11\n\ttolerance\x18\x08 \x01(\x05\"3\n\x11RoundStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"E\n\x14PartnerSelectedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x43\x61lculationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"H\n\x17\x41ggregationStartedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\x12\r\n\x05\x61\x64\x64rs\x18\x03 \x03(\t\"1\n\x0fRoundEndedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\r\n\x05round\x18\x02 \x01(\x05\"\"\n\x0fTaskFinishEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"\x10\n\x0eHeartBeatEvent\"M\n\x17TaskMemberVerifiedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x12\x10\n\x08verified\x18\x03 \x01(\x08\"1\n\x1eTaskVerificationConfirmedEvent\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"U\n\x13\x44\x61taRegisteredEvent\x12\r\n\x05owner\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05index\x18\x03 \x01(\x05\x12\x12\n\ncommitment\x18\x04 \x01(\t\",\n\x08\x45ventReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07timeout\x18\x02 \x01(\x05\x32\x43\n\tSubscribe\x12\x36\n\tSubscribe\x12\x13.subscribe.EventReq\x1a\x10.subscribe.Event\"\x00\x30\x01\x62\x06proto3')
 
 
 
@@ -28,7 +28,7 @@ _ROUNDENDEDEVENT = DESCRIPTOR.message_types_by_name['RoundEndedEvent']
 _TASKFINISHEVENT = DESCRIPTOR.message_types_by_name['TaskFinishEvent']
 _HEARTBEATEVENT = DESCRIPTOR.message_types_by_name['HeartBeatEvent']
 _TASKMEMBERVERIFIEDEVENT = DESCRIPTOR.message_types_by_name['TaskMemberVerifiedEvent']
-_TASKVERIFIEDEVENT = DESCRIPTOR.message_types_by_name['TaskVerifiedEvent']
+_TASKVERIFICATIONCONFIRMEDEVENT = DESCRIPTOR.message_types_by_name['TaskVerificationConfirmedEvent']
 _DATAREGISTEREDEVENT = DESCRIPTOR.message_types_by_name['DataRegisteredEvent']
 _EVENTREQ = DESCRIPTOR.message_types_by_name['EventReq']
 Event = _reflection.GeneratedProtocolMessageType('Event', (_message.Message,), {
@@ -101,12 +101,12 @@ TaskMemberVerifiedEvent = _reflection.GeneratedProtocolMessageType('TaskMemberVe
   })
 _sym_db.RegisterMessage(TaskMemberVerifiedEvent)
 
-TaskVerifiedEvent = _reflection.GeneratedProtocolMessageType('TaskVerifiedEvent', (_message.Message,), {
-  'DESCRIPTOR' : _TASKVERIFIEDEVENT,
+TaskVerificationConfirmedEvent = _reflection.GeneratedProtocolMessageType('TaskVerificationConfirmedEvent', (_message.Message,), {
+  'DESCRIPTOR' : _TASKVERIFICATIONCONFIRMEDEVENT,
   '__module__' : 'subscribe_pb2'
-  # @@protoc_insertion_point(class_scope:subscribe.TaskVerifiedEvent)
+  # @@protoc_insertion_point(class_scope:subscribe.TaskVerificationConfirmedEvent)
   })
-_sym_db.RegisterMessage(TaskVerifiedEvent)
+_sym_db.RegisterMessage(TaskVerificationConfirmedEvent)
 
 DataRegisteredEvent = _reflection.GeneratedProtocolMessageType('DataRegisteredEvent', (_message.Message,), {
   'DESCRIPTOR' : _DATAREGISTEREDEVENT,
@@ -127,31 +127,31 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _EVENT._serialized_start=31
-  _EVENT._serialized_end=683
-  _TASKCREATEEVENT._serialized_start=686
-  _TASKCREATEEVENT._serialized_end=848
-  _ROUNDSTARTEDEVENT._serialized_start=850
-  _ROUNDSTARTEDEVENT._serialized_end=901
-  _PARTNERSELECTEDEVENT._serialized_start=903
-  _PARTNERSELECTEDEVENT._serialized_end=972
-  _CALCULATIONSTARTEDEVENT._serialized_start=974
-  _CALCULATIONSTARTEDEVENT._serialized_end=1046
-  _AGGREGATIONSTARTEDEVENT._serialized_start=1048
-  _AGGREGATIONSTARTEDEVENT._serialized_end=1120
-  _ROUNDENDEDEVENT._serialized_start=1122
-  _ROUNDENDEDEVENT._serialized_end=1171
-  _TASKFINISHEVENT._serialized_start=1173
-  _TASKFINISHEVENT._serialized_end=1207
-  _HEARTBEATEVENT._serialized_start=1209
-  _HEARTBEATEVENT._serialized_end=1225
-  _TASKMEMBERVERIFIEDEVENT._serialized_start=1227
-  _TASKMEMBERVERIFIEDEVENT._serialized_end=1304
-  _TASKVERIFIEDEVENT._serialized_start=1306
-  _TASKVERIFIEDEVENT._serialized_end=1360
-  _DATAREGISTEREDEVENT._serialized_start=1362
-  _DATAREGISTEREDEVENT._serialized_end=1447
-  _EVENTREQ._serialized_start=1449
-  _EVENTREQ._serialized_end=1493
-  _SUBSCRIBE._serialized_start=1495
-  _SUBSCRIBE._serialized_end=1562
+  _EVENT._serialized_end=710
+  _TASKCREATEEVENT._serialized_start=713
+  _TASKCREATEEVENT._serialized_end=875
+  _ROUNDSTARTEDEVENT._serialized_start=877
+  _ROUNDSTARTEDEVENT._serialized_end=928
+  _PARTNERSELECTEDEVENT._serialized_start=930
+  _PARTNERSELECTEDEVENT._serialized_end=999
+  _CALCULATIONSTARTEDEVENT._serialized_start=1001
+  _CALCULATIONSTARTEDEVENT._serialized_end=1073
+  _AGGREGATIONSTARTEDEVENT._serialized_start=1075
+  _AGGREGATIONSTARTEDEVENT._serialized_end=1147
+  _ROUNDENDEDEVENT._serialized_start=1149
+  _ROUNDENDEDEVENT._serialized_end=1198
+  _TASKFINISHEVENT._serialized_start=1200
+  _TASKFINISHEVENT._serialized_end=1234
+  _HEARTBEATEVENT._serialized_start=1236
+  _HEARTBEATEVENT._serialized_end=1252
+  _TASKMEMBERVERIFIEDEVENT._serialized_start=1254
+  _TASKMEMBERVERIFIEDEVENT._serialized_end=1331
+  _TASKVERIFICATIONCONFIRMEDEVENT._serialized_start=1333
+  _TASKVERIFICATIONCONFIRMEDEVENT._serialized_end=1382
+  _DATAREGISTEREDEVENT._serialized_start=1384
+  _DATAREGISTEREDEVENT._serialized_end=1469
+  _EVENTREQ._serialized_start=1471
+  _EVENTREQ._serialized_end=1515
+  _SUBSCRIBE._serialized_start=1517
+  _SUBSCRIBE._serialized_end=1584
 # @@protoc_insertion_point(module_scope)

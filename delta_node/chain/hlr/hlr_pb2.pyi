@@ -580,3 +580,17 @@ class VerifyState(google.protobuf.message.Message):
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["invalid_clients",b"invalid_clients","unfinished_clients",b"unfinished_clients","valid",b"valid"]) -> None: ...
 global___VerifyState = VerifyState
+
+class ConfirmReq(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    ADDRESS_FIELD_NUMBER: builtins.int
+    TASK_ID_FIELD_NUMBER: builtins.int
+    address: typing.Text
+    task_id: typing.Text
+    def __init__(self,
+        *,
+        address: typing.Text = ...,
+        task_id: typing.Text = ...,
+        ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["address",b"address","task_id",b"task_id"]) -> None: ...
+global___ConfirmReq = ConfirmReq

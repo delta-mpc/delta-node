@@ -84,10 +84,9 @@ class Client(object):
                         address=event.task_member_verified.address,
                         verified=event.task_member_verified.verified,
                     )
-                elif event_type == "task_verified":
-                    yield entity.TaskVerifiedEvent(
-                        task_id=event.task_verified.task_id,
-                        verified=event.task_verified.verified,
+                elif event_type == "task_verification_confirmed":
+                    yield entity.TaskVerificationConfirmedEvent(
+                        task_id=event.task_verification_confirmed.task_id,
                     )
 
     async def subscribe(

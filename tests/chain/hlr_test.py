@@ -1,20 +1,15 @@
 import asyncio
 import random
 
-from delta_node.chain import hlr, subscribe, datahub
-from delta_node.entity import (
-    TaskCreateEvent,
-    RoundStartedEvent,
-    PartnerSelectedEvent,
-    CalculationStartedEvent,
-    AggregationStartedEvent,
-    RoundEndedEvent,
-    TaskFinishEvent,
-    TaskMemberVerifiedEvent,
-    TaskVerifiedEvent
-)
-from delta_node.entity.hlr import RoundStatus
 from delta_node import serialize
+from delta_node.chain import datahub, hlr, subscribe
+from delta_node.entity import (AggregationStartedEvent,
+                               CalculationStartedEvent, PartnerSelectedEvent,
+                               RoundEndedEvent, RoundStartedEvent,
+                               TaskCreateEvent, TaskFinishEvent,
+                               TaskMemberVerifiedEvent,
+                               TaskVerificationConfirmedEvent)
+from delta_node.entity.hlr import RoundStatus
 
 
 async def test_horizontal(
@@ -181,13 +176,14 @@ async def test_horizontal(
     assert event.task_id == task_id
     assert event.verified
 
-    event = await event_gen.asend(None)
-    assert isinstance(event, TaskVerifiedEvent)
-    assert event.task_id == task_id
-    assert event.verified
-
     # get verifier state
     state = await hlr_client.get_verifier_state(task_id)
     assert len(state.unfinished_clients) == 0
     assert len(state.invalid_clients) == 0
     assert state.valid
+
+    # confirm verification
+    await hlr_client.confirm_verification(address, task_id)
+    event = await event_gen.asend(None)
+    assert isinstance(event, TaskVerificationConfirmedEvent)
+    assert event.task_id == task_id

@@ -27,7 +27,7 @@ def init(
 
 def get_channel() -> Channel:
     if not hasattr(_local, "ch"):
-        raise ValueError("channel has not been initialized")
+        raise ValueError("chain channel has not been initialized")
 
     ch: Channel = _local.ch
     return ch
@@ -35,7 +35,7 @@ def get_channel() -> Channel:
 
 def close():
     if not hasattr(_local, "ch"):
-        raise ValueError("channel has not been initialized")
+        raise ValueError("chain channel has not been initialized")
 
     ch: Channel = _local.ch
     ch.close()

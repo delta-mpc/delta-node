@@ -177,24 +177,29 @@ message EndRoundReq {
 
 
 message VerifyReq {
-  string address = 1;
-  string task_id = 2;
-  int32 weight_size = 3;
-  string proof = 4;
-  repeated string pub_signals = 5;
-  int32 block_index = 6;
-  int32 samples = 7;
+    string address = 1;
+    string task_id = 2;
+    int32 weight_size = 3;
+    string proof = 4;
+    repeated string pub_signals = 5;
+    int32 block_index = 6;
+    int32 samples = 7;
 }
 
 message VerifyResp {
-  string tx_hash = 1;
-  bool valid = 2;
+    string tx_hash = 1;
+    bool valid = 2;
 }
 
 message VerifyState {
-  repeated string unfinished_clients = 1;
-  repeated string invalid_clients = 2;
-  bool valid = 3;
+    repeated string unfinished_clients = 1;
+    repeated string invalid_clients = 2;
+    bool valid = 3;
+}
+
+message ConfirmReq {
+    string address = 1;
+    string task_id = 2;
 }
 
 service HLR {
@@ -219,5 +224,6 @@ service HLR {
     rpc EndRound(EndRoundReq) returns (transaction.Transaction) {}
     rpc Verify(VerifyReq) returns (VerifyResp) {}
     rpc GetVerifierState(TaskReq) returns (VerifyState) {}
+    rpc ConfirmVerification(ConfirmReq) returns (transaction.Transaction) {}
 }
 

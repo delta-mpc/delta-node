@@ -22,7 +22,7 @@ class Event(google.protobuf.message.Message):
     TASK_FINISHED_FIELD_NUMBER: builtins.int
     HEARTBEAT_FIELD_NUMBER: builtins.int
     TASK_MEMBER_VERIFIED_FIELD_NUMBER: builtins.int
-    TASK_VERIFIED_FIELD_NUMBER: builtins.int
+    TASK_VERIFICATION_CONFIRMED_FIELD_NUMBER: builtins.int
     DATA_REGISTERED_FIELD_NUMBER: builtins.int
     @property
     def task_created(self) -> global___TaskCreateEvent: ...
@@ -43,7 +43,7 @@ class Event(google.protobuf.message.Message):
     @property
     def task_member_verified(self) -> global___TaskMemberVerifiedEvent: ...
     @property
-    def task_verified(self) -> global___TaskVerifiedEvent: ...
+    def task_verification_confirmed(self) -> global___TaskVerificationConfirmedEvent: ...
     @property
     def data_registered(self) -> global___DataRegisteredEvent: ...
     def __init__(self,
@@ -57,12 +57,12 @@ class Event(google.protobuf.message.Message):
         task_finished: typing.Optional[global___TaskFinishEvent] = ...,
         heartbeat: typing.Optional[global___HeartBeatEvent] = ...,
         task_member_verified: typing.Optional[global___TaskMemberVerifiedEvent] = ...,
-        task_verified: typing.Optional[global___TaskVerifiedEvent] = ...,
+        task_verification_confirmed: typing.Optional[global___TaskVerificationConfirmedEvent] = ...,
         data_registered: typing.Optional[global___DataRegisteredEvent] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["aggregation_started",b"aggregation_started","calculation_started",b"calculation_started","data_registered",b"data_registered","event",b"event","heartbeat",b"heartbeat","partner_selected",b"partner_selected","round_ended",b"round_ended","round_started",b"round_started","task_created",b"task_created","task_finished",b"task_finished","task_member_verified",b"task_member_verified","task_verified",b"task_verified"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["aggregation_started",b"aggregation_started","calculation_started",b"calculation_started","data_registered",b"data_registered","event",b"event","heartbeat",b"heartbeat","partner_selected",b"partner_selected","round_ended",b"round_ended","round_started",b"round_started","task_created",b"task_created","task_finished",b"task_finished","task_member_verified",b"task_member_verified","task_verified",b"task_verified"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["event",b"event"]) -> typing.Optional[typing_extensions.Literal["task_created","round_started","partner_selected","calculation_started","aggregation_started","round_ended","task_finished","heartbeat","task_member_verified","task_verified","data_registered"]]: ...
+    def HasField(self, field_name: typing_extensions.Literal["aggregation_started",b"aggregation_started","calculation_started",b"calculation_started","data_registered",b"data_registered","event",b"event","heartbeat",b"heartbeat","partner_selected",b"partner_selected","round_ended",b"round_ended","round_started",b"round_started","task_created",b"task_created","task_finished",b"task_finished","task_member_verified",b"task_member_verified","task_verification_confirmed",b"task_verification_confirmed"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["aggregation_started",b"aggregation_started","calculation_started",b"calculation_started","data_registered",b"data_registered","event",b"event","heartbeat",b"heartbeat","partner_selected",b"partner_selected","round_ended",b"round_ended","round_started",b"round_started","task_created",b"task_created","task_finished",b"task_finished","task_member_verified",b"task_member_verified","task_verification_confirmed",b"task_verification_confirmed"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["event",b"event"]) -> typing.Optional[typing_extensions.Literal["task_created","round_started","partner_selected","calculation_started","aggregation_started","round_ended","task_finished","heartbeat","task_member_verified","task_verification_confirmed","data_registered"]]: ...
 global___Event = Event
 
 class TaskCreateEvent(google.protobuf.message.Message):
@@ -213,19 +213,16 @@ class TaskMemberVerifiedEvent(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["address",b"address","task_id",b"task_id","verified",b"verified"]) -> None: ...
 global___TaskMemberVerifiedEvent = TaskMemberVerifiedEvent
 
-class TaskVerifiedEvent(google.protobuf.message.Message):
+class TaskVerificationConfirmedEvent(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
     TASK_ID_FIELD_NUMBER: builtins.int
-    VERIFIED_FIELD_NUMBER: builtins.int
     task_id: typing.Text
-    verified: builtins.bool
     def __init__(self,
         *,
         task_id: typing.Text = ...,
-        verified: builtins.bool = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["task_id",b"task_id","verified",b"verified"]) -> None: ...
-global___TaskVerifiedEvent = TaskVerifiedEvent
+    def ClearField(self, field_name: typing_extensions.Literal["task_id",b"task_id"]) -> None: ...
+global___TaskVerificationConfirmedEvent = TaskVerificationConfirmedEvent
 
 class DataRegisteredEvent(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor

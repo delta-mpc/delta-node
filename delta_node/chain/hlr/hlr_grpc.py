@@ -99,6 +99,10 @@ class HLRBase(abc.ABC):
     async def GetVerifierState(self, stream: 'grpclib.server.Stream[hlr_pb2.TaskReq, hlr_pb2.VerifyState]') -> None:
         pass
 
+    @abc.abstractmethod
+    async def ConfirmVerification(self, stream: 'grpclib.server.Stream[hlr_pb2.ConfirmReq, transaction_pb2.Transaction]') -> None:
+        pass
+
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             '/hlr.HLR/CreateTask': grpclib.const.Handler(
@@ -226,6 +230,12 @@ class HLRBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 hlr_pb2.TaskReq,
                 hlr_pb2.VerifyState,
+            ),
+            '/hlr.HLR/ConfirmVerification': grpclib.const.Handler(
+                self.ConfirmVerification,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                hlr_pb2.ConfirmReq,
+                transaction_pb2.Transaction,
             ),
         }
 
@@ -358,4 +368,10 @@ class HLRStub:
             '/hlr.HLR/GetVerifierState',
             hlr_pb2.TaskReq,
             hlr_pb2.VerifyState,
+        )
+        self.ConfirmVerification = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/hlr.HLR/ConfirmVerification',
+            hlr_pb2.ConfirmReq,
+            transaction_pb2.Transaction,
         )
