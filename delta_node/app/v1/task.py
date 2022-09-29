@@ -7,7 +7,7 @@ from typing import IO, List, Optional
 
 import sqlalchemy as sa
 from delta_node import coord, db, entity, pool, registry
-from delta_node.chain import horizontal, hlr
+from delta_node.chain import hlr, horizontal
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -43,16 +43,30 @@ def move_task_file(task_file: IO[bytes], task_id: str):
 async def run_task(task_item: entity.Task, task_file: IO[bytes]):
     node_address = await registry.get_node_address()
 
-    if task_item.type == "horizontal":
-        tx_hash, task_id = await horizontal.get_client().create_task(
-            node_address, task_item.dataset, task_item.commitment, task_item.type
-        )
-    elif task_item.type == "hlr":
-        tx_hash, task_id = await hlr.get_client().create_task(
-            node_address, task_item.dataset, task_item.commitment, task_item.enable_verify, task_item.tolerance
-        )
-    else:
-        raise TypeError(f"unknown task type {task_item.type}")
+    try:
+        if task_item.type == "horizontal":
+            tx_hash, task_id = await horizontal.get_client().create_task(
+                node_address, task_item.dataset, task_item.commitment, task_item.type
+            )
+        elif task_item.type == "hlr":
+            tx_hash, task_id = await hlr.get_client().create_task(
+                node_address,
+                task_item.dataset,
+                task_item.commitment,
+                task_item.enable_verify,
+                task_item.tolerance,
+            )
+        else:
+            raise TypeError(f"unknown task type {task_item.type}")
+    except Exception as e:
+        async with db.session_scope() as sess:
+            task_item.status = entity.TaskStatus.ERROR
+            task_item = await sess.merge(task_item)
+            sess.add(task_item)
+            await sess.commit()
+        _logger.error(f"create task of id {task_item.id} error: {str(e)}")
+        raise
+
     task_item.task_id = task_id
     task_item.creator = node_address
     task_item.status = entity.TaskStatus.RUNNING
@@ -78,7 +92,10 @@ async def create_task(
     background: BackgroundTasks,
 ):
     f = await pool.run_in_io(create_task_file, file.file)
-    task_item = await pool.run_in_io(coord.create_task, f)
+    try:
+        task_item = await pool.run_in_io(coord.create_task, f)
+    except TypeError as e:
+        raise HTTPException(400, str(e))
     session.add(task_item)
     await session.commit()
     await session.refresh(task_item)
@@ -117,7 +134,7 @@ async def get_task_list(
                     type=task.type,
                     creator=task.creator,
                     status=task.status.name,
-                    enable_verify=task.enable_verify
+                    enable_verify=task.enable_verify,
                 )
             )
     return task_items
@@ -140,7 +157,7 @@ async def get_task_metadata(
         type=task.type,
         creator=task.creator,
         status=task.status.name,
-        enable_verify=task.enable_verify
+        enable_verify=task.enable_verify,
     )
 
 
