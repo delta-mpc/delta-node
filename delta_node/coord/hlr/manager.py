@@ -61,7 +61,8 @@ class ServerTaskManager(Manager):
             task_round: TaskRound | None = (await sess.execute(q)).scalars().first()
         self.round = 1 if task_round is None else task_round.round
 
-    async def execute_round(self, round: int):
+    async def execute_round(self, round: int) -> bool:
+        res = True
         # calculate weight commitment
         try:
             weight = self.ctx.get_weight()
@@ -92,9 +93,12 @@ class ServerTaskManager(Manager):
         aggregator = ServerAggregator(
             self.node_address, task_round, self.strategy, step.agg_names
         )
-        async with aggregator.aggregate(self.ctx):
-            _logger.debug("server complete aggregating")
-            await pool.run_in_worker(step.reduce, self.ctx)
+        try:
+            async with aggregator.aggregate(self.ctx):
+                _logger.debug("server complete aggregating")
+                await pool.run_in_worker(step.reduce, self.ctx)
+        except EarlyStop:
+            res = False
         # end round
         tx_hash = await chain.get_client().end_round(
             self.node_address, self.task_id, round
@@ -103,6 +107,7 @@ class ServerTaskManager(Manager):
             f"[End Round] task {self.task_id} round {round} finish",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
+        return res
 
     def save_result(self):
         vars = self.ctx.get(*self.task.outputs)
@@ -154,23 +159,11 @@ class ServerTaskManager(Manager):
             )
 
     async def run(self):
-        try:
-            await self.init()
-            max_rounds = len(self.task.steps)
-            while self.round < max_rounds + 1:
-                try:
-                    await self.execute_round(self.round)
-                except EarlyStop:
-                    break
-                self.round += 1
-            await self.finish()
-        except Exception as e:
-            async with db.session_scope() as sess:
-                self.task_entity.status = TaskStatus.ERROR
-                task_entity = await sess.merge(self.task_entity)
-                sess.add(task_entity)
-                await sess.commit()
-            _logger.error(
-                f"task {self.task_id} error: {str(e)}", extra={"task_id": self.task_id}
-            )
-            raise
+        await self.init()
+        max_rounds = len(self.task.steps)
+        while self.round < max_rounds + 1:
+            has_next = await self.execute_round(self.round)
+            if not has_next:
+                break
+            self.round += 1
+        await self.finish()
