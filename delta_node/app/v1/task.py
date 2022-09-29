@@ -94,6 +94,7 @@ class Task(BaseModel):
     type: str
     creator: str
     status: str
+    enable_verify: bool
 
 
 @task_router.get("/list", response_model=List[Task])
@@ -116,6 +117,7 @@ async def get_task_list(
                     type=task.type,
                     creator=task.creator,
                     status=task.status.name,
+                    enable_verify=task.enable_verify
                 )
             )
     return task_items
@@ -138,6 +140,7 @@ async def get_task_metadata(
         type=task.type,
         creator=task.creator,
         status=task.status.name,
+        enable_verify=task.enable_verify
     )
 
 

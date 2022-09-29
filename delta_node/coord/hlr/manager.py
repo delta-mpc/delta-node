@@ -135,6 +135,11 @@ class ServerTaskManager(Manager):
             tx_hash = await chain.get_client().confirm_verification(
                 self.node_address, self.task_id
             )
+            async with db.session_scope() as sess:
+                self.task_entity.status = TaskStatus.CONFIRMED
+                task_entity = await sess.merge(self.task_entity)
+                sess.add(task_entity)
+                await sess.commit()
             _logger.info(
                 f"[Verify Task] task {self.task_id} zk verification confirmed",
                 extra={"task_id": self.task_id, "tx_hash": tx_hash},
