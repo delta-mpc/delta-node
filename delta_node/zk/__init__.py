@@ -11,9 +11,7 @@ _local = threading.local()
 __all__ = ["get_client", "init", "close"]
 
 
-def init(
-    host: str = config.chain_host, port: int = config.chain_port, *, ssl: bool = False
-):
+def init(host: str = config.zk_host, port: int = config.zk_port, *, ssl: bool = False):
     if hasattr(_local, "ch") or hasattr(_local, "client"):
         raise ValueError("chain has been initialized")
 

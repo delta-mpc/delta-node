@@ -24,6 +24,10 @@ _node: Dict = _c.get("node")
 node_name: str = _node.get("name", "")
 node_url: str = _node.get("url", "")
 
+_zk: Dict = _c.get("zk")
+zk_host: str = _zk.get("host", "")
+zk_port: int = _zk.get("port", 3400)
+
 api_port: int = _c.get("api_port", 6700)
 
 task_dir: str = _c.get("task_dir", "task")
