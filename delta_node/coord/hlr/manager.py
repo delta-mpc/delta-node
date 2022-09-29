@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from io import BytesIO
 
 import delta.serialize
 import sqlalchemy as sa
 from delta.core.strategy import Strategy
-from delta.core.task import EarlyStop
+from delta.core.task import EarlyStop, DataLocation
 from delta.core.task import Task as DTask
 from delta_node import db, pool, serialize, utils
 from delta_node.chain import hlr as chain
@@ -41,6 +40,9 @@ class ServerTaskManager(Manager):
 
         # save server var to context
         pairs = []
+        for var in self.task.inputs:
+            if var.location == DataLocation.SERVER and var.default is not None:
+                pairs.append((var, var.default))
         self.ctx.set(*pairs)
 
         async with db.session_scope() as sess:
@@ -61,8 +63,11 @@ class ServerTaskManager(Manager):
 
     async def execute_round(self, round: int):
         # calculate weight commitment
-        weight = self.ctx.get_weight()
-        weight_commitment = utils.calc_weight_commitment(weight)
+        try:
+            weight = self.ctx.get_weight()
+            weight_commitment = utils.calc_weight_commitment(weight)
+        except ValueError:
+            weight_commitment = b""
         # start round
         tx_hash = await chain.get_client().start_round(
             self.node_address, self.task_id, round, weight_commitment
