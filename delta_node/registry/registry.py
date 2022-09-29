@@ -37,8 +37,11 @@ async def register(
 
         if node:
             # join first to avoid address changed when connect to monkey chain connector
-            await identity.get_client().join(url, name)
+            _, address = await identity.get_client().join(url, name)
             updated = False
+            if node.address != address:
+                node.address = address
+                updated = True
             if node.url != url:
                 await identity.get_client().updaet_url(node.address, url)
                 node.url = url
