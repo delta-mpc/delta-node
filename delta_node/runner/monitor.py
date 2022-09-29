@@ -122,6 +122,12 @@ async def create_task_manager(monitor: Monitor, task: entity.horizontal.RunnerTa
 
         event_box = await EventBoxStore.get(task.task_id)
         manager = ClientTaskManager(node_address, task, event_box)
+    elif task.type == "hlr":
+        assert isinstance(task, entity.hlr.RunnerTask)
+        from .hlr import ClientTaskManager
+
+        event_box = await EventBoxStore.get(task.task_id)
+        manager = ClientTaskManager(node_address, task, event_box)
     else:
         raise TypeError(f"unknown task type {task.type}")
 
