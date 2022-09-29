@@ -19,7 +19,7 @@ _logger = logging.getLogger(__name__)
 
 class ClientTaskManager(Manager):
     def __init__(
-        self, node_address: str, task: entity.RunnerTask, event_box: EventBox
+        self, node_address: str, task: entity.horizontal.RunnerTask, event_box: EventBox
     ) -> None:
         assert (
             task.task_id == event_box.task_id

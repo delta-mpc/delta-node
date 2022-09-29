@@ -1,9 +1,9 @@
-from typing import Optional, TYPE_CHECKING
-from .base import BaseTable
-import sqlalchemy as sa
 from dataclasses import dataclass, field
+
+import sqlalchemy as sa
 from delta_node.db import mapper_registry
 
+from ..base import BaseTable
 
 __all__ = ["Node"]
 

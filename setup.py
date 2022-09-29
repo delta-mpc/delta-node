@@ -30,7 +30,7 @@ class PyTest(TestCommand):
 
 setup(
     name="delta_node",
-    version="0.6.0",
+    version="0.7.0rc1",
     packages=find_packages(),
     package_data={"delta_node": ["dataset/examples/*.csv"]},
     include_package_data=True,
@@ -39,7 +39,7 @@ setup(
         "aiosqlite==0.17.0",
         "async_lru==1.0.2",
         "cryptography==3.4.7",
-        "delta-task==0.6.0",
+        "delta-task==0.7.0rc1",
         "fastapi==0.70.1",
         "grpclib==0.4.2",
         "httpx==0.23.0",
@@ -55,6 +55,7 @@ setup(
         "SQLAlchemy==1.4.21",
         "tqdm==4.46.0",
         "torch==1.8.2+cpu",
+        "gmpy2==2.1.2"
     ],
     tests_require=["pytest", "pytest-asyncio"],
     cmdclass={"test": PyTest},

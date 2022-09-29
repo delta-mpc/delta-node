@@ -14,6 +14,9 @@ __all__ = [
     "RoundEndedEvent",
     "TaskFinishEvent",
     "HeartbeatEvent",
+    "DataRegisteredEvent",
+    "TaskMemberVerifiedEvent",
+    "TaskVerificationConfirmedEvent",
 ]
 
 EventType = Literal[
@@ -25,6 +28,9 @@ EventType = Literal[
     "round_ended",
     "task_finish",
     "heartbeat",
+    "data_registered",
+    "task_member_verified",
+    "task_verification_confirmed",
 ]
 
 
@@ -47,6 +53,8 @@ class TaskCreateEvent(TaskEvent):
     url: str
     commitment: bytes
     task_type: str
+    enable_verify: bool
+    tolerance: int
 
 
 @dataclass
@@ -93,3 +101,24 @@ class TaskFinishEvent(TaskEvent):
 @dataclass
 class HeartbeatEvent(Event):
     type: EventType = field(init=False, default="heartbeat")
+
+
+@dataclass
+class DataRegisteredEvent(Event):
+    type: EventType = field(init=False, default="data_registered")
+    owner: str
+    name: str
+    index: int
+    commitment: bytes
+
+
+@dataclass
+class TaskMemberVerifiedEvent(TaskEvent):
+    type: EventType = field(init=False, default="task_member_verified")
+    address: str
+    verified: bool
+
+
+@dataclass
+class TaskVerificationConfirmedEvent(TaskEvent):
+    type: EventType = field(init=False, default="task_verification_confirmed")

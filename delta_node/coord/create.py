@@ -1,6 +1,5 @@
-import shutil
-import tempfile
-from typing import IO, Tuple
+import math
+from typing import IO
 
 import delta
 import delta.serialize
@@ -16,13 +15,31 @@ def create_task(task_file: IO[bytes]) -> entity.Task:
     task_file.seek(0)
     commitment = utils.calc_commitment(task_file)
 
-    task_item = entity.Task(
-        creator="",
-        task_id="",
-        dataset=dataset,
-        commitment=commitment,
-        status=entity.TaskStatus.PENDING,
-        name=task.name,
-        type=task.type,
-    )
+    if task.type == "hlr":
+        tol = -int(math.log10(task.options["tol"]))
+        task_item = entity.Task(
+            creator="",
+            task_id="",
+            dataset=dataset,
+            commitment=commitment,
+            status=entity.TaskStatus.PENDING,
+            name=task.name,
+            type=task.type,
+            enable_verify=task.enable_verify,
+            tolerance=tol
+        )
+    elif task.type == "horizontal":
+        task_item = entity.Task(
+            creator="",
+            task_id="",
+            dataset=dataset,
+            commitment=commitment,
+            status=entity.TaskStatus.PENDING,
+            name=task.name,
+            type=task.type,
+            enable_verify=False,
+            tolerance=0,
+        )
+    else:
+        raise TypeError(f"unknown task type {task.type}")
     return task_item

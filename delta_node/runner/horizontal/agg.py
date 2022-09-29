@@ -9,7 +9,8 @@ from typing import Dict, List, Tuple
 import numpy as np
 from delta.core.strategy import Strategy
 from delta.core.task import AggResultType
-from delta_node import chain, entity, pool, serialize, utils
+from delta_node import entity, pool, serialize, utils
+from delta_node.chain import horizontal as chain
 from delta_node.crypto import aes, ecdhe, shamir
 from delta_node.runner.event_box import EventBox
 
@@ -186,7 +187,7 @@ class ClientAggregator(object):
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
 
-        ss_datas: List[entity.SecretShareData] = []
+        ss_datas: List[entity.horizontal.SecretShareData] = []
         for u, seed_share, sk_share in zip(u1, seed_shares, sk_shares):
             enc_seed_share = aes.encrypt(commu_keys[u], seed_share)
             _logger.debug(
@@ -197,7 +198,7 @@ class ClientAggregator(object):
                 f"{self.node_address[:8]} -> {u[:8]} enc sk share {serialize.bytes_to_hex(enc_sk_share)[:8]}"
             )
             ss_datas.append(
-                entity.SecretShareData(
+                entity.horizontal.SecretShareData(
                     sender=self.node_address,
                     receiver=u,
                     seed=enc_seed_share,

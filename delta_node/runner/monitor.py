@@ -35,11 +35,14 @@ class Monitor(object):
         _logger.info("monitor started")
         node_address = await registry.get_node_address()
         try:
-            async for event in chain.get_client().subscribe(
+            async for event in chain.subscribe.get_client().subscribe(
                 node_address,
                 timeout=config.chain_heartbeat,
                 retry_attemps=config.chain_retry,
+                yield_heartbeat=False
             ):
+                if not isinstance(event, entity.TaskEvent):
+                    continue
                 _logger.debug(f"event: {event.type}")
                 callbacks = self.callbacks[event.type]
                 for callback in callbacks:
@@ -111,10 +114,17 @@ class EventBoxStore(object):
             return cls.event_boxes.pop(task_id)
 
 
-async def create_task_manager(monitor: Monitor, task: entity.RunnerTask) -> Manager:
+async def create_task_manager(monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask) -> Manager:
     node_address = await registry.get_node_address()
     if task.type == "horizontal":
+        assert isinstance(task, entity.horizontal.RunnerTask)
         from .horizontal import ClientTaskManager
+
+        event_box = await EventBoxStore.get(task.task_id)
+        manager = ClientTaskManager(node_address, task, event_box)
+    elif task.type == "hlr":
+        assert isinstance(task, entity.hlr.RunnerTask)
+        from .hlr import ClientTaskManager
 
         event_box = await EventBoxStore.get(task.task_id)
         manager = ClientTaskManager(node_address, task, event_box)
@@ -149,17 +159,34 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
         _logger.info(f"reject task {event.task_id}")
         return
 
+
     _logger.info(f"start run task {event.task_id}", extra={"task_id": event.task_id})
     async with db.session_scope() as sess:
-        task = entity.RunnerTask(
-            creator=event.address,
-            task_id=event.task_id,
-            dataset=event.dataset,
-            commitment=event.commitment,
-            url=event.url,
-            type=event.task_type,
-            status=entity.TaskStatus.PENDING,
-        )
+        if event.task_type == "horizontal":
+            task = entity.horizontal.RunnerTask(
+                creator=event.address,
+                task_id=event.task_id,
+                dataset=event.dataset,
+                commitment=event.commitment,
+                url=event.url,
+                type=event.task_type,
+                status=entity.TaskStatus.PENDING,
+            )
+        elif event.task_type == "hlr":
+            task = entity.hlr.RunnerTask(
+                creator=event.address,
+                task_id=event.task_id,
+                dataset=event.dataset,
+                commitment=event.commitment,
+                url=event.url,
+                type=event.task_type,
+                status=entity.TaskStatus.PENDING,
+                enable_verify=event.enable_verify,
+                tolerance=event.tolerance
+            )
+        else:
+            raise TypeError(f"unknown task type {event.task_type}")
+
         sess.add(task)
         await sess.commit()
 
@@ -180,13 +207,19 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
     _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
 
 
-async def create_unfinished_task(monitor: Monitor, task: entity.RunnerTask):
+async def create_unfinished_task(monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask):
     # check remote task
     try:
-        remote_task = await chain.get_client().get_task(task.task_id)
+        if task.type == "horizontal":
+            remote_task = await chain.horizontal.get_client().get_task(task.task_id)
+        elif task.type == "hlr":
+            remote_task = await chain.hlr.get_client().get_task(task.task_id)
+        else:
+            raise TypeError(f"unknown task type {task.type}")
         if remote_task.status == entity.TaskStatus.FINISHED:
             async with db.session_scope() as sess:
                 task.status = entity.TaskStatus.FINISHED
+                task = await sess.merge(task)
                 sess.add(task)
                 await sess.commit()
         else:

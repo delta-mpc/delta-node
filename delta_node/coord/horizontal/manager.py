@@ -7,7 +7,8 @@ import sqlalchemy as sa
 from delta.core.strategy import Strategy
 from delta.core.task import DataLocation, Task, EarlyStop
 
-from delta_node import chain, db, entity, pool, serialize
+from delta_node import db, entity, pool, serialize
+from delta_node.chain import horizontal as chain
 from delta_node.coord import loc
 from delta_node.coord import Manager
 from .agg import ServerAggregator
@@ -48,18 +49,19 @@ class ServerTaskManager(Manager):
             await sess.commit()
 
             q = (
-                sa.select(entity.TaskRound)
-                .where(entity.TaskRound.task_id == self.task_id)
-                .order_by(sa.desc(entity.TaskRound.round))
+                sa.select(entity.horizontal.TaskRound)
+                .where(entity.horizontal.TaskRound.task_id == self.task_id)
+                .order_by(sa.desc(entity.horizontal.TaskRound.round))
                 .limit(1)
                 .offset(0)
             )
-            task_round: entity.TaskRound | None = (
+            task_round: entity.horizontal.TaskRound | None = (
                 (await sess.execute(q)).scalars().first()
             )
         self.round = 1 if task_round is None else task_round.round
 
-    async def execute_round(self, round: int):
+    async def execute_round(self, round: int) -> bool:
+        res = True
         # start round
         tx_hash = await chain.get_client().start_round(
             self.node_address, self.task_id, round
@@ -69,8 +71,8 @@ class ServerTaskManager(Manager):
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
         # save task round to db
-        task_round = entity.TaskRound(
-            task_id=self.task_id, round=round, status=entity.RoundStatus.STARTED
+        task_round = entity.horizontal.TaskRound(
+            task_id=self.task_id, round=round, status=entity.horizontal.RoundStatus.STARTED
         )
         async with db.session_scope() as sess:
             sess.add(task_round)
@@ -81,9 +83,12 @@ class ServerTaskManager(Manager):
         aggregator = ServerAggregator(
             self.node_address, task_round, self.strategy, step.agg_names
         )
-        async with aggregator.aggregate(self.ctx):
-            _logger.debug("server complete aggregating")
-            await pool.run_in_worker(step.reduce, self.ctx)
+        try:
+            async with aggregator.aggregate(self.ctx):
+                _logger.debug("server complete aggregating")
+                await pool.run_in_worker(step.reduce, self.ctx)
+        except EarlyStop:
+            res = False
         # end round
         tx_hash = await chain.get_client().end_round(
             self.node_address, self.task_id, round
@@ -92,6 +97,7 @@ class ServerTaskManager(Manager):
             f"[End Round] task {self.task_id} round {round} finish",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
+        return res
 
     def save_result(self):
         vars = self.ctx.get(*self.task.outputs)
@@ -116,23 +122,11 @@ class ServerTaskManager(Manager):
         )
 
     async def run(self):
-        try:
-            await self.init()
-            max_rounds = len(self.task.steps)
-            while self.round < max_rounds + 1:
-                try:
-                    await self.execute_round(self.round)
-                except EarlyStop:
-                    break
-                self.round += 1
-            await self.finish()
-        except Exception as e:
-            async with db.session_scope() as sess:
-                self.task_entity.status = entity.TaskStatus.ERROR
-                task_entity = await sess.merge(self.task_entity)
-                sess.add(task_entity)
-                await sess.commit()
-            _logger.error(
-                f"task {self.task_id} error: {str(e)}", extra={"task_id": self.task_id}
-            )
-            raise
+        await self.init()
+        max_rounds = len(self.task.steps)
+        while self.round < max_rounds + 1:
+            has_next = await self.execute_round(self.round)
+            if not has_next:
+                break
+            self.round += 1
+        await self.finish()

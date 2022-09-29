@@ -1,0 +1,184 @@
+syntax = "proto3";
+
+package horizontal;
+
+import "transaction.proto";
+
+message CreateTaskReq {
+    string address = 1;
+    string dataset = 2;
+    string commitment = 3;
+    string task_type = 4;
+}
+
+message CreateTaskResp {
+    string tx_hash = 1;
+    string task_id = 2;
+}
+
+message FinishTaskReq {
+    string address = 1;
+    string task_id = 2;
+}
+
+message TaskReq {
+    string task_id = 1;
+}
+
+message TaskResp {
+    string address = 1;
+    string url = 2;
+    string task_id = 3;
+    string dataset = 4;
+    string commitment = 5;
+    string task_type = 6;
+    bool finished = 7;
+}
+
+message StartRoundReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+}
+
+message JoinRoundReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    string pk1 = 4;
+    string pk2 = 5;
+}
+
+message TaskRoundReq {
+    string task_id = 1;
+    int32 round = 2;
+}
+
+enum RoundStatus {
+    STARTED = 0;
+    RUNNING = 1;
+    CALCULATING = 2;
+    AGGREGATING = 3;
+    FINISHED = 4;
+}
+
+message TaskRoundResp {
+    int32 round = 1;
+    RoundStatus status = 2;
+    repeated string clients = 3;
+}
+
+message CandidatesReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string clients = 4;
+}
+
+message ShareCommitment {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string receivers = 4;
+    repeated string commitments = 5;
+}
+
+message PublicKeyReq {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string clients = 3;
+}
+
+message PublicKeys {
+    string pk1 = 1;
+    string pk2 = 2;
+}
+
+message PublicKeyResp {
+    repeated PublicKeys keys = 1;
+}
+
+message CalculationReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string clients = 4;
+}
+
+message ResultCommitment {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    string commitment = 4;
+}
+
+message ResultCommitmentReq {
+    string task_id = 1;
+    int32 round = 2;
+    string client = 3;
+}
+
+message ResultCommitmentResp {
+    string commitment = 1;
+}
+
+message AggregationReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string clients = 4;
+}
+
+message Share {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+    repeated string senders = 4;
+    repeated string shares = 5;
+}
+
+message SecretShareReq {
+    string task_id = 1;
+    int32 round = 2;
+    repeated string senders = 3;
+    string receiver = 4;
+}
+
+message SecretShareData {
+    optional string seed = 1;
+    optional string seed_commitment = 2;
+    optional string secret_key = 3;
+    optional string secret_key_commitment = 4;
+}
+
+message SecretShareResp {
+    repeated SecretShareData shares = 1;
+}
+
+message EndRoundReq {
+    string address = 1;
+    string task_id = 2;
+    int32 round = 3;
+}
+
+service Horizontal {
+    rpc CreateTask(CreateTaskReq) returns (CreateTaskResp) {}
+    rpc FinishTask(FinishTaskReq) returns (transaction.Transaction) {}
+    rpc GetTask(TaskReq) returns (TaskResp) {}
+    rpc StartRound(StartRoundReq) returns (transaction.Transaction) {}
+    rpc JoinRound(JoinRoundReq) returns (transaction.Transaction) {}
+    rpc GetTaskRound(TaskRoundReq) returns (TaskRoundResp) {}
+    rpc SelectCandidates(CandidatesReq) returns (transaction.Transaction) {}
+    rpc UploadSeedCommitment(ShareCommitment) returns (transaction.Transaction) {}
+    rpc UploadSecretKeyCommitment(ShareCommitment) returns (transaction.Transaction) {}
+    rpc GetClientPublickKeys(PublicKeyReq) returns (PublicKeyResp) {}
+    rpc StartCalculation(CalculationReq) returns (transaction.Transaction) {}
+    rpc UploadResultCommitment(ResultCommitment) returns (transaction.Transaction) {}
+    rpc GetResultCommitment(ResultCommitmentReq) returns (ResultCommitmentResp) {}
+    rpc StartAggregation(AggregationReq) returns (transaction.Transaction) {}
+    rpc UploadSeed(Share) returns (transaction.Transaction) {}
+    rpc UploadSecretKey(Share) returns (transaction.Transaction) {}
+    rpc GetSecretShareDatas(SecretShareReq) returns (SecretShareResp) {}
+    rpc EndRound(EndRoundReq) returns (transaction.Transaction) {}
+}
+

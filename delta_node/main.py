@@ -6,7 +6,7 @@ from typing import Optional, Sequence
 
 
 async def _run():
-    from delta_node import app, chain, config, db, log, pool, registry, runner
+    from delta_node import app, chain, config, db, log, registry, runner, zk
 
     if len(config.chain_host) == 0:
         raise RuntimeError("chain connector host is required")
@@ -23,6 +23,7 @@ async def _run():
 
     await db.init(config.db)
     chain.init(config.chain_host, config.chain_port, ssl=False)
+    zk.init(config.zk_host, config.zk_port, ssl=False)
     await registry.register(config.node_url, config.node_name)
 
     runner_fut = asyncio.create_task(runner.run())
@@ -33,11 +34,10 @@ async def _run():
     loop.add_signal_handler(signal.SIGTERM, lambda: fut.cancel())
     try:
         await fut
-    except asyncio.CancelledError:
-        pass
     finally:
         await registry.unregister()
         chain.close()
+        zk.close()
         await db.close()
         listener.stop()
 

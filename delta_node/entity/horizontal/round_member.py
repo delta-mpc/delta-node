@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from delta_node.db import mapper_registry
 from sqlalchemy.orm import relationship
 
-from .base import BaseTable
+from ..base import BaseTable
 from .task_round import RoundStatus
 
 if TYPE_CHECKING:
@@ -35,8 +35,8 @@ class RoundMember(BaseTable):
         init=False,
         metadata={
             "sa": relationship(
-                "TaskRound",
-                primaryjoin="foreign(RoundMember.round_id) == TaskRound.id",
+                "delta_node.entity.horizontal.task_round.TaskRound",
+                primaryjoin="foreign(delta_node.entity.horizontal.round_member.RoundMember.round_id) == delta_node.entity.horizontal.task_round.TaskRound.id",
                 back_populates="members",
             )
         },
@@ -46,20 +46,20 @@ class RoundMember(BaseTable):
         init=False,
         metadata={
             "sa": relationship(
-                "SecretShare",
-                primaryjoin="foreign(SecretShare.sender_id) == RoundMember.id",
-                back_populates="sender"
+                "delta_node.entity.horizontal.secret_share.SecretShare",
+                primaryjoin="foreign(delta_node.entity.horizontal.secret_share.SecretShare.sender_id) == delta_node.entity.horizontal.round_member.RoundMember.id",
+                back_populates="sender",
             )
         },
     )
-    
+
     received_shares: List["SecretShare"] = field(
         init=False,
         metadata={
             "sa": relationship(
-                "SecretShare",
-                primaryjoin="foreign(SecretShare.receiver_id) == RoundMember.id",
-                back_populates="receiver"
+                "delta_node.entity.horizontal.secret_share.SecretShare",
+                primaryjoin="foreign(delta_node.entity.horizontal.secret_share.SecretShare.receiver_id) == delta_node.entity.horizontal.round_member.RoundMember.id",
+                back_populates="receiver",
             )
         },
     )

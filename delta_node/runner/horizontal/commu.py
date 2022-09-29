@@ -25,7 +25,7 @@ class CommuClient(object):
         node_address: str,
         task_id: str,
         round: int,
-        shares: List[entity.SecretShareData],
+        shares: List[entity.horizontal.SecretShareData],
     ):
         data = {
             "address": node_address,
@@ -50,7 +50,7 @@ class CommuClient(object):
 
     async def get_secret_shares(
         self, node_address: str, task_id: str, round: int
-    ) -> List[entity.SecretShareData]:
+    ) -> List[entity.horizontal.SecretShareData]:
         data = {"address": node_address, "task_id": task_id, "round": round}
 
         def _call():
@@ -62,7 +62,7 @@ class CommuClient(object):
         result = await pool.run_in_io(_call)
 
         ret = [
-            entity.SecretShareData(
+            entity.horizontal.SecretShareData(
                 sender=share["sender"],
                 receiver=share["receiver"],
                 seed=serialize.hex_to_bytes(share["seed_share"]),

@@ -1,7 +1,7 @@
 aiosqlite==0.17.0
 async_lru==1.0.2
 cryptography==3.4.7
-delta-task==0.6.0
+delta-task==0.7.0rc1
 fastapi==0.70.1
 grpclib==0.4.2
 httpx==0.23.0
@@ -16,6 +16,7 @@ python-multipart==0.0.5
 PyYAML==6.0
 SQLAlchemy==1.4.21
 tqdm==4.46.0
+gmpy2==2.1.2
 
 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
 torch==1.8.2+cpu

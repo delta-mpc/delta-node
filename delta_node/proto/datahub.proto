@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package datahub;
+
+import "transaction.proto";
+
+message RegisterReq {
+  string address = 1;
+  string name = 2;
+  int32 index = 3;
+  string commitment = 4;
+}
+
+message DataCommitmentReq {
+  string address = 1;
+  string name = 2;
+  int32 index = 3;
+}
+
+message DataCommitmentResp {
+  string commitment = 1;
+}
+
+service DataHub {
+  rpc Register(RegisterReq) returns (transaction.Transaction) {}
+  rpc GetDataCommitment(DataCommitmentReq) returns (DataCommitmentResp) {}
+}
