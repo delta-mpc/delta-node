@@ -124,7 +124,7 @@ class ServerTaskManager(Manager):
             await self.wait_verify()
 
     async def wait_verify(self):
-        await asyncio.sleep(self.strategy.wait_timeout)
+        await asyncio.sleep(self.strategy.verify_timeout)
         state = await chain.get_client().get_verifier_state(self.task_id)
         if state.valid and len(state.unfinished_clients) == 0:
             tx_hash = await chain.get_client().confirm_verification(
