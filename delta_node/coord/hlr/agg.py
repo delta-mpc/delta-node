@@ -76,10 +76,10 @@ class ServerAggregator(object):
         u3 = await self.get_u3(u2)
         u3, masked_result = await pool.run_in_worker(self.make_masked_results, u3)
 
-        # wait for clients to upload seed of secret key secret share to coordinator to unmask result
-        await asyncio.sleep(self.strategy.connection_timeout)
         # start aggregation
         await self.start_aggregation(u3)
+        # wait for clients to upload seed of secret key secret share to coordinator to unmask result
+        await asyncio.sleep(self.strategy.connection_timeout)
         # unmask result
         result = await self.unmask_result(u2, u3, masked_result)
         _logger.debug(f"coord aggregate result {result}")
@@ -142,7 +142,7 @@ class ServerAggregator(object):
             self.node_address, self.task_id, self.round, addrs
         )
         _logger.info(
-            f"[Select Candidates] task {self.task_id} round {self.round} select candidates {u1}",
+            f"[Select Candidates] task {self.task_id} round {self.round} select candidates {[u.address for u in u1]}",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
 
