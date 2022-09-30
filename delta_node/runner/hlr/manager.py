@@ -93,7 +93,7 @@ class ClientTaskManager(Manager):
                 _logger.debug("complete running step map")
 
         event = await self.event_box.wait_for_event(
-            "round_ended", self.task.strategy.wait_timeout
+            "round_ended", self.task.strategy.connection_timeout * 2
         )
         assert isinstance(event, entity.RoundEndedEvent)
         assert (

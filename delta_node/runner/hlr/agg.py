@@ -93,7 +93,7 @@ class ClientAggregator(object):
 
     async def wait_partner_selected(self) -> List[str]:
         event = await self.event_box.wait_for_event(
-            "partner_selected", self.strategy.wait_timeout * 2
+            "partner_selected", self.strategy.connection_timeout * 2
         )
         assert isinstance(event, entity.PartnerSelectedEvent)
         assert event.task_id == self.task_id
@@ -217,7 +217,7 @@ class ClientAggregator(object):
 
     async def wait_calculation_started(self) -> List[str]:
         event = await self.event_box.wait_for_event(
-            "calculation_started", self.strategy.wait_timeout * 2
+            "calculation_started", self.strategy.connection_timeout * 2
         )
         assert isinstance(event, entity.CalculationStartedEvent)
         assert event.task_id == self.task_id
