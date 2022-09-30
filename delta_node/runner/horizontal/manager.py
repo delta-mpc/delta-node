@@ -121,6 +121,9 @@ class ClientTaskManager(Manager):
         if self.running_fut is not None:
             self.running_fut.cancel()
 
+        await pool.run_in_io(self.ctx.clear)
+        await pool.run_in_io(self.client.close)
+
     async def run(self):
         while True:
             try:
@@ -134,9 +137,6 @@ class ClientTaskManager(Manager):
             except Exception:
                 await self.finish(False)
                 raise
-
-        await pool.run_in_io(self.ctx.clear)
-        await pool.run_in_io(self.client.close)
 
     async def recv_event(self, event: entity.TaskEvent):
         await self.event_box.recv_event(event)
