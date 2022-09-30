@@ -293,6 +293,7 @@ async def get_tasks(
             type=task.type,
             creator=task.creator,
             status=task.status.name,
+            enable_verify=task.enable_verify
         )
         for task in tasks
     ]
