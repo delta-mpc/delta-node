@@ -30,7 +30,7 @@ class PyTest(TestCommand):
 
 setup(
     name="delta_node",
-    version="0.7.0rc1",
+    version="0.7.0rc2",
     packages=find_packages(),
     package_data={"delta_node": ["dataset/examples/*.csv"]},
     include_package_data=True,
