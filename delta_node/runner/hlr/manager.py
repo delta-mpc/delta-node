@@ -124,6 +124,9 @@ class ClientTaskManager(Manager):
         if success and self.task_entity.enable_verify:
             await self.verify()
 
+        await pool.run_in_io(self.ctx.clear)
+        await pool.run_in_io(self.client.close)
+
     async def verify(self):
         # upload data commitment
         data = self.ctx.get_data()
@@ -214,9 +217,6 @@ class ClientTaskManager(Manager):
             except Exception:
                 await self.finish(False)
                 raise
-
-        await pool.run_in_io(self.ctx.clear)
-        await pool.run_in_io(self.client.close)
 
     async def recv_event(self, event: entity.TaskEvent):
         await self.event_box.recv_event(event)
