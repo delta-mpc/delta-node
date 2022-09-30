@@ -16,8 +16,8 @@ def init(host: str = config.zk_host, port: int = config.zk_port, *, ssl: bool = 
         raise ValueError("chain has been initialized")
 
     config = Configuration(
-        _keepalive_time=10,
-        _keepalive_timeout=5,
+        _keepalive_time=60,
+        _keepalive_timeout=20,
         _keepalive_permit_without_calls=True,
         _http2_max_pings_without_data=0,
     )
