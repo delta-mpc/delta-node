@@ -96,8 +96,12 @@ class ClientTaskManager(Manager):
             "round_ended", self.task.strategy.wait_timeout
         )
         assert isinstance(event, entity.RoundEndedEvent)
-        assert event.task_id == self.task_id
-        assert event.round == round
+        assert (
+            event.task_id == self.task_id
+        ), f"event task id {event.task_id} is not equla to local task id {self.task_id}"
+        assert (
+            event.round == round
+        ), f"event round {event.round} is not equal to local round {round}"
         _logger.info(
             f"task {self.task_id} round {round} finish",
             extra={"task_id": self.task_id},
@@ -207,10 +211,9 @@ class ClientTaskManager(Manager):
                     break
             except NotSelected:
                 continue
-            except Exception as e:
-                _logger.error(f"task {self.task_id} error: {str(e)}")
-                _logger.exception(e)
+            except Exception:
                 await self.finish(False)
+                raise
 
         await pool.run_in_io(self.ctx.clear)
         await pool.run_in_io(self.client.close)
