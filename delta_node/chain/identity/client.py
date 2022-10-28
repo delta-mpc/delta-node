@@ -32,7 +32,7 @@ class Client(object):
             _logger.error(e)
             raise
 
-    async def updaet_url(self, address: str, url: str) -> str:
+    async def update_url(self, address: str, url: str) -> str:
         req = pb.UpdateUrlReq(address=address, url=url)
         try:
             resp = await self.stub.UpdateUrl(req)
