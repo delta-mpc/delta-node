@@ -12,7 +12,7 @@ async def test_identity(identity_client: identity.Client):
     assert info.url == url
     # update url
     new_url = "http://127.0.0.1:6800"
-    await identity_client.updaet_url(address, new_url)
+    await identity_client.update_url(address, new_url)
     info = await identity_client.get_node_info(address)
     assert info.url == new_url
     url = new_url

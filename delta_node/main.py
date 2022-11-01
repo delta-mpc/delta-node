@@ -24,18 +24,21 @@ async def _run():
     await db.init(config.db)
     chain.init(config.chain_host, config.chain_port, ssl=False)
     zk.init(config.zk_host, config.zk_port, ssl=False)
-    await registry.register(config.node_url, config.node_name)
-
+    r = registry.Registry(url=config.node_url, name=config.node_name)
+    await r.register()
+    
+    registry_fut = asyncio.create_task(r.start())
     runner_fut = asyncio.create_task(runner.run())
     app_fut = asyncio.create_task(app.run("0.0.0.0", config.api_port))
 
-    fut = asyncio.gather(runner_fut, app_fut)
+    fut = asyncio.gather(registry_fut, runner_fut, app_fut)
     loop.add_signal_handler(signal.SIGINT, lambda: fut.cancel())
     loop.add_signal_handler(signal.SIGTERM, lambda: fut.cancel())
     try:
         await fut
     finally:
-        await registry.unregister()
+        await r.stop()
+        await r.unregister()
         chain.close()
         zk.close()
         await db.close()
@@ -52,7 +55,7 @@ def run():
 
 
 async def _leave():
-    from delta_node import chain, config, db, log, pool, registry
+    from delta_node import chain, config, db, log, registry
 
     if len(config.chain_host) == 0:
         raise RuntimeError("chain connector host is required")
@@ -69,7 +72,10 @@ async def _leave():
 
     await db.init(config.db)
     chain.init(config.chain_host, config.chain_port, ssl=False)
-    await registry.unregister()
+
+    r = registry.Registry(url=config.node_url, name=config.node_name)
+    await r.unregister()
+
     chain.close()
     await db.close()
     listener.stop()
