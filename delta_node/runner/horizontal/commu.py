@@ -89,7 +89,7 @@ class CommuClient(object):
     def upload_task_round_result(
         self, address: str, task_id: str, round: int, src: IO[bytes]
     ):
-        files = {"file": src}
+        files = {"file": ("round_result.pkl", src, "application/octet-stream")}
         data = {"address": address, "task_id": task_id, "round": round}
         resp = self.client.post("result", data=data, files=files, timeout=None)
         resp.raise_for_status()
