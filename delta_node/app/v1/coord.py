@@ -6,18 +6,23 @@ import os
 import shutil
 import time
 from io import BytesIO
-from typing import Dict, List, Optional
+from tempfile import gettempdir
+from typing import Dict, List
 
 import sqlalchemy as sa
-from delta.core.task import DataNode, DataLocation
-from delta_node import coord, db, entity
-from delta_node.serialize import bytes_to_hex, hex_to_bytes, dump_obj
-from fastapi import (APIRouter, Depends, File, Form, HTTPException, Query,
-                     UploadFile)
+from delta.core.task import DataLocation, DataNode
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from streaming_form_data import StreamingFormDataParser
+from streaming_form_data.targets import FileTarget, ValueTarget
+
+from delta_node import coord, db, entity
+from delta_node.utils import random_str
+from delta_node.serialize import bytes_to_hex, dump_obj, hex_to_bytes
 
 _logger = logging.getLogger(__name__)
 
@@ -56,7 +61,9 @@ def get_task_config(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+")):
 
 
 @router.get("/context")
-def get_task_context(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"), name: str = Query(...)):
+def get_task_context(
+    task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"), name: str = Query(...)
+):
     manager = coord.get_task_manager(task_id)
     if manager is None:
         raise HTTPException(400, f"task {task_id} has not started or has finished")
@@ -73,7 +80,7 @@ def get_task_context(task_id: str = Query(..., regex=r"0x[0-9a-fA-F]+"), name: s
                 if len(content) == 0:
                     break
                 yield content
-    
+
     return StreamingResponse(
         value_iter(),
         media_type="application/octet-stream",
@@ -102,14 +109,11 @@ class SecretShares(TaskRound):
 async def upload_secret_share(
     shares: SecretShares, session: AsyncSession = Depends(db.get_session)
 ):
-    q = (
-        sa.select(entity.Task)
-        .where(entity.Task.task_id == shares.task_id)
-    )
+    q = sa.select(entity.Task).where(entity.Task.task_id == shares.task_id)
     task: entity.Task | None = (await session.execute(q)).scalars().one_or_none()
     if task is None:
         raise HTTPException(400, "task does not exist")
-    
+
     if task.type == "horizontal":
         te = entity.horizontal
     elif task.type == "hlr":
@@ -122,9 +126,7 @@ async def upload_secret_share(
         .where(te.TaskRound.task_id == shares.task_id)
         .where(te.TaskRound.round == shares.round)
     )
-    round = (
-        (await session.execute(q)).scalars().one_or_none()
-    )
+    round = (await session.execute(q)).scalars().one_or_none()
     if not round:
         raise HTTPException(400, "task round does not exist")
     if round.status != te.RoundStatus.RUNNING:
@@ -164,7 +166,8 @@ async def upload_secret_share(
     await session.commit()
 
     _logger.info(
-        f"task {shares.task_id} round {shares.round} {shares.address} upload secret shares", extra={"task_id": shares.task_id}
+        f"task {shares.task_id} round {shares.round} {shares.address} upload secret shares",
+        extra={"task_id": shares.task_id},
     )
     return CommonResp()
 
@@ -176,10 +179,7 @@ async def get_secret_shares(
     round: int,
     session: AsyncSession = Depends(db.get_session),
 ):
-    q = (
-        sa.select(entity.Task)
-        .where(entity.Task.task_id == task_id)
-    )
+    q = sa.select(entity.Task).where(entity.Task.task_id == task_id)
     task: entity.Task | None = (await session.execute(q)).scalars().one_or_none()
     if task is None:
         raise HTTPException(400, "task does not exist")
@@ -196,9 +196,7 @@ async def get_secret_shares(
         .where(te.TaskRound.task_id == task_id)
         .where(te.TaskRound.round == round)
     )
-    round_entity = (
-        (await session.execute(q)).scalars().one_or_none()
-    )
+    round_entity = (await session.execute(q)).scalars().one_or_none()
     if not round_entity:
         raise HTTPException(400, "task round does not exist")
     if round_entity.status != te.RoundStatus.CALCULATING:
@@ -210,16 +208,14 @@ async def get_secret_shares(
         .where(te.RoundMember.address == address)
         .options(selectinload(te.RoundMember.received_shares))
     )
-    member = (
-        (await session.execute(q)).scalars().one_or_none()
-    )
+    member = (await session.execute(q)).scalars().one_or_none()
     if not member:
         raise HTTPException(400, f"member {address} does not exists")
     if member.status != te.RoundStatus.CALCULATING:
         raise HTTPException(400, f"member {address} is not allowed")
 
     sender_ids = [share.sender_id for share in member.received_shares]
-    q = sa.select(te.RoundMember).where(te.RoundMember.id.in_(sender_ids)) # type: ignore
+    q = sa.select(te.RoundMember).where(te.RoundMember.id.in_(sender_ids))  # type: ignore
     senders = (await session.execute(q)).scalars().all()
 
     sender_dict = {sender.id: sender for sender in senders}
@@ -240,21 +236,51 @@ async def get_secret_shares(
         round=round,
         shares=shares,
     )
-    _logger.info(f"task {task_id} round {round} {address} get secret shares", extra={"task_id": task_id})
+    _logger.info(
+        f"task {task_id} round {round} {address} get secret shares",
+        extra={"task_id": task_id},
+    )
     return resp
 
 
+async def parse_upload_result_request(req: Request):
+    result_filename = os.path.join(gettempdir(), "delta_" + random_str(10) + ".result")
+
+    address_target = ValueTarget()
+    task_id_target = ValueTarget()
+    round_target = ValueTarget()
+    file_target = FileTarget(result_filename)
+
+    parser = StreamingFormDataParser(req.headers)
+    parser.register("file", file_target)
+    parser.register("address", address_target)
+    parser.register("task_id", task_id_target)
+    parser.register("round", round_target)
+
+    async for chunk in req.stream():
+        await run_in_threadpool(parser.data_received, chunk)
+
+    if not os.path.isfile(result_filename):
+        raise ValueError("result file is missing")
+
+    address = address_target.value.decode()
+    task_id = task_id_target.value.decode()
+    round = int(round_target.value.decode())
+
+    return address, task_id, round, result_filename
+
+
 @router.post("/result", response_model=CommonResp)
-def upload_result(
-    address: str = Form(...),
-    task_id: str = Form(..., regex=r"0x[0-9a-fA-F]+"),
-    round: int = Form(...),
-    file: UploadFile = File(...),
-):
+async def upload_result(req: Request):
+    address, task_id, round, src = await parse_upload_result_request(req)
+
     dst = coord.loc.task_member_result_file(task_id, round, address)
-    with open(dst, mode="wb") as f:
-        shutil.copyfileobj(file.file, f)
-    _logger.info(f"task {task_id} round {round} {address} upload result", extra={"task_id": task_id})
+    await run_in_threadpool(shutil.move, src, dst)
+
+    _logger.info(
+        f"task {task_id} round {round} {address} upload result",
+        extra={"task_id": task_id},
+    )
     return CommonResp()
 
 
@@ -265,7 +291,9 @@ class Metrics(TaskRound):
 @router.post("/metrics", response_model=CommonResp)
 def upload_metrics(metrics: Metrics):
     with open(
-        coord.loc.task_member_metrics_file(metrics.task_id, metrics.round, metrics.address),
+        coord.loc.task_member_metrics_file(
+            metrics.task_id, metrics.round, metrics.address
+        ),
         mode="w",
         encoding="utf-8",
     ) as f:

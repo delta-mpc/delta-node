@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from delta_node import db, entity
 
 from . import loc
-from .create import create_task
+from .create import create_task, TaskConfig
 from .manager import Manager
 
 _logger = getLogger(__name__)
@@ -66,6 +66,7 @@ async def run_unfinished_tasks(node_address: str):
 __all__ = [
     "loc",
     "create_task",
+    "TaskConfig",
     "get_task_manager",
     "run_task",
     "run_unfinished_tasks",

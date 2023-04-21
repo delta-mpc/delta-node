@@ -1,45 +1,50 @@
 import math
-from typing import IO
+from typing import List, Dict, Any
 
-import delta
-import delta.serialize
+from delta.core.task import TaskType
 from delta_node import entity, utils
+from pydantic import BaseModel
 
 
-def create_task(task_file: IO[bytes]) -> entity.Task:
-    task_file.seek(0)
+class TaskConfig(BaseModel):
+    name: str
+    dataset: List[str]
+    type: TaskType
+    enable_verify: bool
+    options: Dict[str, Any]
 
-    task = delta.serialize.load_task(task_file)
-    dataset = ",".join(task.dataset)
 
-    task_file.seek(0)
-    commitment = utils.calc_commitment(task_file)
+def create_task(task_config: TaskConfig, task_filename: str) -> entity.Task:
+    dataset = ",".join(task_config.dataset)
 
-    if task.type == "hlr":
-        tol = -int(math.log10(task.options["tol"]))
+    with open(task_filename, mode="rb") as f:
+        commitment = utils.calc_commitment(f)
+
+    if task_config.type == "hlr":
+        tol = -int(math.log10(task_config.options["tol"]))
         task_item = entity.Task(
             creator="",
             task_id="",
             dataset=dataset,
             commitment=commitment,
             status=entity.TaskStatus.PENDING,
-            name=task.name,
-            type=task.type,
-            enable_verify=task.enable_verify,
+            name=task_config.name,
+            type=task_config.type,
+            enable_verify=task_config.enable_verify,
             tolerance=tol
         )
-    elif task.type == "horizontal":
+    elif task_config.type == "horizontal":
         task_item = entity.Task(
             creator="",
             task_id="",
             dataset=dataset,
             commitment=commitment,
             status=entity.TaskStatus.PENDING,
-            name=task.name,
-            type=task.type,
+            name=task_config.name,
+            type=task_config.type,
             enable_verify=False,
             tolerance=0,
         )
     else:
-        raise TypeError(f"unknown task type {task.type}")
+        raise TypeError(f"unknown task type {task_config.type}")
     return task_item

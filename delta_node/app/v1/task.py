@@ -2,8 +2,8 @@ import logging
 import math
 import os
 import shutil
-from tempfile import TemporaryFile
-from typing import IO, List, Optional
+from tempfile import gettempdir
+from typing import List, Optional
 
 import sqlalchemy as sa
 from delta_node import coord, db, entity, pool, registry
@@ -12,35 +12,26 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
-    File,
     HTTPException,
     Query,
-    UploadFile,
+    Request,
 )
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from streaming_form_data import StreamingFormDataParser
+from streaming_form_data.targets import ValueTarget, FileTarget
+
+from delta_node.utils import random_str
 
 _logger = logging.getLogger(__name__)
 
 task_router = APIRouter(prefix="/task")
 
 
-def create_task_file(task_file: IO[bytes]):
-    f = TemporaryFile(mode="w+b")
-    shutil.copyfileobj(task_file, f)
-    return f
-
-
-def move_task_file(task_file: IO[bytes], task_id: str):
-    task_file.seek(0)
-    with open(coord.loc.task_config_file(task_id), mode="wb") as f:
-        shutil.copyfileobj(task_file, f)
-    task_file.close()
-
-
-async def run_task(task_item: entity.Task, task_file: IO[bytes]):
+async def run_task(task_item: entity.Task, task_filename: str):
     node_address = await registry.get_node_address()
 
     try:
@@ -71,7 +62,8 @@ async def run_task(task_item: entity.Task, task_file: IO[bytes]):
     task_item.creator = node_address
     task_item.status = entity.TaskStatus.RUNNING
 
-    await pool.run_in_io(move_task_file, task_file, task_id)
+    final_task_file = coord.loc.task_config_file(task_id)
+    await run_in_threadpool(shutil.move, task_filename, final_task_file)
     _logger.info(
         f"[Create Task] create task {task_id}",
         extra={"task_id": task_id, "tx_hash": tx_hash},
@@ -84,23 +76,51 @@ class CreateTaskResp(BaseModel):
     task_id: int
 
 
+async def parse_task_request(req: Request):
+    task_filename = os.path.join(gettempdir(), "delta_" + random_str(10) + ".task")
+
+    file_target = FileTarget(task_filename)
+    config_target = ValueTarget()
+
+    parser = StreamingFormDataParser(req.headers)
+    parser.register("file", file_target)
+    parser.register("config", config_target)
+
+    async for chunk in req.stream():
+        await run_in_threadpool(parser.data_received, chunk)
+
+    if not os.path.isfile(task_filename):
+        raise ValueError("task file is missing")
+    if len(config_target.value) == 0:
+        raise ValueError("task config file is missing")
+
+    config = coord.TaskConfig.parse_raw(config_target.value)
+    return config, task_filename
+
+
 @task_router.post("", response_model=CreateTaskResp)
 async def create_task(
+    req: Request,
     *,
-    file: UploadFile = File(...),
     session: AsyncSession = Depends(db.get_session),
     background: BackgroundTasks,
 ):
-    f = await pool.run_in_io(create_task_file, file.file)
     try:
-        task_item = await pool.run_in_io(coord.create_task, f)
+        task_config, task_filename = await parse_task_request(req)
+    except ValidationError as e:
+        raise HTTPException(422, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+    try:
+        task_item = await pool.run_in_io(coord.create_task, task_config, task_filename)
     except TypeError as e:
         raise HTTPException(400, str(e))
     session.add(task_item)
     await session.commit()
     await session.refresh(task_item)
 
-    background.add_task(run_task, task_item, f)
+    background.add_task(run_task, task_item, task_filename)
     return CreateTaskResp(task_id=task_item.id)
 
 
@@ -293,7 +313,7 @@ async def get_tasks(
             type=task.type,
             creator=task.creator,
             status=task.status.name,
-            enable_verify=task.enable_verify
+            enable_verify=task.enable_verify,
         )
         for task in tasks
     ]
