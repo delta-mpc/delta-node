@@ -94,7 +94,9 @@ async def parse_task_request(req: Request):
     if len(config_target.value) == 0:
         raise ValueError("task config file is missing")
 
-    config = coord.TaskConfig.parse_raw(config_target.value)
+    config = coord.TaskConfig.parse_raw(
+        config_target.value, content_type="application/pickle", allow_pickle=True
+    )
     return config, task_filename
 
 
