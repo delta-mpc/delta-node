@@ -91,7 +91,7 @@ class CommuClient(object):
     ):
         files = {"file": src}
         data = {"address": address, "task_id": task_id, "round": round}
-        resp = self.client.post("result", data=data, files=files)
+        resp = self.client.post("result", data=data, files=files, timeout=None)
         resp.raise_for_status()
 
     def upload_task_round_metrics(
