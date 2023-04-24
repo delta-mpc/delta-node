@@ -40,7 +40,7 @@ class Monitor(object):
                 node_address,
                 timeout=config.chain_heartbeat,
                 retry_attemps=config.chain_retry,
-                yield_heartbeat=False
+                yield_heartbeat=False,
             ):
                 if not isinstance(event, entity.TaskEvent):
                     continue
@@ -96,6 +96,10 @@ class ManagerStore(object):
         async with cls.lock:
             return cls.managers.pop(task_id)
 
+    @classmethod
+    def delete(cls, task_id: str):
+        del cls.managers[task_id]
+
 
 class EventBoxStore(object):
     event_boxes: Dict[str, EventBox] = {}
@@ -114,8 +118,14 @@ class EventBoxStore(object):
         async with cls.lock:
             return cls.event_boxes.pop(task_id)
 
+    @classmethod
+    def delete(cls, task_id: str):
+        del cls.event_boxes[task_id]
 
-async def create_task_manager(monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask) -> Manager:
+
+async def create_task_manager(
+    monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask
+) -> Manager:
     node_address = await registry.get_node_address()
     if task.type == "horizontal":
         assert isinstance(task, entity.horizontal.RunnerTask)
@@ -147,6 +157,7 @@ def run_task_manager(manager: Manager):
         except Exception as e:
             _logger.error(f"task {manager.task_id} error: {e}")
             _logger.exception(e)
+            _finish_task(manager.task_id)
 
     fut.add_done_callback(_task_finish)
 
@@ -159,7 +170,6 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
     if not accept:
         _logger.info(f"reject task {event.task_id}")
         return
-
 
     _logger.info(f"start run task {event.task_id}", extra={"task_id": event.task_id})
     async with db.session_scope() as sess:
@@ -183,7 +193,7 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
                 type=event.task_type,
                 status=entity.TaskStatus.PENDING,
                 enable_verify=event.enable_verify,
-                tolerance=event.tolerance
+                tolerance=event.tolerance,
             )
         else:
             raise TypeError(f"unknown task type {event.task_type}")
@@ -192,7 +202,15 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
         await sess.commit()
 
     manager = await create_task_manager(monitor, task)
-    await manager.init()
+    try:
+        await manager.init()
+    except:
+        manager = await ManagerStore.pop(event.task_id)
+        if manager is not None:
+            await manager.finish(True)
+        await EventBoxStore.pop(event.task_id)
+        gc.collect()
+
     run_task_manager(manager)
 
 
@@ -200,16 +218,26 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
     assert isinstance(event, entity.TaskFinishEvent)
     task_id = event.task_id
 
-    manager = await ManagerStore.pop(task_id)
-    if manager is not None:
-        await manager.finish(True)
-    await EventBoxStore.pop(task_id)
+    try:
+        manager = await ManagerStore.pop(task_id)
+        if manager is not None:
+            await manager.finish(True)
+        await EventBoxStore.pop(task_id)
+    finally:
+        gc.collect()
 
     _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
+
+
+def _finish_task(task_id: str):
+    ManagerStore.delete(task_id)
+    EventBoxStore.delete(task_id)
     gc.collect()
 
 
-async def create_unfinished_task(monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask):
+async def create_unfinished_task(
+    monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask
+):
     # check remote task
     try:
         if task.type == "horizontal":
@@ -242,13 +270,13 @@ async def monitor_task_event(monitor: Monitor, event: entity.TaskEvent):
 async def start():
     monitor = Monitor()
     monitor.register("task_created", monitor_task_create)
-    
+
     monitor.register("round_started", monitor_task_event)
     monitor.register("partner_selected", monitor_task_event)
     monitor.register("calculation_started", monitor_task_event)
     monitor.register("aggregation_started", monitor_task_event)
     monitor.register("round_ended", monitor_task_event)
-    
+
     monitor.register("task_finish", monitor_task_finish)
 
     await monitor.start()

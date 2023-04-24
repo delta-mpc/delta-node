@@ -30,7 +30,6 @@ async def run_task(node_address: str, task: entity.Task):
             _managers[task.task_id] = manager
             await manager.run()
             _managers.pop(task.task_id)
-            gc.collect()
         elif task.type == "hlr":
             from .hlr import ServerTaskManager
 
@@ -38,7 +37,6 @@ async def run_task(node_address: str, task: entity.Task):
             _managers[task.task_id] = manager
             await manager.run()
             _managers.pop(task.task_id)
-            gc.collect()
         else:
             raise TypeError(f"unknown task type {task.type}")
     except Exception as e:
@@ -51,6 +49,8 @@ async def run_task(node_address: str, task: entity.Task):
             f"task {task.task_id} error: {str(e)}", extra={"task_id": task.task_id}
         )
         raise
+    finally:
+        gc.collect()
 
 
 async def run_unfinished_tasks(node_address: str):
