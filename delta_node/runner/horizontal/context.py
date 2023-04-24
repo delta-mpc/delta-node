@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-from typing import Any, List, MutableMapping, Tuple
+from typing import Any, List, Tuple
 
 from delta.core.task import (
     AggResultType,
@@ -22,10 +22,11 @@ _logger = logging.getLogger(__name__)
 
 
 class ClientTaskContext(ClientContext):
-    def __init__(self, task_id: str) -> None:
+    def __init__(self, task_id: str, cache_size_limit: int = 100000000) -> None:
         self.task_id = task_id
-        self.cache: MutableMapping[str, Any] = pool.MPCache()
-        self.agg_result: MutableMapping[str, AggResultType] = pool.MPCache()
+        self.cache_size_limit = cache_size_limit
+        self.cache: pool.MPCache[str, Any] = pool.MPCache()
+        self.agg_result: pool.MPCache[str, AggResultType] = pool.MPCache()
 
     def get(self, *vars: DataNode) -> List[Any]:
         def get_var(var: DataNode) -> Any:
@@ -36,6 +37,9 @@ class ClientTaskContext(ClientContext):
                 value = self.cache[var.name]
             elif os.path.exists(filename):
                 value = serialize.load_obj(filename)
+                file_size = os.path.getsize(filename)
+                if var.name not in self.cache and self.cache.size + file_size < self.cache_size_limit:
+                    self.cache[var.name] = value
             elif var.location == DataLocation.CLIENT:
                 if isinstance(var, InputGraphNode):
                     if var.filename is not None and var.format is not None:
@@ -48,8 +52,6 @@ class ClientTaskContext(ClientContext):
                 )
             if value is None:
                 raise ValueError(f"Cannot get var {var.name}")
-            if var.name not in self.cache:
-                self.cache[var.name] = value
             return value
 
         if len(vars) == 0:
@@ -72,9 +74,11 @@ class ClientTaskContext(ClientContext):
 
     def set(self, *pairs: Tuple[DataNode, Any]):
         def set_var(var: DataNode, data: Any):
-            self.cache[var.name] = data
             filename = loc.task_context_file(self.task_id, var.name)
             serialize.dump_obj(filename, data)
+            file_size = os.path.getsize(filename)
+            if self.cache.size + file_size < self.cache_size_limit:
+                self.cache[var.name] = data
 
         if len(pairs) == 1:
             set_var(*pairs[0])
@@ -101,7 +105,7 @@ class ClientTaskContext(ClientContext):
 
     def get_agg_result(self, name: str) -> AggResultType:
         _logger.debug(f"get agg var name {name}")
-        return self.agg_result[name]
+        return self.agg_result.pop(name)
 
     def load_data(self, filename: str, format: DataFormat, **kwargs: Any):
         if format == DataFormat.DATASET:

@@ -71,21 +71,26 @@ async def run_in_worker(
     return res
 
 
-_KT = TypeVar("_KT", contravariant=True)
+_KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
 class MPCache(MutableMapping[_KT, _VT]):
     def __init__(self) -> None:
         self.cache: Dict[_KT, bytes] = _MANAGER.dict()  # type: ignore
+        self._size = 0
 
     def __getitem__(self, __k: _KT) -> _VT:
         return pickle.loads(self.cache[__k])
 
     def __setitem__(self, __k: _KT, __v: _VT) -> None:
-        self.cache[__k] = pickle.dumps(__v)
+        value = pickle.dumps(__v)
+        self.cache[__k] = value
+        self._size += len(value)
 
     def __delitem__(self, __v: _KT) -> None:
+        value = self.cache[__v]
+        self._size -= len(value)
         del self.cache[__v]
 
     def __iter__(self) -> Iterator[_KT]:
@@ -93,3 +98,7 @@ class MPCache(MutableMapping[_KT, _VT]):
 
     def __len__(self) -> int:
         return len(self.cache)
+    
+    @property
+    def size(self) -> int:
+        return self._size

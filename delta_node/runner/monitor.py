@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gc
 import logging
 from collections import defaultdict
 from typing import Dict, List, TypeVar
@@ -205,6 +206,7 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
     await EventBoxStore.pop(task_id)
 
     _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
+    gc.collect()
 
 
 async def create_unfinished_task(monitor: Monitor, task: entity.horizontal.RunnerTask | entity.hlr.RunnerTask):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gc
 from logging import getLogger
 from typing import Dict, List
 
@@ -29,6 +30,7 @@ async def run_task(node_address: str, task: entity.Task):
             _managers[task.task_id] = manager
             await manager.run()
             _managers.pop(task.task_id)
+            gc.collect()
         elif task.type == "hlr":
             from .hlr import ServerTaskManager
 
@@ -36,6 +38,7 @@ async def run_task(node_address: str, task: entity.Task):
             _managers[task.task_id] = manager
             await manager.run()
             _managers.pop(task.task_id)
+            gc.collect()
         else:
             raise TypeError(f"unknown task type {task.type}")
     except Exception as e:
