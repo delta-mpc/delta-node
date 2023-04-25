@@ -82,9 +82,9 @@ class ManagerStore(object):
     lock = asyncio.Lock()
 
     @classmethod
-    async def get(cls, task_id: str) -> Manager:
+    async def get(cls, task_id: str) -> Manager | None:
         async with cls.lock:
-            return cls.managers[task_id]
+            return cls.managers.get(task_id)
 
     @classmethod
     async def set(cls, task_id: str, manager: Manager):
@@ -92,13 +92,14 @@ class ManagerStore(object):
             cls.managers[task_id] = manager
 
     @classmethod
-    async def pop(cls, task_id: str) -> Manager:
+    async def pop(cls, task_id: str) -> Manager | None:
         async with cls.lock:
-            return cls.managers.pop(task_id)
+            return cls.managers.pop(task_id, None)
 
     @classmethod
     def delete(cls, task_id: str):
-        del cls.managers[task_id]
+        if task_id in cls.managers:
+            del cls.managers[task_id]
 
 
 class EventBoxStore(object):
@@ -114,13 +115,14 @@ class EventBoxStore(object):
             return cls.event_boxes[task_id]
 
     @classmethod
-    async def pop(cls, task_id: str) -> EventBox:
+    async def pop(cls, task_id: str) -> EventBox | None:
         async with cls.lock:
-            return cls.event_boxes.pop(task_id)
+            return cls.event_boxes.pop(task_id, None)
 
     @classmethod
     def delete(cls, task_id: str):
-        del cls.event_boxes[task_id]
+        if task_id in cls.event_boxes:
+            del cls.event_boxes[task_id]
 
 
 async def create_task_manager(
@@ -210,6 +212,7 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
             await manager.finish(True)
         await EventBoxStore.pop(event.task_id)
         gc.collect()
+        raise        
 
     run_task_manager(manager)
 
