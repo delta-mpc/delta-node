@@ -29,14 +29,14 @@ async def run_task(node_address: str, task: entity.Task):
             manager = ServerTaskManager(node_address, task)
             _managers[task.task_id] = manager
             await manager.run()
-            _managers.pop(task.task_id)
+            del _managers[task.task_id]
         elif task.type == "hlr":
             from .hlr import ServerTaskManager
 
             manager = ServerTaskManager(node_address, task)
             _managers[task.task_id] = manager
             await manager.run()
-            _managers.pop(task.task_id)
+            del _managers[task.task_id]
         else:
             raise TypeError(f"unknown task type {task.type}")
     except Exception as e:

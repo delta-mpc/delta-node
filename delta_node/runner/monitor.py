@@ -209,8 +209,10 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
     except:
         manager = await ManagerStore.pop(event.task_id)
         if manager is not None:
-            await manager.finish(True)
-        await EventBoxStore.pop(event.task_id)
+            await manager.finish(False)
+        event_box = await EventBoxStore.pop(event.task_id)
+        del event_box
+        del manager
         gc.collect()
         raise        
 
@@ -225,7 +227,9 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
         manager = await ManagerStore.pop(task_id)
         if manager is not None:
             await manager.finish(True)
-        await EventBoxStore.pop(task_id)
+        event_box = await EventBoxStore.pop(task_id)
+        del event_box
+        del manager
     finally:
         gc.collect()
 
