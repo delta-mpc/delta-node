@@ -37,7 +37,7 @@ class ServerTaskContext(ServerContext):
                 value = self.cache[var.name]
             elif os.path.exists(filename):
                 value = serialize.load_obj(filename)
-                file_size = os.path.getsize(value)
+                file_size = os.path.getsize(filename)
                 if var.name not in self.cache and self.cache.size + file_size < self.cache_size_limit:
                     self.cache[var.name] = value
             elif isinstance(var, InputGraphNode):
