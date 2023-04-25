@@ -6,10 +6,12 @@ from logging import getLogger
 from typing import Dict, List
 
 import sqlalchemy as sa
+import torch.cuda
+
 from delta_node import db, entity
 
 from . import loc
-from .create import create_task, TaskConfig
+from .create import TaskConfig, create_task
 from .manager import Manager
 
 _logger = getLogger(__name__)
@@ -51,6 +53,8 @@ async def run_task(node_address: str, task: entity.Task):
         raise
     finally:
         gc.collect()
+        if torch.cuda.is_initialized():
+            torch.cuda.empty_cache()
 
 
 async def run_unfinished_tasks(node_address: str):

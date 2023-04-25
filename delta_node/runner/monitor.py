@@ -6,12 +6,14 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, TypeVar
 
-from delta_node import chain, config, db, entity, pool, registry
+import torch.cuda
 from typing_extensions import Protocol
 
+from delta_node import chain, config, db, entity, pool, registry
+
 from .dataset import check_datasets
-from .manager import Manager
 from .event_box import EventBox
+from .manager import Manager
 
 _logger = logging.getLogger(__name__)
 
@@ -214,7 +216,9 @@ async def monitor_task_create(monitor: Monitor, event: entity.TaskEvent):
         del event_box
         del manager
         gc.collect()
-        raise        
+        if torch.cuda.is_initialized():
+            torch.cuda.empty_cache()
+        raise
 
     run_task_manager(manager)
 
@@ -232,6 +236,8 @@ async def monitor_task_finish(monitor: Monitor, event: entity.TaskEvent):
         del manager
     finally:
         gc.collect()
+        if torch.cuda.is_initialized():
+            torch.cuda.empty_cache()
 
     _logger.info(f"task {task_id} finish", extra={"task_id": task_id})
 
@@ -240,6 +246,8 @@ def _finish_task(task_id: str):
     ManagerStore.delete(task_id)
     EventBoxStore.delete(task_id)
     gc.collect()
+    if torch.cuda.is_initialized():
+        torch.cuda.empty_cache()
 
 
 async def create_unfinished_task(
