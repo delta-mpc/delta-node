@@ -3,12 +3,17 @@ import random
 
 from delta_node import serialize
 from delta_node.chain import datahub, hlr, subscribe
-from delta_node.entity import (AggregationStartedEvent,
-                               CalculationStartedEvent, PartnerSelectedEvent,
-                               RoundEndedEvent, RoundStartedEvent,
-                               TaskCreateEvent, TaskFinishEvent,
-                               TaskMemberVerifiedEvent,
-                               TaskVerificationConfirmedEvent)
+from delta_node.entity import (
+    AggregationStartedEvent,
+    CalculationStartedEvent,
+    PartnerSelectedEvent,
+    RoundEndedEvent,
+    RoundStartedEvent,
+    TaskCreateEvent,
+    TaskFinishEvent,
+    TaskMemberVerifiedEvent,
+    TaskVerificationConfirmedEvent,
+)
 from delta_node.entity.hlr import RoundStatus
 
 

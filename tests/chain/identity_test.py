@@ -15,17 +15,17 @@ async def test_identity(identity_client: identity.Client):
     await identity_client.update_url(address, new_url)
     info = await identity_client.get_node_info(address)
     assert info.url == new_url
-    url = new_url
+    await identity_client.update_url(address, url)
     # update name
     new_name = "node_1"
     await identity_client.update_name(address, new_name)
     info = await identity_client.get_node_info(address)
     assert info.name == new_name
-    name = new_name
+    await identity_client.update_name(address, name)
     # get nodes
-    nodes, count = await identity_client.get_nodes(1, 20)
-    assert count == 1
-    assert nodes[0].address == address
-    assert nodes[0].name == name
-    assert nodes[0].url == url
+    nodes, _ = await identity_client.get_nodes(1, 20)
+    assert address in [node.address for node in nodes]
+    node = next(filter(lambda node: node.address == address, nodes))
+    assert node.name == name
+    assert node.url == url
 

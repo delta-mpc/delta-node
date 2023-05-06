@@ -2,10 +2,10 @@ from logging import getLogger
 from typing import List, Tuple
 
 from delta_node.entity.identity import Node
-from grpclib.client import Channel
+from grpc.aio import Channel
 
 from . import identity_pb2 as pb
-from .identity_grpc import IdentityStub
+from .identity_pb2_grpc import IdentityStub
 
 _logger = getLogger(__name__)
 

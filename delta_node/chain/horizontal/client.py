@@ -1,14 +1,19 @@
 from logging import getLogger
 from typing import List, Tuple
 
+from grpc.aio import Channel
+
 from delta_node import serialize
 from delta_node.entity import TaskStatus
-from delta_node.entity.horizontal import (RoundStatus, RunnerTask,
-                                          SecretShareData, TaskRound)
-from grpclib.client import Channel
+from delta_node.entity.horizontal import (
+    RoundStatus,
+    RunnerTask,
+    SecretShareData,
+    TaskRound,
+)
 
 from . import horizontal_pb2 as pb
-from .horizontal_grpc import HorizontalStub
+from .horizontal_pb2_grpc import HorizontalStub
 
 _logger = getLogger(__name__)
 
@@ -29,7 +34,7 @@ class Client(object):
             address=address,
             dataset=dataset,
             commitment=hex_commitment,
-            task_type=task_type
+            task_type=task_type,
         )
         try:
             resp = await self.stub.CreateTask(req)
@@ -51,11 +56,7 @@ class Client(object):
         req = pb.TaskReq(task_id=task_id)
         try:
             resp = await self.stub.GetTask(req)
-            status = (
-                TaskStatus.FINISHED
-                if resp.finished
-                else TaskStatus.RUNNING
-            )
+            status = TaskStatus.FINISHED if resp.finished else TaskStatus.RUNNING
             res = RunnerTask(
                 creator=resp.address,
                 task_id=resp.task_id,
@@ -70,9 +71,7 @@ class Client(object):
             _logger.error(e)
             raise
 
-    async def start_round(
-        self, address: str, task_id: str, round: int
-    ) -> str:
+    async def start_round(self, address: str, task_id: str, round: int) -> str:
         req = pb.StartRoundReq(
             address=address,
             task_id=task_id,

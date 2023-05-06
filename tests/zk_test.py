@@ -1,13 +1,21 @@
 import numpy as np
 import pytest
+
 from delta_node import zk
+
+pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(scope="module")
+def anyio_backend():
+    return "asyncio"
 
 
 @pytest.fixture(scope="module", autouse=True)
-async def init():
-    zk.init("127.0.0.1", 3400)
+async def init(anyio_backend):
+    await zk.init("127.0.0.1", 3400)
     yield
-    zk.close()
+    await zk.close()
 
 
 async def test_zk():

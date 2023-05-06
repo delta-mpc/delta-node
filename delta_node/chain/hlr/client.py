@@ -1,14 +1,20 @@
 from logging import getLogger
 from typing import List, Tuple
 
+from grpc.aio import Channel
+
 from delta_node import serialize
 from delta_node.entity import TaskStatus
-from delta_node.entity.hlr import (RoundStatus, RunnerTask, SecretShareData,
-                                   TaskRound, VerifierState)
-from grpclib.client import Channel
+from delta_node.entity.hlr import (
+    RoundStatus,
+    RunnerTask,
+    SecretShareData,
+    TaskRound,
+    VerifierState,
+)
 
 from . import hlr_pb2 as pb
-from .hlr_grpc import HLRStub
+from .hlr_pb2_grpc import HLRStub
 
 _logger = getLogger(__name__)
 
@@ -370,21 +376,17 @@ class Client(object):
             return VerifierState(
                 unfinished_clients=list(resp.unfinished_clients),
                 invalid_clients=list(resp.invalid_clients),
-                valid=resp.valid
+                valid=resp.valid,
             )
         except Exception as e:
             _logger.error(e)
             raise
 
     async def confirm_verification(self, address: str, task_id: str) -> str:
-        req = pb.ConfirmReq(
-            address=address,
-            task_id=task_id
-        )
+        req = pb.ConfirmReq(address=address, task_id=task_id)
         try:
             resp = await self.stub.ConfirmVerification(req)
             return resp.tx_hash
         except Exception as e:
             _logger.error(e)
             raise
-

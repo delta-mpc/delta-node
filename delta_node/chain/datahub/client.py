@@ -1,10 +1,10 @@
 from logging import getLogger
 
 from delta_node import serialize
-from grpclib.client import Channel
+from grpc.aio import Channel
 
 from . import datahub_pb2 as pb
-from .datahub_grpc import DataHubStub
+from .datahub_pb2_grpc import DataHubStub
 
 _logger = getLogger(__name__)
 

@@ -7,7 +7,6 @@ _local = threading.local()
 
 __all__ = ["get_client"]
 
-
 def get_client() -> Client:
     if not hasattr(_local, "client"):
         ch = get_channel()

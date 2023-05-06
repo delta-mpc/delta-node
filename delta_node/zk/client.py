@@ -1,13 +1,11 @@
-from logging import getLogger
 from typing import Iterable, List
 
+from grpc.aio import Channel
+
 from delta_node.entity.hlr import Proof
-from grpclib.client import Channel
 
 from . import delta_zk_pb2 as pb
-from .delta_zk_grpc import ZKPStub
-
-_logger = getLogger(__name__)
+from .delta_zk_pb2_grpc import ZKPStub
 
 
 class Client(object):
@@ -23,14 +21,13 @@ class Client(object):
         req = pb.Input(weights=weight, xy=xy)
 
         res = []
-        async with self.stub.prove.open() as stream:
-            await stream.send_message(req, end=True)
-            async for proof in stream:
-                res.append(
-                    Proof(
-                        index=proof.index,
-                        proof=proof.proof,
-                        pub_signals=list(proof.publicSignals),
-                    )
+        stream = self.stub.prove(req)
+        async for proof in stream:
+            res.append(
+                Proof(
+                    index=proof.index,
+                    proof=proof.proof,
+                    pub_signals=list(proof.publicSignals),
                 )
+            )
         return res
