@@ -1,29 +1,22 @@
-from dataclasses import dataclass, field
 from typing import Optional
 
-import sqlalchemy as sa
-from delta_node.db import mapper_registry
+from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BaseTable
+from delta_node.db import Base
+
+from .base import BaseMixin
 
 __all__ = ["Record"]
 
 
-@mapper_registry.mapped
-@dataclass
-class Record(BaseTable):
+class Record(Base, BaseMixin):
     __tablename__ = "log_record"
-    __sa_dataclass_metadata_key__ = "sa"
 
-    level: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=True)}
+    level: Mapped[str] = mapped_column(nullable=False, index=True)
+    message: Mapped[str] = mapped_column(nullable=False, index=False)
+    task_id: Mapped[Optional[str]] = mapped_column(
+        nullable=True, index=True, default=None
     )
-    message: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=False)}
-    )
-    task_id: Optional[str] = field(
-        default=None, metadata={"sa": sa.Column(sa.String, nullable=True, index=True)}
-    )
-    tx_hash: Optional[str] = field(
-        default=None, metadata={"sa": sa.Column(sa.String, nullable=True, index=False)}
+    tx_hash: Mapped[Optional[str]] = mapped_column(
+        nullable=True, index=False, default=None
     )

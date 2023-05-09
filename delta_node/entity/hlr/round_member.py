@@ -1,11 +1,11 @@
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
 import sqlalchemy as sa
-from delta_node.db import mapper_registry
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..base import BaseTable
+from delta_node.db import Base
+
+from ..base import BaseMixin
 from .task_round import RoundStatus
 
 if TYPE_CHECKING:
@@ -15,51 +15,35 @@ if TYPE_CHECKING:
 __all__ = ["RoundMember"]
 
 
-@mapper_registry.mapped
-@dataclass
-class RoundMember(BaseTable):
+class RoundMember(Base, BaseMixin):
     __tablename__ = "hlr_round_member"
-    __sa_dataclass_metadata_key__ = "sa"
 
-    round_id: int = field(
-        metadata={"sa": sa.Column(sa.Integer, index=True, nullable=False)}
-    )
-    address: str = field(
-        metadata={"sa": sa.Column(sa.String, index=True, nullable=False)}
-    )
-    status: RoundStatus = field(
-        metadata={"sa": sa.Column(sa.Enum(RoundStatus), index=True, nullable=False)}
+    round_id: Mapped[int] = mapped_column(index=True, nullable=False)
+    address: Mapped[str] = mapped_column(index=True, nullable=False)
+    status: Mapped[RoundStatus] = mapped_column(
+        sa.Enum(RoundStatus), index=True, nullable=False
     )
 
-    round: Optional["TaskRound"] = field(
+    round: Mapped[Optional["TaskRound"]] = relationship(
+        "delta_node.entity.hlr.task_round.TaskRound",
+        primaryjoin="foreign(delta_node.entity.hlr.round_member.RoundMember.round_id) == delta_node.entity.hlr.task_round.TaskRound.id",
+        back_populates="members",
         init=False,
-        metadata={
-            "sa": relationship(
-                "delta_node.entity.hlr.task_round.TaskRound",
-                primaryjoin="foreign(delta_node.entity.hlr.round_member.RoundMember.round_id) == delta_node.entity.hlr.task_round.TaskRound.id",
-                back_populates="members",
-            )
-        },
+        default=None,
     )
 
-    send_shares: List["SecretShare"] = field(
+    send_shares: Mapped[List["SecretShare"]] = relationship(
+        "delta_node.entity.hlr.secret_share.SecretShare",
+        primaryjoin="foreign(delta_node.entity.hlr.secret_share.SecretShare.sender_id) == delta_node.entity.hlr.round_member.RoundMember.id",
+        back_populates="sender",
         init=False,
-        metadata={
-            "sa": relationship(
-                "delta_node.entity.hlr.secret_share.SecretShare",
-                primaryjoin="foreign(delta_node.entity.hlr.secret_share.SecretShare.sender_id) == delta_node.entity.hlr.round_member.RoundMember.id",
-                back_populates="sender"
-            )
-        },
+        default_factory=list,
     )
-    
-    received_shares: List["SecretShare"] = field(
+
+    received_shares: Mapped[List["SecretShare"]] = relationship(
+        "delta_node.entity.hlr.secret_share.SecretShare",
+        primaryjoin="foreign(delta_node.entity.hlr.secret_share.SecretShare.receiver_id) == delta_node.entity.hlr.round_member.RoundMember.id",
+        back_populates="receiver",
         init=False,
-        metadata={
-            "sa": relationship(
-                "delta_node.entity.hlr.secret_share.SecretShare",
-                primaryjoin="foreign(delta_node.entity.hlr.secret_share.SecretShare.receiver_id) == delta_node.entity.hlr.round_member.RoundMember.id",
-                back_populates="receiver"
-            )
-        },
+        default_factory=list,
     )

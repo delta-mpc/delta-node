@@ -30,7 +30,7 @@ class PyTest(TestCommand):
 
 setup(
     name="delta_node",
-    version="0.8.3",
+    version="0.8.4",
     packages=find_packages(),
     package_data={"delta_node": ["dataset/examples/*.csv"]},
     include_package_data=True,
@@ -52,7 +52,7 @@ setup(
         "pytest>=6.2.5",
         "python-multipart>=0.0.5",
         "PyYAML>=6.0",
-        "SQLAlchemy~=1.4.21",
+        "SQLAlchemy~=2.0.12",
         "tqdm>=4.46.0",
         "torch>=1.8.2",
         "gmpy2==2.1.2",

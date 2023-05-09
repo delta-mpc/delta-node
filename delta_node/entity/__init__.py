@@ -1,11 +1,11 @@
 from . import hlr, horizontal, identity
-from .base import BaseTable
+from .base import BaseMixin
 from .event import *
 from .record import Record
 from .task import Task, TaskStatus
 
 __all__ = [
-    "BaseTable",
+    "BaseMixin",
     "Task",
     "TaskStatus",
     "EventType",

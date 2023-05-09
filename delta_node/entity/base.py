@@ -1,31 +1,29 @@
-from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
 
-import sqlalchemy as sa
-
-__all__ = ["BaseTable"]
+from sqlalchemy.dialects.sqlite import DATETIME
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
 
 
-@dataclass
-class BaseTable:
-    __sa_dataclass_metadata_key__ = "sa"
+__all__ = ["BaseMixin"]
 
-    id: int = field(
+BaseDatetime = DATETIME(
+    storage_format="%(year)04d-%(month)02d-%(day)02d %(hour)02d:%(minute)02d:%(second)02d",
+    regexp=r"(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)",
+)
+
+
+class BaseMixin(MappedAsDataclass):
+    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(
+        BaseDatetime,
         init=False,
-        metadata={"sa": sa.Column(sa.Integer, primary_key=True, autoincrement=True)},
+        default_factory=datetime.now,
+        insert_default=datetime.now,
     )
-    created_at: datetime = field(
+    updated_at: Mapped[datetime] = mapped_column(
+        BaseDatetime,
         init=False,
-        metadata={
-            "sa": sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
-        },
-    )
-    updated_at: Optional[datetime] = field(
-        init=False,
-        metadata={
-            "sa": sa.Column(
-                sa.DateTime(timezone=True), nullable=True, onupdate=sa.func.now()
-            )
-        },
+        default_factory=datetime.now,
+        onupdate=datetime.now,
+        insert_default=datetime.now,
     )

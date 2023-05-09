@@ -1,23 +1,15 @@
-from dataclasses import dataclass, field
+from sqlalchemy.orm import Mapped, mapped_column
 
-import sqlalchemy as sa
-from delta_node.db import mapper_registry
+from delta_node.db import Base
 
-from ..base import BaseTable
+from ..base import BaseMixin
 
 __all__ = ["Node"]
 
 
-@mapper_registry.mapped
-@dataclass
-class Node(BaseTable):
+class Node(Base, BaseMixin):
     __tablename__ = "Node"
-    __sa_dataclass_metadata_key__ = "sa"
 
-    url: str = field(metadata={"sa": sa.Column(sa.String, nullable=False, index=True)})
-    name: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=False)}
-    )
-    address: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=True)}
-    )
+    url: Mapped[str] = mapped_column(nullable=False, index=True)
+    name: Mapped[str] = mapped_column(nullable=False, index=False)
+    address: Mapped[str] = mapped_column(nullable=False, index=True)

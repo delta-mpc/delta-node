@@ -1,12 +1,13 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 from enum import Enum
 from typing import TYPE_CHECKING, List
 
 import sqlalchemy as sa
-from delta_node.db import mapper_registry
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, mapped_column, Mapped
 
-from ..base import BaseTable
+from delta_node.db import Base
+
+from ..base import BaseMixin
 
 if TYPE_CHECKING:
     from .round_member import RoundMember
@@ -22,35 +23,24 @@ class RoundStatus(Enum):
     FINISHED = 4
 
 
-@mapper_registry.mapped
-@dataclass
-class TaskRound(BaseTable):
+class TaskRound(Base, BaseMixin):
     __tablename__ = "hlr_task_round"
-    __sa_dataclass_metadata_key__ = "sa"
 
-    task_id: str = field(
-        metadata={"sa": sa.Column(sa.String, index=True, nullable=False)}
+    task_id: Mapped[str] = mapped_column(index=True, nullable=False)
+    round: Mapped[int] = mapped_column(nullable=False, index=True)
+    status: Mapped[RoundStatus] = mapped_column(
+        sa.Enum(RoundStatus), nullable=False, index=True
     )
-    round: int = field(
-        metadata={"sa": sa.Column(sa.Integer, nullable=False, index=True)}
-    )
-    status: RoundStatus = field(
-        metadata={"sa": sa.Column(sa.Enum(RoundStatus), nullable=False, index=True)}
-    )
-    weight_commitment: bytes = field(
-        metadata={"sa": sa.Column(sa.BINARY, nullable=False, index=False)}
+    weight_commitment: Mapped[bytes] = mapped_column(
+        sa.BINARY, nullable=False, index=False
     )
 
     joined_clients: List[str] = field(default_factory=list)
     finished_clients: List[str] = field(default_factory=list)
 
-    members: List["RoundMember"] = field(
+    members: Mapped[List["RoundMember"]] = relationship(
+        "delta_node.entity.hlr.round_member.RoundMember",
+        primaryjoin="foreign(delta_node.entity.hlr.round_member.RoundMember.round_id) == delta_node.entity.hlr.task_round.TaskRound.id",
+        back_populates="round",
         default_factory=list,
-        metadata={
-            "sa": relationship(
-                "delta_node.entity.hlr.round_member.RoundMember",
-                primaryjoin="foreign(delta_node.entity.hlr.round_member.RoundMember.round_id) == delta_node.entity.hlr.task_round.TaskRound.id",
-                back_populates="round",
-            )
-        },
     )

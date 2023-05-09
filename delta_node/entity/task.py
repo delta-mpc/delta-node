@@ -1,10 +1,11 @@
-from dataclasses import dataclass, field
 from enum import Enum
 
 import sqlalchemy as sa
-from delta_node.db import mapper_registry
+from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BaseTable
+from delta_node.db import Base
+
+from .base import BaseMixin
 
 __all__ = ["TaskStatus", "Task"]
 
@@ -17,34 +18,18 @@ class TaskStatus(Enum):
     CONFIRMED = 4
 
 
-@mapper_registry.mapped
-@dataclass
-class Task(BaseTable):
+class Task(Base, BaseMixin):
     __tablename__ = "task"
-    __sa_dataclass_metadata_key__ = "sa"
 
-    creator: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=True)}
-    )
-    task_id: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=True)}
-    )
-    dataset: str = field(
-        metadata={"sa": sa.Column(sa.String, nullable=False, index=False)}
-    )
-    commitment: bytes = field(
-        metadata={"sa": sa.Column(sa.BINARY, nullable=False, index=False)}
-    )
-    name: str = field(metadata={"sa": sa.Column(sa.String, nullable=True, index=False)})
-    type: str = field(metadata={"sa": sa.Column(sa.String, nullable=True, index=False)})
-    enable_verify: bool = field(
-        metadata={"sa": sa.Column(sa.Boolean, nullable=True, index=False)}
-    )
-    tolerance: int = field(
-        metadata={"sa": sa.Column(sa.Integer, nullable=True, index=False)}
-    )
+    creator: Mapped[str] = mapped_column(nullable=False, index=True)
+    task_id: Mapped[str] = mapped_column(nullable=False, index=True)
+    dataset: Mapped[str] = mapped_column(nullable=False, index=False)
+    commitment: Mapped[bytes] = mapped_column(sa.BINARY, nullable=False, index=False)
+    name: Mapped[str] = mapped_column(nullable=True, index=False)
+    type: Mapped[str] = mapped_column(nullable=True, index=False)
+    enable_verify: Mapped[bool] = mapped_column(sa.Boolean, nullable=True, index=False)
+    tolerance: Mapped[int] = mapped_column(nullable=True, index=False)
 
-    status: TaskStatus = field(
-        default=TaskStatus.PENDING,
-        metadata={"sa": sa.Column(sa.Enum(TaskStatus), nullable=False, index=True)},
+    status: Mapped[TaskStatus] = mapped_column(
+        sa.Enum(TaskStatus), nullable=False, index=True, default=TaskStatus.PENDING
     )

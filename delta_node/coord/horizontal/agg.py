@@ -13,10 +13,16 @@ from delta.core.task import AggResultType
 from sqlalchemy import func
 
 from delta_node import db, pool, serialize, utils
-from delta_node.entity.horizontal import RoundMember, RoundStatus, TaskRound, SecretShare
 from delta_node.chain import horizontal as chain
-from delta_node.crypto import ecdhe, shamir
 from delta_node.coord import loc
+from delta_node.crypto import ecdhe, shamir
+from delta_node.entity.horizontal import (
+    RoundMember,
+    RoundStatus,
+    SecretShare,
+    TaskRound,
+)
+
 from .context import ServerTaskContext
 
 _logger = logging.getLogger(__name__)
@@ -96,9 +102,7 @@ class ServerAggregator(object):
                 .where(TaskRound.round == self.round - 1)
                 .where(TaskRound.status == RoundStatus.FINISHED)
             )
-            last_round: TaskRound | None = (
-                await sess.execute(q)
-            ).scalar_one_or_none()
+            last_round: TaskRound | None = (await sess.execute(q)).scalar_one_or_none()
 
             last_round_clients: List[str] | None = None
             if last_round is not None:
@@ -107,7 +111,7 @@ class ServerAggregator(object):
                     .where(RoundMember.round_id == last_round.id)
                     .where(RoundMember.status == RoundStatus.FINISHED)
                 )
-                last_round_members: List[RoundMember] = (
+                last_round_members: List[RoundMember] = list(
                     (await sess.execute(q)).scalars().all()
                 )
                 last_round_clients = [member.address for member in last_round_members]
@@ -158,7 +162,7 @@ class ServerAggregator(object):
                 .group_by(RoundMember.id)
                 .having(func.count(SecretShare.id) == last_clients_cnt)
             )
-            members: List[RoundMember] = (await sess.execute(q)).scalars().all()
+            members: List[RoundMember] = list((await sess.execute(q)).scalars().all())
             if len(members) < self.strategy.select_strategy.min_clients:
                 raise ValueError("not enough clients in start calculation")
             return members
@@ -395,7 +399,7 @@ class ServerAggregator(object):
                     for (u, v), key in share_keys.items():
                         mask = utils.make_mask(key, val.shape)
                         if u < v:
-                            val -= mask # type: ignore
+                            val -= mask  # type: ignore
                         else:
                             val += mask
                     res[var_name][key] = utils.unfix_precision(
