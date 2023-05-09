@@ -5,7 +5,8 @@ import logging
 
 import delta.serialize
 from delta.core.task import DataLocation, Step, Task
-from delta_node import db, entity, pool, chain, utils, serialize, zk
+
+from delta_node import chain, db, entity, pool, serialize, utils, zk
 from delta_node.runner import loc
 from delta_node.runner.event_box import EventBox
 from delta_node.runner.manager import Manager
@@ -150,10 +151,13 @@ class ClientTaskManager(Manager):
             data_futs.append(data_fut)
         # get weight
         weight = self.ctx.get_weight()
+
         # generate proof
-        proof_fut = asyncio.create_task(
-            zk.get_client().prove(weight.tolist(), data.tolist())
-        )
+        async def get_proofs():
+            async with zk.get_client() as client:
+                return await client.prove(weight.tolist(), data.tolist())
+
+        proof_fut = asyncio.create_task(get_proofs())
         proof_fut.add_done_callback(
             lambda _: _logger.info(
                 f"task {self.task_id} generate zk proof",

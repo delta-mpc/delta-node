@@ -11,14 +11,13 @@ def anyio_backend():
     return "asyncio"
 
 
-@pytest.fixture(scope="module", autouse=True)
-async def init(anyio_backend):
-    await zk.init("127.0.0.1", 3400)
-    yield
-    await zk.close()
+@pytest.fixture(scope="module")
+async def zk_client():
+    async with zk.get_client(host="127.0.0.1", port=3400) as client:
+        yield client
 
 
-async def test_zk():
+async def test_zk(zk_client: zk.Client):
     weight = np.array([0.30321158, -0.10144448, 1.61196386], dtype=np.float64)
     x = np.array(
         [
@@ -96,7 +95,7 @@ async def test_zk():
     )
     data = np.hstack([x, y[:, None]])
 
-    proofs = await zk.get_client().prove(weight.tolist(), data.tolist())
+    proofs = await zk_client.prove(weight.tolist(), data.tolist())
     pub_signals = [
         "21888242871839275222246405745257275088548364400416034299972841686575808495617",
         "29",

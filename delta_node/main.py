@@ -6,7 +6,7 @@ from typing import Optional, Sequence
 
 
 async def _run():
-    from delta_node import app, chain, config, db, log, registry, runner, zk
+    from delta_node import app, chain, config, db, log, registry, runner
 
     if len(config.chain_host) == 0:
         raise RuntimeError("chain connector host is required")
@@ -22,8 +22,7 @@ async def _run():
     log.init()
 
     await db.init(config.db)
-    chain.init(config.chain_host, config.chain_port, ssl=False)
-    zk.init(config.zk_host, config.zk_port, ssl=False)
+    await chain.init(config.chain_host, config.chain_port, ssl=False)
     r = registry.Registry(url=config.node_url, name=config.node_name)
     await r.register()
     
@@ -39,8 +38,7 @@ async def _run():
     finally:
         await r.stop()
         await r.unregister()
-        chain.close()
-        zk.close()
+        await chain.close()
         await db.close()
         listener.stop()
 
@@ -71,12 +69,12 @@ async def _leave():
     log.init()
 
     await db.init(config.db)
-    chain.init(config.chain_host, config.chain_port, ssl=False)
+    await chain.init(config.chain_host, config.chain_port, ssl=False)
 
     r = registry.Registry(url=config.node_url, name=config.node_name)
     await r.unregister()
 
-    chain.close()
+    await chain.close()
     await db.close()
     listener.stop()
 

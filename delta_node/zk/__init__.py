@@ -1,20 +1,16 @@
-import threading
+from contextlib import asynccontextmanager
 
-from delta_node import config
 import grpc
 from grpc.aio import Channel
 
+from delta_node import config
+
 from .client import Client
 
-_local = threading.local()
-
-__all__ = ["get_client", "init", "close"]
+__all__ = ["get_client", "Client"]
 
 
-async def init(host: str = config.zk_host, port: int = config.zk_port, *, ssl: bool = False):
-    if hasattr(_local, "ch") or hasattr(_local, "client"):
-        raise ValueError("chain has been initialized")
-
+def _make_channel(host: str, port: int, *, ssl: bool) -> Channel:
     endpoint = f"{host}:{port}"
     if ssl:
         ch = grpc.aio.secure_channel(
@@ -23,27 +19,14 @@ async def init(host: str = config.zk_host, port: int = config.zk_port, *, ssl: b
     else:
         ch = grpc.aio.insecure_channel(target=endpoint)
 
-    await ch.channel_ready()
-    _local.ch = ch
+    return ch
 
 
-def get_client() -> Client:
-    if not hasattr(_local, "ch"):
-        raise ValueError("zk channel has not been initialized")
-
-    if not hasattr(_local, "client"):
-        ch: Channel = _local.ch
+@asynccontextmanager
+async def get_client(
+    host: str = config.zk_host, port: int = config.zk_port, *, ssl: bool = False
+):
+    ch = _make_channel(host=host, port=port, ssl=ssl)
+    async with ch:
         client = Client(ch)
-        _local.client = client
-        return client
-    else:
-        client: Client = _local.client
-        return client
-
-
-async def close():
-    if not hasattr(_local, "ch"):
-        raise ValueError("chain channel has not been initialized")
-
-    ch: Channel = _local.ch
-    await ch.close()
+        yield client
