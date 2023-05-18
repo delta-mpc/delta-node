@@ -39,7 +39,7 @@ setup(
         "aiosqlite>=0.17.0",
         "async_lru>=1.0.2",
         "cryptography>=3.4.7",
-        "delta-task==0.8.3",
+        "delta-task==0.8.4rc1",
         "fastapi>=0.70.1",
         "grpclib>=0.4.2",
         "httpx>=0.23.0",
