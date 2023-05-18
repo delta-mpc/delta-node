@@ -28,6 +28,10 @@ class ClientTaskContext(ClientContext):
         self.cache: pool.MPCache[str, Any] = pool.MPCache()
         self.agg_result: pool.MPCache[str, AggResultType] = pool.MPCache()
 
+    def _set_cache(self, key: str, value: Any, size: int = 0):
+        if self.cache.size + size < self.cache_size_limit:
+            self.cache[key] = value
+
     def get(self, *vars: DataNode) -> List[Any]:
         def get_var(var: DataNode) -> Any:
             value = None
@@ -38,8 +42,7 @@ class ClientTaskContext(ClientContext):
             elif os.path.exists(filename):
                 value = serialize.load_obj(filename)
                 file_size = os.path.getsize(filename)
-                if var.name not in self.cache and self.cache.size + file_size < self.cache_size_limit:
-                    self.cache[var.name] = value
+                self._set_cache(var.name, value, size=file_size)
             elif var.location == DataLocation.CLIENT:
                 if isinstance(var, InputGraphNode):
                     if var.filename is not None and var.format is not None:
@@ -70,15 +73,15 @@ class ClientTaskContext(ClientContext):
             client.download_task_context(self.task_id, var.name, f)
 
         value = serialize.load_obj(filename)
-        self.cache[var.name] = value
+        file_size = os.path.getsize(filename)
+        self._set_cache(var.name, value, size=file_size)
 
     def set(self, *pairs: Tuple[DataNode, Any]):
         def set_var(var: DataNode, data: Any):
             filename = loc.task_context_file(self.task_id, var.name)
             serialize.dump_obj(filename, data)
             file_size = os.path.getsize(filename)
-            if self.cache.size + file_size < self.cache_size_limit:
-                self.cache[var.name] = data
+            self._set_cache(var.name, data, size=file_size)
 
         if len(pairs) == 1:
             set_var(*pairs[0])
