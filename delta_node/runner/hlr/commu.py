@@ -3,11 +3,15 @@ from __future__ import annotations
 from typing import IO, Dict, List
 
 import httpx
-from delta_node import entity, pool, serialize
+
+from delta_node import config, entity, pool, serialize
 
 
 class CommuClient(object):
     def __init__(self, url: str) -> None:
+        if url == config.node_url:
+            url = f"http://localhost:{config.api_port}"
+
         base_url = url + "/v1/coord/"
         self.client = httpx.Client(base_url=base_url)
 
