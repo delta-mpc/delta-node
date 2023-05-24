@@ -5,12 +5,13 @@ import logging
 import delta.serialize
 import sqlalchemy as sa
 from delta.core.strategy import Strategy
-from delta.core.task import DataLocation, Task, EarlyStop
+from delta.core.task import DataLocation, EarlyStop, Task
 
 from delta_node import db, entity, pool, serialize
 from delta_node.chain import horizontal as chain
-from delta_node.coord import loc
-from delta_node.coord import Manager
+from delta_node.coord import Manager, loc
+from delta_node.utils import free_memory
+
 from .agg import ServerAggregator
 from .context import ServerTaskContext
 
@@ -72,7 +73,9 @@ class ServerTaskManager(Manager):
         )
         # save task round to db
         task_round = entity.horizontal.TaskRound(
-            task_id=self.task_id, round=round, status=entity.horizontal.RoundStatus.STARTED
+            task_id=self.task_id,
+            round=round,
+            status=entity.horizontal.RoundStatus.STARTED,
         )
         async with db.session_scope() as sess:
             sess.add(task_round)
@@ -86,7 +89,10 @@ class ServerTaskManager(Manager):
         try:
             async with aggregator.aggregate(self.ctx):
                 _logger.debug("server complete aggregating")
-                await pool.run_in_worker(step.reduce, self.ctx)
+                try:
+                    await pool.run_in_worker(step.reduce, self.ctx)
+                finally:
+                    free_memory()
         except EarlyStop:
             res = False
         # end round

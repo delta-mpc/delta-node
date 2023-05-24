@@ -6,13 +6,15 @@ import logging
 import delta.serialize
 import sqlalchemy as sa
 from delta.core.strategy import Strategy
-from delta.core.task import EarlyStop, DataLocation
+from delta.core.task import DataLocation, EarlyStop
 from delta.core.task import Task as DTask
+
 from delta_node import db, pool, serialize, utils
 from delta_node.chain import hlr as chain
 from delta_node.coord import Manager, loc
 from delta_node.entity import Task, TaskStatus
 from delta_node.entity.hlr import RoundStatus, TaskRound
+from delta_node.utils import free_memory
 
 from .agg import ServerAggregator
 from .context import ServerTaskContext
@@ -96,7 +98,10 @@ class ServerTaskManager(Manager):
         try:
             async with aggregator.aggregate(self.ctx):
                 _logger.debug("server complete aggregating")
-                await pool.run_in_worker(step.reduce, self.ctx)
+                try:
+                    await pool.run_in_worker(step.reduce, self.ctx)
+                finally:
+                    free_memory()
         except EarlyStop:
             res = False
         # end round

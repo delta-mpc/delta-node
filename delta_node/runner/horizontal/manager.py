@@ -5,10 +5,12 @@ import logging
 
 import delta.serialize
 from delta.core.task import DataLocation, Step, Task
+
 from delta_node import db, entity, pool
 from delta_node.runner import loc
 from delta_node.runner.event_box import EventBox
 from delta_node.runner.manager import Manager
+from delta_node.utils import free_memory
 
 from .agg import ClientAggregator, NotSelected
 from .commu import CommuClient
@@ -89,7 +91,10 @@ class ClientTaskManager(Manager):
                 ]
                 await asyncio.gather(*futs)
                 _logger.debug("start running step map")
-                await pool.run_in_worker(step.map, self.ctx)
+                try:
+                    await pool.run_in_worker(step.map, self.ctx)
+                finally:
+                    free_memory()
                 _logger.debug("complete running step map")
 
         event = await self.event_box.wait_for_event(
