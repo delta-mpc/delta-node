@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 
 import delta.serialize
 import sqlalchemy as sa
@@ -108,11 +109,16 @@ class ServerTaskManager(Manager):
         tx_hash = await chain.get_client().end_round(
             self.node_address, self.task_id, round
         )
+        await pool.run_in_io(self.clear_round_cache, round)
         _logger.info(
             f"[End Round] task {self.task_id} round {round} finish",
             extra={"task_id": self.task_id, "tx_hash": tx_hash},
         )
         return res
+
+    def clear_round_cache(self, round: int):
+        dirname = loc.task_round_dir(self.task_id, round)
+        shutil.rmtree(dirname)
 
     def save_result(self):
         vars = self.ctx.get(*self.task.outputs)
