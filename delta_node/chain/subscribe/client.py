@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 
 from delta_node import entity, serialize
 from grpclib.client import Channel
+from grpclib.exceptions import StreamTerminatedError
 
 from . import subscribe_pb2 as pb
 from .subscribe_grpc import SubscribeStub
@@ -94,6 +95,7 @@ class Client(object):
         address: str,
         timeout: int = 0,
         retry_attemps: int = 0,
+        retry_delay: int = 10,
         yield_heartbeat: bool = False,
     ) -> AsyncGenerator[entity.Event, None]:
         origin_retry_attemps = retry_attemps
@@ -113,16 +115,21 @@ class Client(object):
             except StopAsyncIteration:
                 gen_finished = True
                 return
-            except asyncio.TimeoutError as e:
+            except (asyncio.TimeoutError, StreamTerminatedError, ConnectionError) as e:
                 if retry_attemps == 0:
                     _logger.error(
                         f"cannot connect to connector {origin_retry_attemps} times, exit"
                     )
                     raise e
-                _logger.warning(
-                    f"connector does not send heartbeat after {timeout * 2} seconds, reconnect"
-                )
-                await asyncio.sleep(2)
+                if isinstance(e, asyncio.TimeoutError):
+                    _logger.warning(
+                        f"connector does not send heartbeat after {timeout * 2} seconds, reconnect"
+                    )
+                else:
+                    _logger.warning(
+                        f"lose connect to the connector, reconnect"
+                    )
+                await asyncio.sleep(retry_delay)
                 retry_attemps -= 1
             except asyncio.CancelledError:
                 raise
